@@ -3,7 +3,9 @@ using Cube.Replication;
 using Cube.Transport;
 using System;
 using UnityEngine;
+using UnityEngine.Assertions;
 using UnityEngine.Events;
+using UnityEngine.SceneManagement;
 using BitStream = Cube.Transport.BitStream;
 
 namespace GameFramework {
@@ -14,7 +16,18 @@ namespace GameFramework {
     public class ServerGame {
         public ushort port = 60000;
 
-        public CubeServer server;
+        public CubeServer server {
+            get;
+            internal set;
+        }
+        public IGameMode gameMode {
+            get;
+            internal set;
+        }
+        public World world {
+            get;
+            internal set;
+        }
 
         public ConnectionEvent onNewIncomingConnection = new ConnectionEvent();
         public ConnectionEvent onDisconnectionNotification = new ConnectionEvent();
@@ -25,15 +38,28 @@ namespace GameFramework {
         byte _loadScenePlayerAcks;
         bool _onAllClientsLoadedSceneTriggeredThisGeneration;
 
-        public ServerGame(Transform transform, ServerReplicaManagerSettings replicaManagerSettings) {
-            server = new CubeServer(port, transform, replicaManagerSettings);
+        public ServerGame(World world, ServerReplicaManagerSettings replicaManagerSettings) {
+            if (world == null)
+                throw new ArgumentNullException("world");
+
+            this.world = world;
+
+            server = new CubeServer(port, world.transform, replicaManagerSettings);
 
             server.reactor.AddMessageHandler((byte)MessageId.NewConnectionEstablished, OnNewIncomingConnection);
             server.reactor.AddMessageHandler((byte)MessageId.DisconnectNotification, OnDisconnectionNotification);
             server.reactor.AddMessageHandler((byte)MessageId.LoadSceneDone, OnLoadSceneDone);
         }
 
+        public virtual IGameMode CreateGameModeForScene(string sceneName) {
+            return new GameMode(this);
+        }
+
         public void LoadScene(string sceneName) {
+            if (gameMode != null) {
+                gameMode.StartToLeaveMap();
+            }
+
             ++_loadSceneGeneration;
             _loadScenePlayerAcks = 0;
             _loadSceneName = sceneName;
@@ -61,6 +87,11 @@ namespace GameFramework {
             Debug.Log("[Server] Loading level " + sceneName);
             SceneManager.LoadScene(sceneName);
 #endif
+
+            gameMode = CreateGameModeForScene(sceneName);
+            Assert.IsNotNull(gameMode);
+
+            Debug.Log("[Server][Game] New game mode '" + gameMode + "'");
         }
 
         protected virtual void OnNewIncomingConnection(Connection connection, BitStream bs) {
@@ -76,9 +107,18 @@ namespace GameFramework {
                 server.networkInterface.SendBitStream(bs2, PacketPriority.High, PacketReliability.ReliableSequenced, connection);
             }
 
+            var newPC = CreatePlayerController(connection);
+            world.playerControllers.Add(newPC);
+
             CreateReplicaView(connection);
 
+            gameMode.HandleNewPlayer(newPC);
+
             onNewIncomingConnection.Invoke(connection);
+        }
+
+        protected virtual PlayerController CreatePlayerController(Connection connection) {
+            return new PlayerController(connection);
         }
 
         protected virtual void OnDisconnectionNotification(Connection connection, BitStream bs) {
@@ -93,6 +133,9 @@ namespace GameFramework {
 
         public virtual void Update() {
             server.Update();
+            if (gameMode != null) {
+                gameMode.Tick();
+            }
         }
 
         public virtual void Shutdown() {

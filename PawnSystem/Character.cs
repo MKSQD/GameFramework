@@ -1,78 +1,85 @@
 ﻿using UnityEngine;
+using UnityEngine.Events;
 
-[RequireComponent(typeof(CharacterController))]
-public class Character : Pawn {
-    public Transform view;
-    public float moveSpeed = 1;
-    public float jumpForce = 12;
-    public float airControl = 0.1f;
+namespace GameFramework {
+    [AddComponentMenu("GameFramework/Character")]
+    [RequireComponent(typeof(CharacterController))]
+    [RequireComponent(typeof(CharacterMovement))]
+    public class Character : Pawn {
+        public Transform view;
+        public float moveSpeed = 1;
+        public float jumpForce = 12;
+        public float groundControl = 0.95f;
+        public float airControl = 0.1f;
+        public bool useGravity = true;
+        public float pushPower = 2f;
 
-    public Vector3 velocity {
-        get { return _cc.velocity; }
-    }
-
-    CharacterController _cc;
-    Vector3 _movement;
-    Vector3 _lastMovement;
-    float _yaw;
-    float _pitch;
-    float _jumpForce;
-
-    protected virtual void Start() {
-        _cc = GetComponent<CharacterController>();
-    }
-
-    public override void AddMovementInput(Vector3 worldDirection) {
-        _movement += worldDirection.normalized;
-    }
-
-    public override void AddYawInput(float value) {
-        _yaw += value;
-        _yaw = Mathf.Repeat(_yaw, 360);
-    }
-
-    public override void AddPitchInput(float value) {
-        _pitch += value;
-        _pitch = Mathf.Clamp(_pitch, -60, 50);
-    }
-
-    public void Jump() {
-        if (!_cc.isGrounded)
-            return;
-
-        _jumpForce = 1;
-    }
-
-    public override void Tick() {
-        base.Tick();
-
-        var actualMovement = _movement * moveSpeed;
-
-        // Air Control
-        if (!_cc.isGrounded) {
-            actualMovement = Vector3.Lerp(_lastMovement, actualMovement, airControl);
+        public CharacterMovement movement {
+            get;
+            internal set;
         }
 
-        _lastMovement = actualMovement;
-
-        // Jump
-        if (_jumpForce > 0.4f) {
-            _jumpForce *= 0.98f;
-
-            actualMovement += _jumpForce * Vector3.up * jumpForce;
+        public Vector3 velocity {
+            get { return characterController.velocity; }
         }
 
-        // Gravity
-        if (!_cc.isGrounded) {
-            actualMovement += Physics.gravity;
+        public bool isGrounded {
+            get { return characterController.isGrounded; }
         }
 
-        _cc.Move(actualMovement * Time.deltaTime);
+        public UnityEvent onJump;
+        public UnityEvent onLand;
 
-        // Rotation
-        transform.localRotation = Quaternion.AngleAxis(_yaw, Vector3.up);
-        view.localRotation = Quaternion.AngleAxis(_pitch, Vector3.left);
+        public CharacterController characterController {
+            get;
+            internal set;
+        }
 
-        _movement = Vector3.zero;
+        protected override void Awake() {
+            base.Awake();
+            characterController = GetComponent<CharacterController>();
+            movement = GetComponent<CharacterMovement>();
+        }
+
+        public override void Teleport(Vector3 targetPosition, Quaternion targetRotation) {
+            if (characterController != null) {
+                characterController.enabled = false;
+            }
+            transform.position = targetPosition;
+            transform.rotation = targetRotation;
+            if (characterController != null) {
+                characterController.enabled = true;
+            }
+        }
+
+        protected override void TickImpl() {
+            if (movement != null) {
+                movement.Tick();
+            }
+        }
+
+//         public override void Serialize(BitStream bs, ReplicaView view) {
+//             bs.Write(transform.position);
+//             bs.WriteNormalised(_movement);
+//         }
+// 
+//         public override void Deserialize(BitStream bs) {
+//             transform.position = bs.ReadVector3();
+//             _movement = bs.ReadNormalisedVector3();
+//         }
+
+        void OnControllerColliderHit(ControllerColliderHit hit) {
+            var body = hit.collider.attachedRigidbody;
+            if (body == null || body.isKinematic)
+                return;
+
+            if (hit.moveDirection.y < -0.3f)
+                return;
+
+            var pushDir = hit.moveDirection;
+            pushDir.y = 0;
+
+            body.velocity = pushDir * pushPower;
+        }
     }
 }

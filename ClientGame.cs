@@ -1,5 +1,6 @@
 using Cube.Networking;
 using Cube.Transport;
+using System;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.SceneManagement;
@@ -7,19 +8,27 @@ using BitStream = Cube.Transport.BitStream;
 
 namespace GameFramework {
     public class ClientGame {
-        public ClientSimulatedLagSettings lagSettings;
-
         public bool connectInEditor = true;
         public ushort portInEditor = 60000;
 
-        public CubeClient client;
+        public CubeClient client {
+            get;
+            internal set;
+        }
+        public World world {
+            get;
+            internal set;
+        }
 
-        public UnityEvent onConnectionRequestAccepted = new UnityEvent();
-        public UnityEvent onConnectionRequestFailed = new UnityEvent();
         public UnityEvent onSceneLoadStart = new UnityEvent();
 
-        public ClientGame(Transform transform) {
-            client = new CubeClient(transform, lagSettings);
+        public ClientGame(World world, ClientSimulatedLagSettings lagSettings) {
+            if (world == null)
+                throw new ArgumentNullException("world");
+
+            this.world = world;
+
+            client = new CubeClient(world.transform, lagSettings);
 
 #if UNITY_EDITOR
             if (connectInEditor) {
@@ -29,6 +38,7 @@ namespace GameFramework {
 
             client.reactor.AddHandler((byte)MessageId.ConnectionRequestAccepted, OnConnectionRequestAccepted);
             client.reactor.AddHandler((byte)MessageId.ConnectionRequestFailed, OnConnectionRequestFailed);
+            client.reactor.AddHandler((byte)MessageId.DisconnectNotification, OnDisconnectNotification);
             client.reactor.AddHandler((byte)MessageId.LoadScene, OnLoadScene);
         }
 
@@ -43,20 +53,25 @@ namespace GameFramework {
         void OnConnectionRequestAccepted(BitStream bs) {
             Debug.Log("[Client] Connection request to server accepted");
 
-            onConnectionRequestAccepted.Invoke();
+            var newPC = CreatePlayerController();
+            world.playerControllers.Add(newPC);
         }
 
         void OnConnectionRequestFailed(BitStream bs) {
             Debug.Log("Connection request to server failed");
+        }
 
-            onConnectionRequestFailed.Invoke();
+        void OnDisconnectNotification(BitStream bs) {
+            Debug.Log("Disconnected");
+
+            // localPlayerController = null;
         }
 
         void OnLoadScene(BitStream bs) {
             var sceneName = bs.ReadString();
             var generation = bs.ReadByte();
 
-            Debug.Log("[Client] Loading level: " + sceneName + " generation=" + generation);
+            Debug.Log("[Client] Loading level '" + sceneName + "' (generation=" + generation + ")");
 
             client.replicaManager.Reset();
 
@@ -73,6 +88,10 @@ namespace GameFramework {
 
                 client.networkInterface.Send(bs2, PacketPriority.High, PacketReliability.Reliable);
             };
+        }
+
+        protected virtual PlayerController CreatePlayerController() {
+            return new DefaultPlayerController(Connection.Invalid);
         }
     }
 }

@@ -1,31 +1,50 @@
-﻿public class PlayerController : PawnController {
-    public PlayerInput input {
-        get;
-        internal set;
-    }
-    public Character character {
-        get;
-        internal set;
-    }
+﻿using Cube.Transport;
 
-    public virtual PlayerInput CreateInputSystem() {
-        return new PlayerInput();
-    }
+namespace GameFramework {
+    public class PlayerController : PawnController {
+        public PlayerInput input {
+            get;
+            internal set;
+        }
+        public Character character {
+            get;
+            internal set;
+        }
+        public Connection connection {
+            get;
+            internal set;
+        }
 
-    public virtual void SetupInputComponent() {
-    }
+        public PlayerController(Connection connection) {
+            this.connection = connection;
+        }
 
-    public override void OnPossess(Pawn pawn) {
-        character = (Character)pawn;
+        public void ClientTravel() {
 
-        input = CreateInputSystem();
-        SetupInputComponent();
-    }
+        }
 
-    public override void OnUnpossess() {
-    }
+        public virtual PlayerInput CreatePlayerInput() {
+            return new PlayerInput();
+        }
 
-    public override void Tick() {
-        input.Tick();
+        public virtual void SetupInputComponent() {
+        }
+
+        public override void Tick() {
+            input.Tick();
+        }
+
+        protected override void OnPossess(Pawn pawn) {
+            character = (Character)pawn;
+
+            pawn.replica.AssignOwnership(connection);
+
+            input = CreatePlayerInput();
+            SetupInputComponent();
+        }
+
+        protected override void OnUnpossess() {
+            pawn.replica.TakeOwnership();
+        }
     }
 }

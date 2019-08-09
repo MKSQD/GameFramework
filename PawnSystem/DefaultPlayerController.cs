@@ -1,29 +1,36 @@
-﻿public class DefaultPlayerController : PlayerController {
-    public override void SetupInputComponent() {
-        input.BindAxis("Horizontal", OnHorizontalInput);
-        input.BindAxis("Vertical", OnVerticalInput);
-        input.BindAxis("Mouse X", OnMouseXInput);
-        input.BindAxis("Mouse Y", OnMouseYInput);
-        input.BindAction("Jump", OnJumpInput);
-    }
+﻿using Cube.Transport;
 
-    void OnHorizontalInput(float value) {
-        character.AddMovementInput(character.transform.right * value);
-    }
+namespace GameFramework {
+    public class DefaultPlayerController : PlayerController {
+        public DefaultPlayerController(Connection connection) : base(connection) {
+        }
 
-    void OnVerticalInput(float value) {
-        character.AddMovementInput(character.transform.forward * value);
-    }
+        public override void SetupInputComponent() {
+            input.BindAxis("Mouse X", OnMouseXInput);
+            input.BindAxis("Mouse Y", OnMouseYInput);
+            input.BindAxis("Horizontal", OnHorizontalInput);
+            input.BindAxis("Vertical", OnVerticalInput);
+            input.BindAction("Jump", OnJumpInput);
+        }
 
-    void OnMouseXInput(float value) {
-        character.AddYawInput(value);
-    }
+        void OnHorizontalInput(float value) {
+            character.movement.AddMoveInput(character.transform.right * value);
+        }
 
-    void OnMouseYInput(float value) {
-        character.AddPitchInput(value);
-    }
+        void OnVerticalInput(float value) {
+            character.movement.AddMoveInput(character.transform.forward * value);
+        }
 
-    void OnJumpInput() {
-        character.Jump();
+        void OnMouseXInput(float value) {
+            character.movement.AddYawInput(value);
+        }
+
+        void OnMouseYInput(float value) {
+            character.movement.AddPitchInput(value);
+        }
+
+        void OnJumpInput() {
+            character.movement.Jump();
+        }
     }
 }
