@@ -12,30 +12,15 @@ namespace GameFramework {
         protected class Move : ISerializable {
             public uint tick;
             public Vector3 movement;
+            public Vector3 worldPosition;
             public float yaw;
             public float pitch;
             public bool jump;
-
-            public bool forceNoCombine = false;
-
-            public bool CanCombineWith(Move other) {
-                if (forceNoCombine || other.forceNoCombine)
-                    return false;
-
-                var diff = movement - other.movement;
-                if (diff.sqrMagnitude > 0.1f)
-                    return true;
-
-                return false;
-            }
 
             public virtual void CombineWith(Move other) {
                 movement += other.movement;
                 yaw = other.yaw;
                 pitch = other.pitch;
-                if (other.jump) {
-                    jump = true;
-                }
             }
 
             public virtual void CopyFromLastMove(Move last) {
@@ -81,21 +66,19 @@ namespace GameFramework {
         Vector3? _clientAdjustedPosition;
         uint _clientAdjustTick;
 
-        StreamWriter logFile;
-
         public void AddMoveInput(Vector3 worldDirection) {
-            _currentMove.movement += worldDirection.normalized;
+            _currentMove.movement += transform.rotation * worldDirection.normalized;
             _currentMove.movement.x = Mathf.Clamp(_currentMove.movement.x, -maxMovement, maxMovement);
             _currentMove.movement.z = Mathf.Clamp(_currentMove.movement.z, -maxMovement, maxMovement);
         }
 
         public void AddYawInput(float value) {
-            _currentMove.yaw += value;
+            _currentMove.yaw += value * 4;
             _currentMove.yaw = Mathf.Repeat(_currentMove.yaw, 360);
         }
 
         public void AddPitchInput(float value) {
-            _currentMove.pitch += value;
+            _currentMove.pitch += value * 4;
             _currentMove.pitch = Mathf.Clamp(_currentMove.pitch, minPitch, maxPitch);
         }
 
@@ -103,7 +86,6 @@ namespace GameFramework {
             if (!_character.isGrounded && !_currentMove.jump)
                 return;
 
-            _currentMove.forceNoCombine = true;
             _currentMove.jump = true;
         }
 
@@ -113,33 +95,27 @@ namespace GameFramework {
         public void OnExitLadder() {
         }
 
-        void LogMove(Move move) {
-            if (logFile == null)
-                return;
-
-            logFile.WriteLine(move.tick + " " + move.movement + " " + move.yaw);
-            //logFile.Flush();
-        }
-
-        Vector3 _lastTickPosition;
+        Vector3 _lastTickPos;
         public void Tick() {
             if (isClient && isOwner) {
-                transform.position = _lastTickPosition;
-                foreach (var move in _subMoves) {
-                    ReplicaMoveToServer(move, GameFramework.Tick.tickRate);
-                }
-                _lastTickPosition = transform.position;
+                if (_subMoves.Count > 0) {
+                    transform.position = _subMoves[0].worldPosition; // Revert
 
-                _subMoves.Clear();
+                    var combinedMove = _subMoves[0];
+                    for (int i = 1; i < _subMoves.Count; ++i) {
+                        var otherMove = _subMoves[i];
+                        combinedMove.CombineWith(otherMove);
+                    }
+                    _subMoves.Clear();
+
+                    ReplicaMoveToServer(combinedMove, GameFramework.Tick.tickRate); // Replay
+                }
             }
         }
 
         void ReplicaMoveToServer(Move move, float deltaTime) {
             _pendingMoves.AddLast(move);
-            LogMove(move);
             PerformMovement(move, deltaTime);
-
-
             RpcServerMove(move, transform.position);
         }
 
@@ -148,29 +124,15 @@ namespace GameFramework {
         }
 
         protected virtual void Update() {
-            if (logFile == null) {
-                logFile = File.CreateText(isClient ? "C:\\projects\\CubeWIP\\client.log" : "C:\\projects\\CubeWIP\\server.log");
-            }
-
             PerformMovement(_currentMove, Time.deltaTime);
 
-            var combined = false;
-            if (_subMoves.Count > 0) {
-                var lastMove = _subMoves.Last();
-                if (lastMove.CanCombineWith(_currentMove)) {
-                    lastMove.CombineWith(_currentMove);
-                    combined = true;
-                }
-            }
-            if (!combined) {
-                _subMoves.Add(_currentMove);
-            }
+            _currentMove.worldPosition = transform.position;
+            _subMoves.Add(_currentMove);
 
-
-            var nextMove = AllocateNewMove();
-            nextMove.tick = GameFramework.Tick.tick;
-            nextMove.CopyFromLastMove(_currentMove);
-            _currentMove = nextMove;
+            var newMove = AllocateNewMove();
+            newMove.tick = GameFramework.Tick.tick;
+            newMove.CopyFromLastMove(_currentMove);
+            _currentMove = newMove;
         }
 
         void Awake() {
@@ -189,8 +151,8 @@ namespace GameFramework {
             transform.localRotation = Quaternion.AngleAxis(move.yaw, Vector3.up);
             _character.view.localRotation = Quaternion.AngleAxis(move.pitch, Vector3.left);
 
-
-            var actualMovement = move.movement * _character.moveSpeed;
+            var baseMovement = transform.InverseTransformDirection(move.movement);
+            var actualMovement = baseMovement * _character.moveSpeed;
 
             var modifier = _character.isGrounded ? _character.groundControl : _character.airControl;
             actualMovement = Vector3.Lerp(_lastMovement, actualMovement, modifier);
@@ -240,14 +202,12 @@ namespace GameFramework {
 
             var OLDPOS = transform.position;
 
-            LogMove(move);
             PerformMovement(move, GameFramework.Tick.tickRate);
             _clientLastTick = move.tick;
 
             var diff = transform.position - finalPosition;
             if (diff.sqrMagnitude > movementClientAdjustThresholdSqr) {
                 RpcClientAdjustPosition(transform.position, move.tick);
-                logFile.WriteLine("Reset client to tick " + move.tick + " diff=" + diff.sqrMagnitude);
                 return;
             }
 
@@ -286,23 +246,17 @@ namespace GameFramework {
         }
 
         void ClientUpdatePosition(Vector3 worldPosition, uint tick) {
-            logFile.WriteLine("--- Client rewind " + tick + " ---");
-
             Debug.DrawLine(transform.position, worldPosition, Color.red, 1f);
             _character.Teleport(worldPosition, transform.rotation);
 
             DiscardPendingMovesBeforeTick(tick);
 
             foreach (var move in _pendingMoves) {
-                LogMove(move);
                 PerformMovement(move, GameFramework.Tick.tickRate);
             }
             foreach (var move in _subMoves) {
-                LogMove(move);
                 PerformMovement(move, GameFramework.Tick.tickRate);
             }
-
-            logFile.WriteLine("--- Client rewind " + tick + " END ---");
         }
 
         void DiscardPendingMovesBeforeTick(uint tick) {

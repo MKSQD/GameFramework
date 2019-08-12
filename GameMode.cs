@@ -1,5 +1,4 @@
-﻿using Cube.Replication;
-using System;
+﻿using System;
 using UnityEngine;
 
 namespace GameFramework {

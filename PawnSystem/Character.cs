@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using Cinemachine;
+using UnityEngine;
 using UnityEngine.Events;
 
 namespace GameFramework {
@@ -7,6 +8,7 @@ namespace GameFramework {
     [RequireComponent(typeof(CharacterMovement))]
     public class Character : Pawn {
         public Transform view;
+        public new CinemachineVirtualCamera camera;
         public float moveSpeed = 1;
         public float jumpForce = 12;
         public float groundControl = 0.95f;
@@ -35,10 +37,13 @@ namespace GameFramework {
             internal set;
         }
 
-        protected override void Awake() {
-            base.Awake();
+        protected override void AwakeImpl() {
             characterController = GetComponent<CharacterController>();
             movement = GetComponent<CharacterMovement>();
+
+            if (camera != null) {
+                camera.enabled = false;
+            }
         }
 
         public override void Teleport(Vector3 targetPosition, Quaternion targetRotation) {
@@ -53,20 +58,10 @@ namespace GameFramework {
         }
 
         protected override void TickImpl() {
-            if (movement != null) {
+            if (controller != null) {
                 movement.Tick();
             }
         }
-
-//         public override void Serialize(BitStream bs, ReplicaView view) {
-//             bs.Write(transform.position);
-//             bs.WriteNormalised(_movement);
-//         }
-// 
-//         public override void Deserialize(BitStream bs) {
-//             transform.position = bs.ReadVector3();
-//             _movement = bs.ReadNormalisedVector3();
-//         }
 
         void OnControllerColliderHit(ControllerColliderHit hit) {
             var body = hit.collider.attachedRigidbody;
@@ -80,6 +75,34 @@ namespace GameFramework {
             pushDir.y = 0;
 
             body.velocity = pushDir * pushPower;
+        }
+
+        public override void SetupPlayerInputComponent(PlayerInput input) {
+            input.BindAxis("Mouse X", movement.AddYawInput);
+            input.BindAxis("Mouse Y", movement.AddPitchInput);
+            input.BindAxis("Horizontal", OnHorizontalInput);
+            input.BindAxis("Vertical", OnVerticalInput);
+            input.BindAction("Jump", movement.Jump);
+        }
+
+        void OnHorizontalInput(float value) {
+            movement.AddMoveInput(transform.right * value);
+        }
+
+        void OnVerticalInput(float value) {
+            movement.AddMoveInput(transform.forward * value);
+        }
+
+        public override void OnPossession(Pawn previousPawn) {
+            if (camera != null) {
+                camera.enabled = true;
+            }
+        }
+
+        public override void OnUnpossession() {
+            if (camera != null) {
+                camera.enabled = false;
+            }
         }
     }
 }

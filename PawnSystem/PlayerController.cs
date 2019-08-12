@@ -6,10 +6,6 @@ namespace GameFramework {
             get;
             internal set;
         }
-        public Character character {
-            get;
-            internal set;
-        }
         public Connection connection {
             get;
             internal set;
@@ -19,32 +15,31 @@ namespace GameFramework {
             this.connection = connection;
         }
 
-        public void ClientTravel() {
-
-        }
-
         public virtual PlayerInput CreatePlayerInput() {
             return new PlayerInput();
         }
 
-        public virtual void SetupInputComponent() {
-        }
-
         public override void Tick() {
-            input.Tick();
+            if (input != null) {
+                input.Tick();
+            }
         }
 
         protected override void OnPossess(Pawn pawn) {
-            character = (Character)pawn;
-
             pawn.replica.AssignOwnership(connection);
 
-            input = CreatePlayerInput();
-            SetupInputComponent();
+            if (pawn.isClient) {
+                input = CreatePlayerInput();
+                SetupInputComponent(input);
+                pawn.SetupPlayerInputComponent(input);
+            }
         }
 
         protected override void OnUnpossess() {
             pawn.replica.TakeOwnership();
+        }
+
+        protected virtual void SetupInputComponent(PlayerInput input) {
         }
     }
 }

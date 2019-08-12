@@ -39,10 +39,7 @@ namespace GameFramework {
         bool _onAllClientsLoadedSceneTriggeredThisGeneration;
 
         public ServerGame(World world, ServerReplicaManagerSettings replicaManagerSettings) {
-            if (world == null)
-                throw new ArgumentNullException("world");
-
-            this.world = world;
+            this.world = world ?? throw new ArgumentNullException("world");
 
             server = new CubeServer(port, world.transform, replicaManagerSettings);
 

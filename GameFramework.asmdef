@@ -3,9 +3,9 @@
     "references": [
         "GUID:6c5a0e62519693a42ba5ca0cce6fa4ac",
         "GUID:109e60786e5300f49960cc9218eed5e0",
-        "GUID:1858bd356409951469f540b4d678840d"
+        "GUID:1858bd356409951469f540b4d678840d",
+        "GUID:4307f53044263cf4b835bd812fc161a4"
     ],
-    "optionalUnityReferences": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

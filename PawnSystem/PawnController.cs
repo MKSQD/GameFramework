@@ -1,5 +1,4 @@
-﻿using Cube.Transport;
-using System;
+﻿using System;
 
 namespace GameFramework {
     public abstract class PawnController {
@@ -17,17 +16,22 @@ namespace GameFramework {
             if (newPawn == null)
                 throw new ArgumentNullException("newPawn");
 
+            if (!newPawn.CanBePossessedBy(this))
+                return;
+
             Unpossess();
 
             if (newPawn.controller != null) {
                 newPawn.controller.Unpossess();
             }
 
+            var previousPawn = pawn;
+
             pawn = newPawn;
             newPawn.controller = this;
 
             OnPossess(newPawn);
-            newPawn.OnPossession();
+            newPawn.OnPossession(previousPawn);
         }
         public void Unpossess() {
             if (pawn == null)
