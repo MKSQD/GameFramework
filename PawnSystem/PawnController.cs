@@ -7,7 +7,7 @@ namespace GameFramework {
             internal set;
         }
 
-        public abstract void Tick();
+        public abstract void Update();
 
         protected abstract void OnPossess(Pawn pawn);
         protected abstract void OnUnpossess();

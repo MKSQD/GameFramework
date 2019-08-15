@@ -19,9 +19,9 @@ namespace GameFramework {
             return new PlayerInput();
         }
 
-        public override void Tick() {
+        public override void Update() {
             if (input != null) {
-                input.Tick();
+                input.Update();
             }
         }
 

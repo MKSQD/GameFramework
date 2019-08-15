@@ -26,12 +26,12 @@ public sealed class PlayerInput {
         }
     }
 
-    public void Tick() {
-        TickActions();
-        TickAxis();
+    public void Update() {
+        TriggerActions();
+        TriggerAxis();
     }
 
-    void TickActions() {
+    void TriggerActions() {
         foreach (var actionHandler in _actionHandlers) {
             if (Input.GetAxis(actionHandler.Key) == 0)
                 continue;
@@ -40,7 +40,7 @@ public sealed class PlayerInput {
         }
     }
 
-    void TickAxis() {
+    void TriggerAxis() {
         foreach (var axisMapping in _axisHandlers) {
             var rawValue = Input.GetAxisRaw(axisMapping.Key);
 

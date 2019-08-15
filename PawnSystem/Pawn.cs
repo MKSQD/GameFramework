@@ -24,9 +24,7 @@ namespace GameFramework {
         }
 
         public void Tick() {
-            if (controller != null) {
-                controller.Tick();
-            }
+            
 
             TickImpl();
         }
@@ -41,6 +39,12 @@ namespace GameFramework {
         }
 
         protected virtual void AwakeImpl() { }
+
+        protected virtual void Update() {
+            if (controller != null) {
+                controller.Update();
+            }
+        }
 
 
         protected virtual void OnEnable() {
