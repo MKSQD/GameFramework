@@ -1,6 +1,5 @@
 ﻿using Cinemachine;
 using UnityEngine;
-using UnityEngine.Events;
 
 namespace GameFramework {
     [AddComponentMenu("GameFramework/Character")]
@@ -28,9 +27,6 @@ namespace GameFramework {
         public bool isGrounded {
             get { return characterController.isGrounded; }
         }
-
-        public UnityEvent onJump;
-        public UnityEvent onLand;
 
         public CharacterController characterController {
             get;
@@ -93,13 +89,13 @@ namespace GameFramework {
             movement.AddMoveInput(transform.forward * value);
         }
 
-        public override void OnPossession(Pawn previousPawn) {
+        protected override void OnPossessionImpl(Pawn previousPawn) {
             if (camera != null) {
                 camera.enabled = true;
             }
         }
 
-        public override void OnUnpossession() {
+        protected override void OnUnpossessionImpl() {
             if (camera != null) {
                 camera.enabled = false;
             }

@@ -6,8 +6,13 @@ using UnityEngine;
 namespace GameFramework {
     [AddComponentMenu("GameFramework/CharacterMovement")]
     public class CharacterMovement : ReplicaBehaviour, IPawnMovement {
+        public delegate void CharacterEvent(Character character);
+
         const float minPitch = -60;
         const float maxPitch = 50;
+
+        public event CharacterEvent onJump;
+        public event CharacterEvent onLand;
 
         Character _character;
 
@@ -69,13 +74,13 @@ namespace GameFramework {
             // Landing
             if (_character.isGrounded) {
                 if (_lastGroundedTime < Time.time - 0.1f) {
-                    _character.onLand.Invoke();
+                    onLand?.Invoke(_character);
                     _jumpForce = 0;
                 }
 
                 if (_jump && _jumpForce < 0.1f) {
                     _jumpForce = 1;
-                    _character.onJump.Invoke();
+                    onJump?.Invoke(_character);
                 }
 
                 _lastGroundedTime = Time.time;

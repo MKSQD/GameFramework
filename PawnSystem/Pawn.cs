@@ -4,15 +4,27 @@ using UnityEngine;
 
 namespace GameFramework {
     public abstract class Pawn : ReplicaBehaviour {
-        public PawnController controller;
+        public delegate void PawnEvent(Pawn pawn);
 
         static List<Pawn> all = new List<Pawn>();
 
-        public virtual bool CanBePossessedBy(PawnController controller) { return true; }
-        public abstract void OnPossession(Pawn previousPawn);
-        public abstract void OnUnpossession();
+        public PawnController controller;
 
-        public virtual void SetupPlayerInputComponent(PlayerInput input) { }
+        public event PawnEvent onPossession;
+        public event PawnEvent onUnpossession;
+
+        public void OnPossession(Pawn previousPawn) {
+            OnPossessionImpl(previousPawn);
+            onPossession?.Invoke(this);
+        }
+        public void OnUnpossession() {
+            onUnpossession?.Invoke(this);
+            OnUnpossessionImpl();
+        }
+
+        public virtual bool CanBePossessedBy(PawnController controller) { return true; }
+
+        public abstract void SetupPlayerInputComponent(PlayerInput input);
 
         public virtual void Teleport(Vector3 targetPosition, Quaternion targetRotation) { }
 
@@ -24,17 +36,18 @@ namespace GameFramework {
         }
 
         public void Tick() {
-            
-
             TickImpl();
         }
 
         protected virtual void TickImpl() { }
 
 
+        protected abstract void OnPossessionImpl(Pawn previousPawn);
+        protected abstract void OnUnpossessionImpl();
+
         protected void Awake() {
-            replica.onOwnership.AddListener(OnOwnership);
-            replica.onOwnershipRemoved.AddListener(OnOwnershipRemoved);
+            replica.onOwnership += OnOwnership;
+            replica.onOwnershipRemoved += OnOwnershipRemoved;
             AwakeImpl();
         }
 
@@ -56,13 +69,13 @@ namespace GameFramework {
         }
 
 
-        void OnOwnership() {
+        void OnOwnership(Replica replica) {
             var world = GetComponentInParent<World>(); // #todo
             var pc = world.playerControllers[0];
             pc.Possess(this);
         }
 
-        void OnOwnershipRemoved() {
+        void OnOwnershipRemoved(Replica replica) {
             var world = GetComponentInParent<World>(); // #todo
             var pc = world.playerControllers[0];
 
