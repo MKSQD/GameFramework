@@ -1,6 +1,4 @@
 ﻿using Cube.Replication;
-using Cube.Transport;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace GameFramework {
@@ -9,7 +7,7 @@ namespace GameFramework {
         public delegate void CharacterEvent(Character character);
 
         const float minPitch = -60;
-        const float maxPitch = 50;
+        const float maxPitch = 40;
 
         public event CharacterEvent onJump;
         public event CharacterEvent onLand;
