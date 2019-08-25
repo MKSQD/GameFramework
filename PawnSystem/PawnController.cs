@@ -19,13 +19,13 @@ namespace GameFramework {
             if (!newPawn.CanBePossessedBy(this))
                 return;
 
+            var previousPawn = pawn;
+
             Unpossess();
 
             if (newPawn.controller != null) {
                 newPawn.controller.Unpossess();
             }
-
-            var previousPawn = pawn;
 
             pawn = newPawn;
             newPawn.controller = this;

@@ -15,7 +15,7 @@ namespace GameFramework {
         public bool useGravity = true;
         public float pushPower = 2f;
 
-        public CharacterMovement movement {
+        public new CharacterMovement movement {
             get;
             internal set;
         }

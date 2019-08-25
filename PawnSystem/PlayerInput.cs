@@ -42,9 +42,8 @@ public sealed class PlayerInput {
 
     void TriggerAxis() {
         foreach (var axisMapping in _axisHandlers) {
-            var rawValue = Input.GetAxisRaw(axisMapping.Key);
-
-            axisMapping.Value(rawValue);
+            var axisValue = Input.GetAxis(axisMapping.Key);
+            axisMapping.Value(axisValue);
         }
     }
 }

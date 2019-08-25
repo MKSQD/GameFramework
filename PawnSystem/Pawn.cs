@@ -9,6 +9,7 @@ namespace GameFramework {
         static List<Pawn> all = new List<Pawn>();
 
         public PawnController controller;
+        public IPawnMovement movement;
 
         public event PawnEvent onPossession;
         public event PawnEvent onUnpossession;
@@ -36,6 +37,9 @@ namespace GameFramework {
         }
 
         public void Tick() {
+            if (controller != null) {
+                movement.Tick();
+            }
             TickImpl();
         }
 
@@ -46,8 +50,11 @@ namespace GameFramework {
         protected abstract void OnUnpossessionImpl();
 
         protected void Awake() {
+            movement = GetComponent<IPawnMovement>();
+
             replica.onOwnership += OnOwnership;
             replica.onOwnershipRemoved += OnOwnershipRemoved;
+
             AwakeImpl();
         }
 
