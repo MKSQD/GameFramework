@@ -64,6 +64,10 @@ namespace GameFramework {
             if (body == null || body.isKinematic)
                 return;
 
+            var tooHeavyToPush = body.mass > 80;
+            if (tooHeavyToPush)
+                return;
+
             if (hit.moveDirection.y < -0.3f)
                 return;
 
