@@ -9,6 +9,10 @@ namespace GameFramework {
         static List<Pawn> all = new List<Pawn>();
 
         public PawnController controller;
+        public bool hasController {
+            get { return controller != null; }
+        }
+
         public IPawnMovement movement;
 
         public event PawnEvent onPossession;
