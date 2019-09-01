@@ -92,7 +92,7 @@ namespace GameFramework {
             }
 
             // Gravity
-            if (!_character.isGrounded && _character.useGravity) {
+            if (!_character.isGrounded && _character.gravity) {
                 actualMovement += Physics.gravity;
             }
 

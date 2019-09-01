@@ -12,7 +12,7 @@ namespace GameFramework {
         public float jumpForce = 12;
         public float groundControl = 0.95f;
         public float airControl = 0.1f;
-        public bool useGravity = true;
+        public bool gravity = true;
         public float pushPower = 2f;
 
         public new CharacterMovement movement {
