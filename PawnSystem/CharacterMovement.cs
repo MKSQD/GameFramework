@@ -6,8 +6,8 @@ namespace GameFramework {
     public class CharacterMovement : ReplicaBehaviour, IPawnMovement {
         public delegate void CharacterEvent(Character character);
 
-        const float minPitch = -60;
-        const float maxPitch = 40;
+        const float minPitch = -55;
+        const float maxPitch = 60;
 
         public event CharacterEvent onJump;
         public event CharacterEvent onLand;
@@ -17,13 +17,14 @@ namespace GameFramework {
         float _lastGroundedTime;
         float _jumpForce;
         Vector3 _lastMovement;
+        [SerializeField]
         Vector3 _move;
         float _yaw;
         float _viewPitch;
         bool _jump;
        
         public void AddMoveInput(Vector3 direction) {
-            _move += direction.normalized;
+            _move += direction;
         }
 
         public void AddYawInput(float value) {
@@ -56,13 +57,13 @@ namespace GameFramework {
         }
 
         protected virtual void Update() {
-            if (!isClient || !isOwner)
+            if (!isOwner || _character.controller == null)
                 return;
 
             transform.localRotation = Quaternion.AngleAxis(_yaw, Vector3.up);
             _character.view.localRotation = Quaternion.AngleAxis(_viewPitch, Vector3.left);
 
-            var actualMovement = _move * _character.moveSpeed;
+            var actualMovement = _move.normalized * _character.moveSpeed;
 
             var modifier = _character.isGrounded ? _character.groundControl : _character.airControl;
             actualMovement = Vector3.Lerp(_lastMovement, actualMovement, modifier);

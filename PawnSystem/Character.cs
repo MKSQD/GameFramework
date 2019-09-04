@@ -77,7 +77,7 @@ namespace GameFramework {
             body.velocity = pushDir * pushPower;
         }
 
-        public override void SetupPlayerInputComponent(PlayerInput input) {
+        public override void SetupPlayerInputComponent(PawnInput input) {
             input.BindAxis("Mouse X", movement.AddYawInput);
             input.BindAxis("Mouse Y", movement.AddPitchInput);
             input.BindAxis("Horizontal", OnHorizontalInput);
@@ -102,6 +102,12 @@ namespace GameFramework {
         protected override void OnUnpossessionImpl() {
             if (camera != null) {
                 camera.enabled = false;
+            }
+        }
+
+        void OnDrawGizmos() {
+            if (view != null) {
+                Debug.DrawLine(view.transform.position, view.transform.position + view.transform.forward * 0.25f, Color.yellow);
             }
         }
     }

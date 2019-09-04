@@ -28,11 +28,11 @@ namespace GameFramework {
             }
 
             pawn = newPawn;
-            newPawn.controller = this;
 
             OnPossess(newPawn);
-            newPawn.OnPossession(previousPawn);
+            newPawn.OnPossession(this, previousPawn);
         }
+
         public void Unpossess() {
             if (pawn == null)
                 return;
@@ -40,7 +40,6 @@ namespace GameFramework {
             pawn.OnUnpossession();
             OnUnpossess();
 
-            pawn.controller = null;
             pawn = null;
         }
     }

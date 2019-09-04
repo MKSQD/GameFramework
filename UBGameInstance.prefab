@@ -44,7 +44,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   replicaManagerSettings:
-    maxBytesPerConnectionPerUpdate: 1400
+    maxBytesPerConnectionPerUpdate: 800
     replicaUpdateRateMS: 33
+  lagSettings:
+    enabled: 0
+    simulatedLoss: 0.02
+    duplicatesChance: 0
+    minimumLatencySec: 0.3
+    randomLatencySec: 0.1
   defaultGameStatePrefab: {fileID: 5441513724187770875, guid: 0eaadb3be7c49b840ba723eda34ebcf7,
     type: 3}

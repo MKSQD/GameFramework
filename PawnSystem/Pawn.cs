@@ -1,6 +1,7 @@
 ﻿using Cube.Replication;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace GameFramework {
     public abstract class Pawn : ReplicaBehaviour {
@@ -8,7 +9,10 @@ namespace GameFramework {
 
         static List<Pawn> all = new List<Pawn>();
 
-        public PawnController controller;
+        public PawnController controller {
+            get;
+            internal set;
+        }
         public bool hasController {
             get { return controller != null; }
         }
@@ -17,19 +21,27 @@ namespace GameFramework {
 
         public event PawnEvent onPossession;
         public event PawnEvent onUnpossession;
+        public UnityEvent onDestroy;
 
-        public void OnPossession(Pawn previousPawn) {
+        public void OnPossession(PawnController controller, Pawn previousPawn) {
+            this.controller = controller;
             OnPossessionImpl(previousPawn);
             onPossession?.Invoke(this);
         }
+
         public void OnUnpossession() {
-            onUnpossession?.Invoke(this);
-            OnUnpossessionImpl();
+            try {
+                onUnpossession?.Invoke(this);
+                OnUnpossessionImpl();
+            }
+            finally {
+                controller = null;
+            }
         }
 
         public virtual bool CanBePossessedBy(PawnController controller) { return true; }
 
-        public abstract void SetupPlayerInputComponent(PlayerInput input);
+        public abstract void SetupPlayerInputComponent(PawnInput input);
 
         public virtual void Teleport(Vector3 targetPosition, Quaternion targetRotation) { }
 
@@ -77,6 +89,7 @@ namespace GameFramework {
 
         protected virtual void OnDisable() {
             all.Remove(this);
+            onDestroy.Invoke();
         }
 
 

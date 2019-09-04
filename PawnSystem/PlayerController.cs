@@ -1,4 +1,5 @@
-﻿using Cube.Transport;
+﻿using Cube.Replication;
+using Cube.Transport;
 
 namespace GameFramework {
     public class PlayerController : PawnController {
@@ -10,6 +11,8 @@ namespace GameFramework {
             get;
             internal set;
         }
+
+        ReplicaView _replicaView;
 
         public PlayerController(Connection connection) {
             this.connection = connection;
@@ -23,11 +26,17 @@ namespace GameFramework {
             if (input != null) {
                 input.Update();
             }
+
+            if (_replicaView != null && pawn != null) {
+                _replicaView.transform.position = pawn.transform.position;
+            }
         }
 
         protected override void OnPossess(Pawn pawn) {
-            pawn.replica.AssignOwnership(connection);
-
+            if (pawn.isServer) {
+                pawn.replica.AssignOwnership(connection);
+                _replicaView = pawn.server.replicaManager.GetReplicaView(connection);
+            }
             if (pawn.isClient) {
                 input = CreatePlayerInput();
                 SetupInputComponent(input);
@@ -36,7 +45,9 @@ namespace GameFramework {
         }
 
         protected override void OnUnpossess() {
-            pawn.replica.TakeOwnership();
+            if (pawn.isServer) {
+                pawn.replica.TakeOwnership();
+            }
         }
 
         protected virtual void SetupInputComponent(PlayerInput input) {

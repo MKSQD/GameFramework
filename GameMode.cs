@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace GameFramework {
@@ -19,8 +20,14 @@ namespace GameFramework {
             get { return matchState == MatchState.InProgress; }
         }
 
+        public List<Pawn> players {
+            get;
+            internal set;
+        }
+
         public GameMode(ServerGame server) : base(server) {
             matchState = MatchState.WaitingToStart;
+            players = new List<Pawn>();
             HandleMatchIsWaitingToStart();
         }
 
@@ -76,8 +83,7 @@ namespace GameFramework {
 
         public override void HandleNewPlayer(PlayerController pc) {
             if (hasMatchStarted) {
-                var pawn = SpawnPlayer(pc);
-                pc.Possess(pawn);
+                SpawnPlayer(pc);
             }
         }
 
@@ -94,8 +100,7 @@ namespace GameFramework {
 
         protected virtual void HandleMatchHasStarted() {
             foreach (var pc in server.world.playerControllers) {
-                var pawn = SpawnPlayer(pc);
-                pc.Possess(pawn);
+                SpawnPlayer(pc);
             }
         }
 
@@ -105,7 +110,7 @@ namespace GameFramework {
         protected virtual void HandleLeavingMap() {
         }
 
-        protected virtual Pawn SpawnPlayer(PlayerController pc) {
+        protected virtual void SpawnPlayer(PlayerController pc) {
             Debug.Log("[Server][Game] Spawning player " + pc.connection);
 
             var prefab = GetPlayerPrefab(pc);
@@ -117,7 +122,14 @@ namespace GameFramework {
             var pawn = go.GetComponent<Pawn>();
             pawn.Teleport(spawnPosition, Quaternion.identity);
 
-            return pawn;
+            pawn.onDestroy.AddListener(() => {
+                players.RemoveAll(null);
+                SpawnPlayer(pc);
+            });
+
+            players.Add(pawn);
+
+            pc.Possess(pawn);
         }
 
         protected virtual GameObject GetPlayerPrefab(PlayerController pc) {
