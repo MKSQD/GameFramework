@@ -17,7 +17,6 @@ namespace GameFramework {
         float _lastGroundedTime;
         float _jumpForce;
         Vector3 _lastMovement;
-        [SerializeField]
         Vector3 _move;
         float _yaw;
         float _viewPitch;
@@ -87,7 +86,7 @@ namespace GameFramework {
 
             // Jump
             if (_jumpForce > 0.1f) {
-                _jumpForce *= 0.98f;
+                _jumpForce *= Mathf.Max(1 - 3f * Time.deltaTime, 0);
 
                 actualMovement += _jumpForce * Vector3.up * _character.jumpForce;
             }
