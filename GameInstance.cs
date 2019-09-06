@@ -27,23 +27,42 @@ namespace GameFramework {
             Assert.IsNull(_instance);
             _instance = this;
 
+            StartClient();
+#if UNITY_EDITOR
+            StartServer();
+#endif
+        }
+
+        public void StartClient() {
+            if (_client != null)
+                return;
+
             var clientWorldGO = new GameObject("Client World");
-            var serverWorldGO = new GameObject("Server World");
-
             var clientWorld = clientWorldGO.AddComponent<World>();
-            var serverWorld = serverWorldGO.AddComponent<World>();
-
             DontDestroyOnLoad(clientWorldGO);
-            DontDestroyOnLoad(serverWorldGO);
 
             _client = CreateClient(clientWorld, lagSettings);
+        }
+
+        public void StartServer() {
+            if (_server != null)
+                return;
+
+            var serverWorldGO = new GameObject("Server World");
+            var serverWorld = serverWorldGO.AddComponent<World>();
+            DontDestroyOnLoad(serverWorldGO);
+
             _server = CreateServer(serverWorld, replicaManagerSettings);
         }
 
         float _tickAccumulator;
         protected virtual void Update() {
-            _client.Update();
-            _server.Update();
+            if (_client != null) {
+                _client.Update();
+            }
+            if (_server != null) {
+                _server.Update();
+            }
 
             _tickAccumulator += Time.deltaTime;
             while (_tickAccumulator >= Tick.tickRate) {
@@ -55,8 +74,12 @@ namespace GameFramework {
         }
 
         protected virtual void OnApplicationQuit() {
-            _client.Shutdown();
-            _server.Shutdown();
+            if (_client != null) {
+                _client.Shutdown();
+            }
+            if (_server != null) {
+                _server.Shutdown();
+            }
         }
 
         protected virtual ClientGame CreateClient(World world, ClientSimulatedLagSettings lagSettings) {
