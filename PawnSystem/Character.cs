@@ -24,6 +24,10 @@ namespace GameFramework {
             get { return characterController.velocity; }
         }
 
+        public Vector3 localVelocity {
+            get { return transform.InverseTransformDirection(characterController.velocity); }
+        }
+
         public bool isGrounded {
             get { return characterController.isGrounded; }
         }
@@ -33,7 +37,9 @@ namespace GameFramework {
             internal set;
         }
 
-        protected override void AwakeImpl() {
+        protected override void Awake() {
+            base.Awake();
+
             characterController = GetComponent<CharacterController>();
             movement = GetComponent<CharacterMovement>();
 
@@ -54,7 +60,7 @@ namespace GameFramework {
         }
 
         protected override void TickImpl() {
-            if (controller != null) {
+            if (controller != null && movement != null) {
                 movement.Tick();
             }
         }
@@ -85,14 +91,6 @@ namespace GameFramework {
             input.BindAction("Jump", movement.Jump);
         }
 
-        void OnHorizontalInput(float value) {
-            movement.AddMoveInput(transform.right * value);
-        }
-
-        void OnVerticalInput(float value) {
-            movement.AddMoveInput(transform.forward * value);
-        }
-
         protected override void OnPossessionImpl(Pawn previousPawn) {
             if (camera != null) {
                 camera.enabled = true;
@@ -103,6 +101,14 @@ namespace GameFramework {
             if (camera != null) {
                 camera.enabled = false;
             }
+        }
+
+        void OnHorizontalInput(float value) {
+            movement.AddMoveInput(transform.right * value);
+        }
+
+        void OnVerticalInput(float value) {
+            movement.AddMoveInput(transform.forward * value);
         }
 
         void OnDrawGizmos() {
