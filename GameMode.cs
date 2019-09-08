@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -122,10 +123,7 @@ namespace GameFramework {
             var pawn = go.GetComponent<Pawn>();
             pawn.Teleport(spawnPosition, Quaternion.identity);
 
-            pawn.onDestroy.AddListener(() => {
-                players.RemoveAll(null);
-                SpawnPlayer(pc);
-            });
+            pawn.onDestroy += OnPlayerDied;
 
             players.Add(pawn);
 
@@ -143,6 +141,10 @@ namespace GameFramework {
 
             var spawnPosition = spawn.GetRandomizedPosition();
             return spawnPosition;
+        }
+
+        void OnPlayerDied(Pawn pawn) {
+            SpawnPlayer((PlayerController)pawn.controller);
         }
     }
 }
