@@ -21,7 +21,7 @@ namespace GameFramework {
 
         public event PawnEvent onPossession;
         public event PawnEvent onUnpossession;
-        public UnityEvent onDestroy;
+        public PawnEvent onDestroy;
 
         public void OnPossession(PawnController controller, Pawn previousPawn) {
             this.controller = controller;
@@ -65,16 +65,12 @@ namespace GameFramework {
         protected abstract void OnPossessionImpl(Pawn previousPawn);
         protected abstract void OnUnpossessionImpl();
 
-        protected void Awake() {
+        protected virtual void Awake() {
             movement = GetComponent<IPawnMovement>();
 
             replica.onOwnership += OnOwnership;
             replica.onOwnershipRemoved += OnOwnershipRemoved;
-
-            AwakeImpl();
         }
-
-        protected virtual void AwakeImpl() { }
 
         protected virtual void Update() {
             if (controller != null) {
@@ -89,7 +85,7 @@ namespace GameFramework {
 
         protected virtual void OnDisable() {
             all.Remove(this);
-            onDestroy.Invoke();
+            onDestroy?.Invoke(this);
         }
 
 
