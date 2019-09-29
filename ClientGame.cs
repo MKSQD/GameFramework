@@ -22,6 +22,8 @@ namespace GameFramework {
 
         public UnityEvent onSceneLoadStart = new UnityEvent();
 
+        byte _lastOnLoadSceneGeneration;
+
         public ClientGame(World world, ClientSimulatedLagSettings lagSettings) {
             if (world == null)
                 throw new ArgumentNullException("world");
@@ -70,6 +72,11 @@ namespace GameFramework {
         void OnLoadScene(BitStream bs) {
             var sceneName = bs.ReadString();
             var generation = bs.ReadByte();
+
+            if (_lastOnLoadSceneGeneration == generation)
+                return;
+
+            _lastOnLoadSceneGeneration = generation;
 
             Debug.Log("[Client] Loading level '" + sceneName + "' (generation=" + generation + ")");
 

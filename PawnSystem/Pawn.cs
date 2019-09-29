@@ -1,7 +1,6 @@
 ﻿using Cube.Replication;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Events;
 
 namespace GameFramework {
     public abstract class Pawn : ReplicaBehaviour {
@@ -22,6 +21,8 @@ namespace GameFramework {
         public event PawnEvent onPossession;
         public event PawnEvent onUnpossession;
         public PawnEvent onDestroy;
+
+        static bool _isApplicationQuitting;
 
         public void OnPossession(PawnController controller, Pawn previousPawn) {
             this.controller = controller;
@@ -85,7 +86,9 @@ namespace GameFramework {
 
         protected virtual void OnDisable() {
             all.Remove(this);
-            onDestroy?.Invoke(this);
+            if (!_isApplicationQuitting) {
+                onDestroy?.Invoke(this);
+            }
         }
 
 
@@ -103,6 +106,10 @@ namespace GameFramework {
             if (thisIsTheCurrentPawn) {
                 pc.Unpossess();
             }
+        }
+
+        void OnApplicationQuit() {
+            _isApplicationQuitting = true;
         }
     }
 }
