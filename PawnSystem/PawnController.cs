@@ -29,8 +29,8 @@ namespace GameFramework {
 
             pawn = newPawn;
 
-            OnPossess(newPawn);
             newPawn.OnPossession(this, previousPawn);
+            OnPossess(newPawn);
         }
 
         public void Unpossess() {
