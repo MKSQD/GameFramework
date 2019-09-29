@@ -25,6 +25,7 @@ namespace GameFramework {
         float _yaw;
         float _viewPitch;
         bool _jump;
+        bool _run;
 
         TransformHistory _history;
 
@@ -40,6 +41,10 @@ namespace GameFramework {
         public void AddPitchInput(float value) {
             _viewPitch += value;
             _viewPitch = Mathf.Clamp(_viewPitch, minPitch, maxPitch);
+        }
+
+        public void SetRun(bool run) {
+            _run = run;
         }
 
         public void Jump() {
@@ -75,7 +80,7 @@ namespace GameFramework {
             transform.localRotation = Quaternion.AngleAxis(_yaw, Vector3.up);
             _character.view.localRotation = Quaternion.AngleAxis(_viewPitch, Vector3.left);
 
-            var actualMovement = _move.normalized * _character.moveSpeed;
+            var actualMovement = _move.normalized * (!_run ? _character.moveSpeed : _character.runSpeed);
 
             var modifier = _character.isGrounded ? _character.groundControl : _character.airControl;
             actualMovement = Vector3.Lerp(_lastMovement, actualMovement, modifier);

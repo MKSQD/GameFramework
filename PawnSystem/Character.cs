@@ -9,6 +9,7 @@ namespace GameFramework {
         public Transform view;
         public new CinemachineVirtualCamera camera;
         public float moveSpeed = 1;
+        public float runSpeed = 1;
         public float jumpForce = 12;
         public float groundControl = 0.95f;
         public float airControl = 0.1f;
@@ -88,6 +89,7 @@ namespace GameFramework {
             input.BindAxis("Mouse Y", movement.AddPitchInput);
             input.BindAxis("Horizontal", OnHorizontalInput);
             input.BindAxis("Vertical", OnVerticalInput);
+            input.BindAxis("Run", OnRun);
             input.BindAction("Jump", movement.Jump);
         }
 
@@ -109,6 +111,10 @@ namespace GameFramework {
 
         void OnVerticalInput(float value) {
             movement.AddMoveInput(transform.forward * value);
+        }
+
+        void OnRun(float value) {
+            movement.SetRun(value > 0.5f);
         }
 
         void OnDrawGizmos() {
