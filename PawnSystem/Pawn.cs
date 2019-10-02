@@ -55,7 +55,9 @@ namespace GameFramework {
 
         public void Tick() {
             if (controller != null) {
-                movement.Tick();
+                if (movement != null) {
+                    movement.Tick();
+                }
             }
             TickImpl();
         }
