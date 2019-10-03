@@ -38,7 +38,7 @@ namespace GameFramework {
                 return;
             }
 
-            Debug.Log("[Server][Game] Match starting...");
+            Debug.Log("[Server][Game] <b>Match starting...</b>");
 
             matchState = MatchState.InProgress;
             HandleMatchHasStarted();
@@ -112,7 +112,7 @@ namespace GameFramework {
         }
 
         protected virtual void SpawnPlayer(PlayerController pc) {
-            Debug.Log("[Server][Game] Spawning player " + pc.connection);
+            Debug.Log("[Server][Game] <b>Spawning player</b> " + pc.connection);
 
             var prefab = GetPlayerPrefab(pc);
             var go = server.server.replicaManager.InstantiateReplica(prefab);

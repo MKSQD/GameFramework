@@ -88,11 +88,11 @@ namespace GameFramework {
             gameMode = CreateGameModeForScene(sceneName);
             Assert.IsNotNull(gameMode);
 
-            Debug.Log("[Server][Game] New game mode '" + gameMode + "'");
+            Debug.Log("[Server][Game] New game mode '<b>" + gameMode + "</b>'");
         }
 
         protected virtual void OnNewIncomingConnection(Connection connection, BitStream bs) {
-            Debug.Log("[Server] New connection: " + connection);
+            Debug.Log("[Server] <b>New connection</b> " + connection);
 
             // Send load scene packet if we loaded one previously
             if (_loadSceneName != null) {

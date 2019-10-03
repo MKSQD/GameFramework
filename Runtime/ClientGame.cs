@@ -78,7 +78,7 @@ namespace GameFramework {
 
             _lastOnLoadSceneGeneration = generation;
 
-            Debug.Log("[Client] Loading level '" + sceneName + "' (generation=" + generation + ")");
+            Debug.Log("[Client] <b>Loading level</b> '" + sceneName + "' (generation=" + generation + ")");
 
             client.replicaManager.Reset();
 
