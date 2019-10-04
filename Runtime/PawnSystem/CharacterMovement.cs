@@ -67,18 +67,18 @@ namespace GameFramework {
         }
 
         protected virtual void Update() {
+            _character.view.localRotation = Quaternion.AngleAxis(_viewPitch, Vector3.left);
+
             if (!isOwner || _character.controller == null) {
                 if (isClient) {
                     _history.Sample(Time.time, out Vector3 position, out Quaternion rotation);
                     _character.characterController.Move(position - transform.position);
                     transform.localRotation = Quaternion.AngleAxis(rotation.eulerAngles.y, Vector3.up);
-                    _character.view.localRotation = Quaternion.AngleAxis(rotation.eulerAngles.x, Vector3.left);
                 }
                 return;
             }
 
             transform.localRotation = Quaternion.AngleAxis(_yaw, Vector3.up);
-            _character.view.localRotation = Quaternion.AngleAxis(_viewPitch, Vector3.left);
 
             var actualMovement = _move.normalized * (!_run ? _character.moveSpeed : _character.runSpeed);
 
@@ -130,7 +130,7 @@ namespace GameFramework {
         void RpcServerMove(Vector3 finalPosition, float yaw, float viewPitch) {
             transform.position = finalPosition;
             transform.localRotation = Quaternion.AngleAxis(yaw, Vector3.up);
-            _character.view.localRotation = Quaternion.AngleAxis(viewPitch, Vector3.left);
+            _viewPitch = viewPitch;
         }
 
         public override void Serialize(BitStream bs, ReplicaView view) {
@@ -148,7 +148,7 @@ namespace GameFramework {
 
             var pos = bs.ReadVector3();
             var yaw = bs.ReadFloat();
-            var viewPitch = bs.ReadFloat();
+            _viewPitch = bs.ReadFloat();
             _history.Add(new Pose(pos, Quaternion.AngleAxis(yaw, Vector3.up)), Time.time + interpolationDelayMs * 0.001f);
         }
     }
