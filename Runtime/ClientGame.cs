@@ -1,4 +1,5 @@
 using Cube.Networking;
+using Cube.Replication;
 using Cube.Transport;
 using System;
 using UnityEngine;
@@ -24,6 +25,9 @@ namespace GameFramework {
 
         byte _lastOnLoadSceneGeneration;
 
+        ReplicaId _todoReplicaPossess;
+        byte _pawnIdxToPossess;
+
         public ClientGame(World world, ClientSimulatedLagSettings lagSettings) {
             if (world == null)
                 throw new ArgumentNullException("world");
@@ -38,18 +42,38 @@ namespace GameFramework {
             }
 #endif
 
-            client.reactor.AddHandler((byte)MessageId.ConnectionRequestAccepted, OnConnectionRequestAccepted);
-            client.reactor.AddHandler((byte)MessageId.ConnectionRequestFailed, OnConnectionRequestFailed);
-            client.reactor.AddHandler((byte)MessageId.DisconnectNotification, OnDisconnectNotification);
+            client.reactor.AddHandler((byte)Cube.Transport.MessageId.ConnectionRequestAccepted, OnConnectionRequestAccepted);
+            client.reactor.AddHandler((byte)Cube.Transport.MessageId.ConnectionRequestFailed, OnConnectionRequestFailed);
+            client.reactor.AddHandler((byte)Cube.Transport.MessageId.DisconnectNotification, OnDisconnectNotification);
             client.reactor.AddHandler((byte)MessageId.LoadScene, OnLoadScene);
+            client.reactor.AddHandler((byte)MessageId.PossessPawn, OnPossessPawn);
         }
 
         public virtual void Update() {
             client.Update();
+
+            if (_todoReplicaPossess != ReplicaId.Invalid) {
+                var replica = client.replicaManager.GetReplicaById(_todoReplicaPossess);
+                if (replica != null) {
+                    var pawnsOnReplica = replica.GetComponentsInChildren<Pawn>();
+                    var pawn = pawnsOnReplica[_pawnIdxToPossess];
+
+                    var pc = world.playerControllers[0];
+                    pc.Possess(pawn);
+
+                    _todoReplicaPossess = ReplicaId.Invalid;
+
+                    Debug.Log("[Client] Possessed Pawn <i>" + pawn + "</i> idx=" + _pawnIdxToPossess, pawn);
+                }
+            }
         }
 
         public virtual void Shutdown() {
             client.Shutdown();
+        }
+
+        protected virtual PlayerController CreatePlayerController() {
+            return new DefaultPlayerController(Connection.Invalid);
         }
 
         void OnConnectionRequestAccepted(BitStream bs) {
@@ -64,9 +88,7 @@ namespace GameFramework {
         }
 
         void OnDisconnectNotification(BitStream bs) {
-            Debug.Log("Disconnected");
-
-            // localPlayerController = null;
+            Debug.Log("[Client] <b>Disconnected</b>");
         }
 
         void OnLoadScene(BitStream bs) {
@@ -78,7 +100,7 @@ namespace GameFramework {
 
             _lastOnLoadSceneGeneration = generation;
 
-            Debug.Log("[Client] <b>Loading level</b> '" + sceneName + "' (generation=" + generation + ")");
+            Debug.Log("[Client] <b>Loading level</b> '<i>" + sceneName + "</i>' (generation=" + generation + ")");
 
             client.replicaManager.Reset();
 
@@ -97,8 +119,12 @@ namespace GameFramework {
             };
         }
 
-        protected virtual PlayerController CreatePlayerController() {
-            return new DefaultPlayerController(Connection.Invalid);
+        void OnPossessPawn(BitStream bs) {
+            var replicaId = bs.ReadReplicaId();
+            var pawnIdx = bs.ReadByte();
+
+            _todoReplicaPossess = replicaId;
+            _pawnIdxToPossess = pawnIdx;
         }
     }
 }

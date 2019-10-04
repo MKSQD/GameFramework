@@ -1,5 +1,7 @@
 ﻿using Cube.Replication;
 using Cube.Transport;
+using UnityEngine;
+using UnityEngine.Assertions;
 
 namespace GameFramework {
     public class PlayerController : PawnController {
@@ -36,6 +38,7 @@ namespace GameFramework {
             if (pawn.isServer) {
                 pawn.replica.AssignOwnership(connection);
                 _replicaView = pawn.server.replicaManager.GetReplicaView(connection);
+                SendPossession();
             }
             if (pawn.isClient) {
                 input = CreatePlayerInput();
@@ -51,6 +54,28 @@ namespace GameFramework {
         }
 
         protected virtual void SetupInputComponent(PlayerInput input) {
+        }
+
+        void SendPossession() {
+            // #todo this whole lookup should be cached!
+            var pawnIdx = byte.MaxValue;
+            var pawnsOnReplica = pawn.replica.GetComponentsInChildren<Pawn>();
+            for(int i = 0; i < pawnsOnReplica.Length; ++i) {
+                var pawnOnReplica = pawnsOnReplica[i];
+                if(pawn == pawnOnReplica) {
+                    pawnIdx = (byte)i;
+                    break;
+                }
+            }
+
+            Assert.IsTrue(pawnIdx != byte.MaxValue);
+
+            var bs = pawn.server.networkInterface.bitStreamPool.Create();
+            bs.Write((byte)MessageId.PossessPawn);
+            bs.Write(pawn.replica.id);
+            bs.Write(pawnIdx);
+
+            pawn.server.networkInterface.SendBitStream(bs, PacketPriority.High, PacketReliability.ReliableSequenced, connection);
         }
     }
 }

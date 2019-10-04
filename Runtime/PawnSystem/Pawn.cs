@@ -70,9 +70,6 @@ namespace GameFramework {
 
         protected virtual void Awake() {
             movement = GetComponent<IPawnMovement>();
-
-            replica.onOwnership += OnOwnership;
-            replica.onOwnershipRemoved += OnOwnershipRemoved;
         }
 
         protected virtual void Update() {
@@ -90,23 +87,6 @@ namespace GameFramework {
             all.Remove(this);
             if (!_isApplicationQuitting) {
                 onDestroy?.Invoke(this);
-            }
-        }
-
-
-        void OnOwnership(Replica replica) {
-            var world = GetComponentInParent<World>(); // #todo
-            var pc = world.playerControllers[0];
-            pc.Possess(this);
-        }
-
-        void OnOwnershipRemoved(Replica replica) {
-            var world = GetComponentInParent<World>(); // #todo
-            var pc = world.playerControllers[0];
-
-            var thisIsTheCurrentPawn = pc.pawn == this;
-            if (thisIsTheCurrentPawn) {
-                pc.Unpossess();
             }
         }
 

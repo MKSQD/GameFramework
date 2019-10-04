@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -112,13 +111,12 @@ namespace GameFramework {
         }
 
         protected virtual void SpawnPlayer(PlayerController pc) {
-            Debug.Log("[Server][Game] <b>Spawning player</b> " + pc.connection);
+            Debug.Log("[Server][Game] <b>Spawning player</b> <i>" + pc.connection + "</i>");
 
             var prefab = GetPlayerPrefab(pc);
             var go = server.server.replicaManager.InstantiateReplica(prefab);
 
             var spawnPosition = GetPlayerSpawnPosition();
-            Debug.Log("   at pos " + spawnPosition);
 
             var pawn = go.GetComponent<Pawn>();
             pawn.Teleport(spawnPosition, Quaternion.identity);

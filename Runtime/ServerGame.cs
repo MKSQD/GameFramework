@@ -43,8 +43,8 @@ namespace GameFramework {
 
             server = new CubeServer(port, world.transform, replicaManagerSettings);
 
-            server.reactor.AddMessageHandler((byte)MessageId.NewConnectionEstablished, OnNewIncomingConnection);
-            server.reactor.AddMessageHandler((byte)MessageId.DisconnectNotification, OnDisconnectionNotification);
+            server.reactor.AddMessageHandler((byte)Cube.Transport.MessageId.NewConnectionEstablished, OnNewIncomingConnection);
+            server.reactor.AddMessageHandler((byte)Cube.Transport.MessageId.DisconnectNotification, OnDisconnectionNotification);
             server.reactor.AddMessageHandler((byte)MessageId.LoadSceneDone, OnLoadSceneDone);
         }
 
@@ -92,7 +92,7 @@ namespace GameFramework {
         }
 
         protected virtual void OnNewIncomingConnection(Connection connection, BitStream bs) {
-            Debug.Log("[Server] <b>New connection</b> " + connection);
+            Debug.Log("[Server] <b>New connection</b> <i>" + connection + "</i>");
 
             // Send load scene packet if we loaded one previously
             if (_loadSceneName != null) {

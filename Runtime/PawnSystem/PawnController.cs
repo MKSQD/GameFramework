@@ -21,6 +21,7 @@ namespace GameFramework {
                 return;
 
             var previousPawn = pawn;
+            Debug.Log("  previousPawn = " + previousPawn);
 
             Unpossess();
 
@@ -38,10 +39,13 @@ namespace GameFramework {
             if (pawn == null)
                 return;
 
-            pawn.OnUnpossession();
-            OnUnpossess();
-
-            pawn = null;
+            try {
+                pawn.OnUnpossession();
+                OnUnpossess();
+            }
+            finally {
+                pawn = null;
+            }
         }
     }
 }
