@@ -21,7 +21,6 @@ namespace GameFramework {
                 return;
 
             var previousPawn = pawn;
-            Debug.Log("  previousPawn = " + previousPawn);
 
             Unpossess();
 

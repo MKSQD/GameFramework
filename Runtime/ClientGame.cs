@@ -63,7 +63,7 @@ namespace GameFramework {
 
                     _todoReplicaPossess = ReplicaId.Invalid;
 
-                    Debug.Log("[Client] Possessed Pawn <i>" + pawn + "</i> idx=" + _pawnIdxToPossess, pawn);
+                    Debug.Log("[Client] <b>Possessed Pawn</b> <i>" + pawn + "</i> idx=" + _pawnIdxToPossess, pawn);
                 }
             }
         }
