@@ -41,7 +41,7 @@ namespace GameFramework {
         public ServerGame(World world, ServerReplicaManagerSettings replicaManagerSettings) {
             this.world = world ?? throw new ArgumentNullException("world");
 
-            server = new CubeServer(port, world.transform, replicaManagerSettings);
+            server = new CubeServer(port, world, replicaManagerSettings);
 
             server.reactor.AddMessageHandler((byte)Cube.Transport.MessageId.NewConnectionEstablished, OnNewIncomingConnection);
             server.reactor.AddMessageHandler((byte)Cube.Transport.MessageId.DisconnectNotification, OnDisconnectionNotification);
@@ -141,7 +141,7 @@ namespace GameFramework {
 
         void CreateReplicaView(Connection connection) {
             var view = new GameObject("ReplicaView " + connection);
-            view.transform.parent = server.replicaManager.instantiateTransform;
+            view.transform.parent = server.world.transform;
 
             var rw = view.AddComponent<ReplicaView>();
             rw.connection = connection;

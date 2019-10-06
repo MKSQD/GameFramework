@@ -29,12 +29,9 @@ namespace GameFramework {
         byte _pawnIdxToPossess;
 
         public ClientGame(World world, ClientSimulatedLagSettings lagSettings) {
-            if (world == null)
-                throw new ArgumentNullException("world");
+            this.world = world ?? throw new ArgumentNullException("world");
 
-            this.world = world;
-
-            client = new CubeClient(world.transform, lagSettings);
+            client = new CubeClient(world, lagSettings);
 
 #if UNITY_EDITOR
             if (connectInEditor) {
@@ -63,7 +60,7 @@ namespace GameFramework {
 
                     _todoReplicaPossess = ReplicaId.Invalid;
 
-                    Debug.Log("[Client] <b>Possessed Pawn</b> <i>" + pawn + "</i> idx=" + _pawnIdxToPossess, pawn);
+                    Debug.Log("[Client][Game] <b>Possessed Pawn</b> <i>" + pawn + "</i> idx=" + _pawnIdxToPossess, pawn);
                 }
             }
         }

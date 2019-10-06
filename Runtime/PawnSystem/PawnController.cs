@@ -1,5 +1,4 @@
 ﻿using System;
-using UnityEngine;
 
 namespace GameFramework {
     public abstract class PawnController {
@@ -7,11 +6,6 @@ namespace GameFramework {
             get;
             internal set;
         }
-
-        public abstract void Update();
-
-        protected abstract void OnPossess(Pawn pawn);
-        protected abstract void OnUnpossess();
 
         public void Possess(Pawn newPawn) {
             if (newPawn == null)
@@ -46,5 +40,10 @@ namespace GameFramework {
                 pawn = null;
             }
         }
+
+        public abstract void Update();
+
+        protected abstract void OnPossess(Pawn pawn);
+        protected abstract void OnUnpossess();
     }
 }
