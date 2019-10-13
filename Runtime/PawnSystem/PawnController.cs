@@ -11,7 +11,7 @@ namespace GameFramework {
             if (newPawn == null)
                 throw new ArgumentNullException("newPawn");
 
-            if (!newPawn.CanBePossessedBy(this))
+            if (newPawn.isServer && !newPawn.CanBePossessedBy(this))
                 return;
 
             var previousPawn = pawn;
