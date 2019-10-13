@@ -38,17 +38,6 @@ namespace GameFramework {
             internal set;
         }
 
-        protected override void Awake() {
-            base.Awake();
-
-            characterController = GetComponent<CharacterController>();
-            movement = GetComponent<CharacterMovement>();
-
-            if (camera != null) {
-                camera.enabled = false;
-            }
-        }
-
         public override void Teleport(Vector3 targetPosition, Quaternion targetRotation) {
             if (characterController != null) {
                 characterController.enabled = false;
@@ -60,9 +49,41 @@ namespace GameFramework {
             }
         }
 
+        public override void SetupPlayerInputComponent(PawnInput input) {
+            input.BindAxis("Mouse X", movement.AddYawInput);
+            input.BindAxis("Mouse Y", movement.AddPitchInput);
+            input.BindAxis("Horizontal", OnHorizontalInput);
+            input.BindAxis("Vertical", OnVerticalInput);
+            input.BindAxis("Run", OnRun);
+            input.BindAction("Jump", movement.Jump);
+        }
+
+        protected override void Awake() {
+            base.Awake();
+
+            characterController = GetComponent<CharacterController>();
+            movement = GetComponent<CharacterMovement>();
+
+            if (camera != null) {
+                camera.enabled = false;
+            }
+        }
+
         protected override void TickImpl() {
             if (controller != null && movement != null) {
                 movement.Tick();
+            }
+        }
+
+        protected override void OnPossessionImpl(Pawn previousPawn) {
+            if (camera != null) {
+                camera.enabled = true;
+            }
+        }
+
+        protected override void OnUnpossessionImpl() {
+            if (camera != null) {
+                camera.enabled = false;
             }
         }
 
@@ -82,27 +103,6 @@ namespace GameFramework {
             pushDir.y = 0;
 
             body.velocity = pushDir * pushPower;
-        }
-
-        public override void SetupPlayerInputComponent(PawnInput input) {
-            input.BindAxis("Mouse X", movement.AddYawInput);
-            input.BindAxis("Mouse Y", movement.AddPitchInput);
-            input.BindAxis("Horizontal", OnHorizontalInput);
-            input.BindAxis("Vertical", OnVerticalInput);
-            input.BindAxis("Run", OnRun);
-            input.BindAction("Jump", movement.Jump);
-        }
-
-        protected override void OnPossessionImpl(Pawn previousPawn) {
-            if (camera != null) {
-                camera.enabled = true;
-            }
-        }
-
-        protected override void OnUnpossessionImpl() {
-            if (camera != null) {
-                camera.enabled = false;
-            }
         }
 
         void OnHorizontalInput(float value) {

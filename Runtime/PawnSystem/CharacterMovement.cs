@@ -69,12 +69,20 @@ namespace GameFramework {
         protected virtual void Update() {
             _character.view.localRotation = Quaternion.AngleAxis(_viewPitch, Vector3.left);
 
-            if (!isOwner || _character.controller == null) {
+            if (!isOwner) {
                 if (isClient) {
                     _history.Sample(Time.time, out Vector3 position, out Quaternion rotation);
-                    _character.characterController.Move(position - transform.position);
-                    transform.localRotation = Quaternion.AngleAxis(rotation.eulerAngles.y, Vector3.up);
+                    var diff = position - transform.position;
+                    if (diff.sqrMagnitude < 1) { // Physics might cause the client-side to become desynced
+                        _character.characterController.Move(position - transform.position);
+                    }
+                    else {
+                        _character.Teleport(position, transform.rotation);
+                    }
+
+                    transform.localRotation = rotation;
                 }
+
                 return;
             }
 
@@ -128,9 +136,9 @@ namespace GameFramework {
 
         [ReplicaRpc(RpcTarget.Server)]
         void RpcServerMove(Vector3 finalPosition, float yaw, float viewPitch) {
-            transform.position = finalPosition;
-            transform.localRotation = Quaternion.AngleAxis(yaw, Vector3.up);
+            _yaw = yaw;
             _viewPitch = viewPitch;
+            _character.Teleport(finalPosition, Quaternion.AngleAxis(yaw, Vector3.up));
         }
 
         public override void Serialize(BitStream bs, ReplicaView view) {
@@ -138,8 +146,8 @@ namespace GameFramework {
                 return;
 
             bs.Write(transform.position);
-            bs.Write(_yaw);
-            bs.Write(_viewPitch);
+            bs.WriteLossyFloat(_yaw, 0, 360, 1);
+            bs.WriteLossyFloat(_viewPitch, minPitch, maxPitch, 1);
         }
 
         public override void Deserialize(BitStream bs) {
@@ -147,8 +155,8 @@ namespace GameFramework {
                 return;
 
             var pos = bs.ReadVector3();
-            var yaw = bs.ReadFloat();
-            _viewPitch = bs.ReadFloat();
+            var yaw = bs.ReadLossyFloat(0, 360, 1);
+            _viewPitch = bs.ReadLossyFloat(minPitch, maxPitch, 1);
             _history.Add(new Pose(pos, Quaternion.AngleAxis(yaw, Vector3.up)), Time.time + interpolationDelayMs * 0.001f);
         }
     }
