@@ -142,6 +142,7 @@ namespace GameFramework {
         }
 
         void OnPlayerDied(Pawn pawn) {
+            players.Remove(pawn);
             SpawnPlayer((PlayerController)pawn.controller);
         }
     }
