@@ -136,9 +136,20 @@ namespace GameFramework {
 
         [ReplicaRpc(RpcTarget.Server)]
         void RpcServerMove(Vector3 finalPosition, float yaw, float viewPitch) {
+            var diff = transform.position - finalPosition;
+            if (diff.sqrMagnitude > 10) {
+                RpcOwnerResetPosition(transform.position);
+                return;
+            }
+
             _yaw = yaw;
             _viewPitch = viewPitch;
             _character.Teleport(finalPosition, Quaternion.AngleAxis(yaw, Vector3.up));
+        }
+
+        [ReplicaRpc(RpcTarget.Owner)]
+        void RpcOwnerResetPosition(Vector3 finalPos) {
+            _character.Teleport(finalPos, transform.rotation);
         }
 
         public override void Serialize(BitStream bs, ReplicaView view) {
