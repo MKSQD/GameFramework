@@ -7,12 +7,12 @@ namespace GameFramework {
             internal set;
         }
 
-        public void Possess(Pawn newPawn) {
+        public bool Possess(Pawn newPawn) {
             if (newPawn == null)
                 throw new ArgumentNullException("newPawn");
 
             if (newPawn.isServer && !newPawn.CanBePossessedBy(this))
-                return;
+                return false;
 
             var previousPawn = pawn;
 
@@ -26,6 +26,7 @@ namespace GameFramework {
 
             newPawn.OnPossession(this, previousPawn);
             OnPossess(newPawn);
+            return true;
         }
 
         public void Unpossess() {

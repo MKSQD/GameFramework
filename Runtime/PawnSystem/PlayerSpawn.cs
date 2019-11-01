@@ -1,9 +1,10 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace GameFramework {
     [AddComponentMenu("GameFramework/PlayerSpawn")]
     public class PlayerSpawn : MonoBehaviour {
-        static public PlayerSpawn instance;
+        static public List<PlayerSpawn> all = new List<PlayerSpawn>();
 
         public Vector3 GetRandomizedPosition() {
             var offset = new Vector3(Random.Range(-1f, 1f), 0, Random.Range(-1f, 1f));
@@ -13,11 +14,11 @@ namespace GameFramework {
         }
 
         void OnEnable() {
-            instance = this;
+            all.Add(this);
         }
 
         void OnDisable() {
-            instance = null;
+            all.Remove(this);
         }
     }
 }
