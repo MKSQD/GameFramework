@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -24,6 +25,8 @@ namespace GameFramework {
             get;
             internal set;
         }
+
+        Queue<(float, PlayerController)> _respawnQueue = new Queue<(float, PlayerController)>();
 
         public GameMode(ServerGame server) : base(server) {
             matchState = MatchState.WaitingToStart;
@@ -74,6 +77,15 @@ namespace GameFramework {
                     break;
 
                 case MatchState.InProgress:
+                    if (_respawnQueue.Count > 0) {
+                        var timeControllerPair = _respawnQueue.Peek();
+                        var respawnPlayer = Time.time >= timeControllerPair.Item1;
+                        if (respawnPlayer) {
+                            _respawnQueue.Dequeue();
+                            SpawnPlayer(timeControllerPair.Item2);
+                        }
+                    }
+
                     if (ReadyToEndMatch()) {
                         EndMatch();
                     }
@@ -121,7 +133,7 @@ namespace GameFramework {
             var pawn = go.GetComponent<Pawn>();
             pawn.Teleport(spawnPosition, Quaternion.identity);
 
-            pawn.onDestroy += OnPlayerDied;
+            pawn.onDestroy += OnPlayerDeath;
 
             players.Add(pawn);
 
@@ -133,17 +145,22 @@ namespace GameFramework {
         }
 
         protected virtual Vector3 GetPlayerSpawnPosition() {
-            var spawn = PlayerSpawn.instance;
-            if (spawn == null)
+            if (PlayerSpawn.all.Count == 0)
                 return Vector3.zero;
+
+            var spawn = PlayerSpawn.all[UnityEngine.Random.Range(0, PlayerSpawn.all.Count)];
 
             var spawnPosition = spawn.GetRandomizedPosition();
             return spawnPosition;
         }
 
-        void OnPlayerDied(Pawn pawn) {
+        void OnPlayerDeath(Pawn pawn) {
             players.Remove(pawn);
-            SpawnPlayer((PlayerController)pawn.controller);
+
+            if (pawn.controller != null) {
+                var pc = (PlayerController)pawn.controller;
+                _respawnQueue.Enqueue((Time.time + 1, pc));
+            }
         }
     }
 }
