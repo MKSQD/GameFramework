@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -19,6 +18,10 @@ namespace GameFramework {
 
         public bool hasMatchStarted {
             get { return matchState == MatchState.InProgress; }
+        }
+
+        public bool hasMatchEnded {
+            get { return matchState == MatchState.WaitingPostMatch; }
         }
 
         public List<Pawn> players {
@@ -55,7 +58,7 @@ namespace GameFramework {
             matchState = MatchState.WaitingPostMatch;
             HandleMatchHasEnded();
 
-            Debug.Log("[Server][Game] Match has ended");
+            Debug.Log("[Server][Game] <b>Match has ended</b>");
         }
 
         public override void StartToLeaveMap() {
@@ -159,7 +162,9 @@ namespace GameFramework {
 
             if (pawn.controller != null) {
                 var pc = (PlayerController)pawn.controller;
-                _respawnQueue.Enqueue((Time.time + 1, pc));
+                Debug.Log("[Server][Game] <b>Player death</b> <i>" + pc.connection + "</i>");
+
+                _respawnQueue.Enqueue((Time.time + 3, pc));
             }
         }
     }
