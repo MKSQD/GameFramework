@@ -13,8 +13,12 @@ namespace GameFramework {
         public event CharacterEvent onJump;
         public event CharacterEvent onLand;
 
+        public LayerMask clientGroundMask, serverGroundMask;
+
         [Range(0, 500)]
         public int interpolationDelayMs;
+
+        public Platform platform;
 
         Character _character;
 
@@ -26,6 +30,10 @@ namespace GameFramework {
         float _viewPitch;
         bool _jump;
         bool _run;
+
+        bool hasNewPlatform;
+        Vector3 _platformLocalPoint;
+        Vector3 _platformGlobalPoint;
 
         TransformHistory _history;
 
@@ -66,23 +74,14 @@ namespace GameFramework {
             }
         }
 
-        protected virtual void Update() {
+        protected virtual void FixedUpdate() {
+            UpdateGround();
+            UpdatePlatform();
+
             _character.view.localRotation = Quaternion.AngleAxis(_viewPitch, Vector3.left);
 
-            if (!isOwner) {
-                if (isClient) {
-                    _history.Sample(Time.time, out Vector3 position, out Quaternion rotation);
-                    var diff = position - transform.position;
-                    if (diff.sqrMagnitude < 1) { // Physics might cause the client-side to become desynced
-                        _character.characterController.Move(position - transform.position);
-                    }
-                    else {
-                        _character.Teleport(position, transform.rotation);
-                    }
-
-                    transform.localRotation = rotation;
-                }
-
+            if (isClient && !isOwner) {
+                UpdateRemote();
                 return;
             }
 
@@ -97,12 +96,13 @@ namespace GameFramework {
 
             // Landing
             if (_character.isGrounded) {
-                if (_lastGroundedTime < Time.time - 0.1f) {
+                if (_lastGroundedTime < Time.time - 0.2f) {
                     onLand?.Invoke(_character);
                     _jumpForce = 0;
                 }
 
-                if (_jump && _jumpForce < 0.1f) {
+                var beginNewJump = _jump && _jumpForce < 0.1f;
+                if (beginNewJump) {
                     _jumpForce = 1;
                     onJump?.Invoke(_character);
                 }
@@ -111,22 +111,70 @@ namespace GameFramework {
             }
 
             // Jump
-            if (_jumpForce > 0.1f) {
+            var isJumping = _jumpForce > 0.1f;
+            if (isJumping) {
                 _jumpForce *= Mathf.Max(1 - 3f * Time.deltaTime, 0);
 
                 actualMovement += _jumpForce * Vector3.up * _character.jumpForce;
             }
 
             // Gravity
-            if (!_character.isGrounded && _character.gravity) {
+            if (_character.gravity) {
                 actualMovement += Physics.gravity;
             }
 
             // Move
             _character.characterController.Move(actualMovement * Time.deltaTime);
 
+            // Consume input
             _move = Vector3.zero;
             _jump = false;
+        }
+
+        void UpdateGround() {
+            Platform newPlatform = null;
+
+            var layerMask = isClient ? clientGroundMask : serverGroundMask;
+            if (Physics.Raycast(transform.position + Vector3.up * 0.01f, Vector3.down, out RaycastHit hit, 0.2f, layerMask)) {
+                newPlatform = hit.collider.GetComponentInParent<Platform>();
+            }
+
+            if (newPlatform != platform) {
+                platform = newPlatform;
+                hasNewPlatform = true;
+            }
+        }
+
+        void UpdatePlatform() {
+            if (platform == null)
+                return;
+
+            if (!hasNewPlatform) {
+                var playerNoMovePlatformWorldPos = platform.referenceTransform.TransformPoint(_platformLocalPoint);
+                var playerMovementLastFrame = transform.position - _platformGlobalPoint;
+
+                var finalPos = (playerNoMovePlatformWorldPos + playerMovementLastFrame);
+                _character.Teleport(finalPos, transform.rotation);
+            }
+            else {
+                hasNewPlatform = false;
+            }
+
+            _platformLocalPoint = platform.referenceTransform.InverseTransformPoint(transform.position);
+            _platformGlobalPoint = transform.position;
+        }
+
+        void UpdateRemote() {
+            _history.Sample(Time.time, out Vector3 position, out Quaternion rotation);
+            var diff = position - transform.position;
+            if (diff.sqrMagnitude < 1) { // Physics might cause the client-side to become desynced
+                _character.characterController.Move(position - transform.position);
+            }
+            else {
+                _character.Teleport(position, transform.rotation);
+            }
+
+            transform.localRotation = rotation;
         }
 
         void Awake() {
