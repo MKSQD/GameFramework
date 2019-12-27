@@ -8,10 +8,12 @@ using UnityEngine.SceneManagement;
 using BitStream = Cube.Transport.BitStream;
 
 namespace GameFramework {
-    public class ClientGame {
-        public bool connectInEditor = true;
-        public ushort portInEditor = 60000;
+    public struct ClientGameContext {
+        public World World;
+        public SimulatedLagSettings LagSettings;
+    }
 
+    public class ClientGame {
         public CubeClient client {
             get;
             internal set;
@@ -28,16 +30,10 @@ namespace GameFramework {
         ReplicaId _todoReplicaPossess;
         byte _pawnIdxToPossess;
 
-        public ClientGame(World world, ClientSimulatedLagSettings lagSettings) {
-            this.world = world ?? throw new ArgumentNullException("world");
+        public ClientGame(ClientGameContext ctx) {
+            world = ctx.World ?? throw new ArgumentNullException("world");
 
-            client = new CubeClient(world, lagSettings);
-
-#if UNITY_EDITOR
-            if (connectInEditor) {
-                client.networkInterface.Connect("127.0.0.1", portInEditor);
-            }
-#endif
+            client = new CubeClient(ctx.World, ctx.LagSettings);
 
             client.reactor.AddHandler((byte)Cube.Transport.MessageId.ConnectionRequestAccepted, OnConnectionRequestAccepted);
             client.reactor.AddHandler((byte)Cube.Transport.MessageId.ConnectionRequestFailed, OnConnectionRequestFailed);

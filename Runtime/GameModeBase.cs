@@ -28,7 +28,7 @@ namespace GameFramework {
         public abstract void HandleNewPlayer(PlayerController pc);
 
         public virtual GameObject GetGameStatePrefab() {
-            return GameInstance.instance.defaultGameStatePrefab;
+            return GameInstance.instance.DefaultGameStatePrefab;
         }
     }
 }

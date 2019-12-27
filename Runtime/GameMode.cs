@@ -103,11 +103,11 @@ namespace GameFramework {
         }
 
         protected virtual bool ReadyToStartMatch() {
-            return true;
+            return server.server.connections.Count > 0;
         }
 
         protected virtual bool ReadyToEndMatch() {
-            return false;
+            return server.server.connections.Count == 0;
         }
 
         protected virtual void HandleMatchIsWaitingToStart() {

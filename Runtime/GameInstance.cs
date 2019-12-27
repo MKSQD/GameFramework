@@ -13,13 +13,14 @@ namespace GameFramework {
             }
         }
 
-        public ServerReplicaManagerSettings replicaManagerSettings;
-        public ClientSimulatedLagSettings lagSettings;
+        public ushort Port = 60000;
+        public ServerReplicaManagerSettings ReplicaManagerSettings;
+        public SimulatedLagSettings LagSettings;
 
-        public GameObject defaultGameStatePrefab;
+        public GameObject DefaultGameStatePrefab;
 
-        ClientGame _client;
-        ServerGame _server;
+        ClientGame _clientGame;
+        ServerGame _serverGame;
 
         protected virtual void Start() {
             DontDestroyOnLoad(gameObject);
@@ -29,39 +30,51 @@ namespace GameFramework {
 
             StartClient();
 #if UNITY_EDITOR
+            _clientGame.client.networkInterface.Connect("127.0.0.1", Port);
+
             StartServer();
 #endif
         }
 
         public void StartClient() {
-            if (_client != null)
+            if (_clientGame != null)
                 return;
 
             var clientWorldGO = new GameObject("Client World");
             var clientWorld = clientWorldGO.AddComponent<World>();
             DontDestroyOnLoad(clientWorldGO);
 
-            _client = CreateClient(clientWorld, lagSettings);
+            var ctx = new ClientGameContext() {
+                World = clientWorld,
+                LagSettings = LagSettings
+            };
+            _clientGame = CreateClient(ctx);
         }
 
         public void StartServer() {
-            if (_server != null)
+            if (_serverGame != null)
                 return;
 
             var serverWorldGO = new GameObject("Server World");
             var serverWorld = serverWorldGO.AddComponent<World>();
             DontDestroyOnLoad(serverWorldGO);
 
-            _server = CreateServer(serverWorld, replicaManagerSettings);
+            var ctx = new ServerGameContext() {
+                Port = Port,
+                World = serverWorld,
+                ReplicaManagerSettings = ReplicaManagerSettings,
+                LagSettings = LagSettings
+            };
+            _serverGame = CreateServer(ctx);
         }
 
         float _tickAccumulator;
         protected virtual void Update() {
-            if (_client != null) {
-                _client.Update();
+            if (_clientGame != null) {
+                _clientGame.Update();
             }
-            if (_server != null) {
-                _server.Update();
+            if (_serverGame != null) {
+                _serverGame.Update();
             }
 
             _tickAccumulator += Time.deltaTime;
@@ -74,20 +87,20 @@ namespace GameFramework {
         }
 
         protected virtual void OnApplicationQuit() {
-            if (_client != null) {
-                _client.Shutdown();
+            if (_clientGame != null) {
+                _clientGame.Shutdown();
             }
-            if (_server != null) {
-                _server.Shutdown();
+            if (_serverGame != null) {
+                _serverGame.Shutdown();
             }
         }
 
-        protected virtual ClientGame CreateClient(World world, ClientSimulatedLagSettings lagSettings) {
-            return new ClientGame(world, lagSettings);
+        protected virtual ClientGame CreateClient(ClientGameContext ctx) {
+            return new ClientGame(ctx);
         }
 
-        protected virtual ServerGame CreateServer(World world, ServerReplicaManagerSettings replicaManagerSettings) {
-            return new ServerGame(world, replicaManagerSettings);
+        protected virtual ServerGame CreateServer(ServerGameContext ctx) {
+            return new ServerGame(ctx);
         }
     }
 }

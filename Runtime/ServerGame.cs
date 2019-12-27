@@ -5,7 +5,6 @@ using System;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.Events;
-using UnityEngine.SceneManagement;
 using BitStream = Cube.Transport.BitStream;
 
 namespace GameFramework {
@@ -13,9 +12,14 @@ namespace GameFramework {
     public class ConnectionEvent : UnityEvent<Connection> {
     }
 
-    public class ServerGame {
-        public ushort port = 60000;
+    public struct ServerGameContext {
+        public ushort Port;
+        public World World;
+        public ServerReplicaManagerSettings ReplicaManagerSettings;
+        public SimulatedLagSettings LagSettings;
+    }
 
+    public class ServerGame {
         public CubeServer server {
             get;
             internal set;
@@ -38,10 +42,10 @@ namespace GameFramework {
         byte _loadScenePlayerAcks;
         bool _onAllClientsLoadedSceneTriggeredThisGeneration;
 
-        public ServerGame(World world, ServerReplicaManagerSettings replicaManagerSettings) {
-            this.world = world ?? throw new ArgumentNullException("world");
+        public ServerGame(ServerGameContext ctx) {
+            world = ctx.World ?? throw new ArgumentNullException("world");
 
-            server = new CubeServer(port, world, replicaManagerSettings);
+            server = new CubeServer(ctx.Port, ctx.World, ctx.LagSettings, ctx.ReplicaManagerSettings);
 
             server.reactor.AddMessageHandler((byte)Cube.Transport.MessageId.NewConnectionEstablished, OnNewIncomingConnection);
             server.reactor.AddMessageHandler((byte)Cube.Transport.MessageId.DisconnectNotification, OnDisconnectionNotification);
