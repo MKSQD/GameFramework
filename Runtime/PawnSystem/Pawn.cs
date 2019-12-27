@@ -6,7 +6,7 @@ namespace GameFramework {
     public abstract class Pawn : ReplicaBehaviour {
         public delegate void PawnEvent(Pawn pawn);
 
-        static List<Pawn> all = new List<Pawn>();
+        static List<Pawn> All = new List<Pawn>();
 
         public PawnController controller {
             get;
@@ -40,7 +40,9 @@ namespace GameFramework {
             }
         }
 
-        public virtual bool CanBePossessedBy(PawnController controller) { return true; }
+        public virtual bool CanBePossessedBy(PawnController controller) {
+            return true;
+        }
 
         public abstract void SetupPlayerInputComponent(PawnInput input);
 
@@ -48,7 +50,7 @@ namespace GameFramework {
 
 
         public static void TickAll() {
-            foreach (var pawn in all) {
+            foreach (var pawn in All) {
                 pawn.Tick();
             }
         }
@@ -80,11 +82,11 @@ namespace GameFramework {
 
 
         protected virtual void OnEnable() {
-            all.Add(this);
+            All.Add(this);
         }
 
         protected virtual void OnDisable() {
-            all.Remove(this);
+            All.Remove(this);
             if (!_isApplicationQuitting) {
                 onDestroy?.Invoke(this);
             }

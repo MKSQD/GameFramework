@@ -200,8 +200,8 @@ namespace GameFramework {
             _character.Teleport(finalPos, transform.rotation);
         }
 
-        public override void Serialize(BitStream bs, ReplicaView view) {
-            if (replica.owner == view.connection)
+        public override void Serialize(BitStream bs, SerializeContext ctx) {
+            if (replica.Owner == ctx.Observer.connection)
                 return;
 
             bs.Write(transform.position);

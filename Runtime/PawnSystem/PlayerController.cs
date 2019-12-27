@@ -71,7 +71,7 @@ namespace GameFramework {
 
             var bs = pawn.server.networkInterface.bitStreamPool.Create();
             bs.Write((byte)MessageId.PossessPawn);
-            bs.Write(pawn.replica.id);
+            bs.Write(pawn.replica.ReplicaId);
             bs.Write(pawnIdx);
 
             pawn.server.networkInterface.SendBitStream(bs, PacketPriority.High, PacketReliability.ReliableSequenced, connection);
