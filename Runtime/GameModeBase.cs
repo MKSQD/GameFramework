@@ -21,7 +21,7 @@ namespace GameFramework {
             gameState = gsGO.GetComponent<GameState>();
         }
 
-        public abstract void Tick();
+        public abstract void Update();
 
         public abstract void StartToLeaveMap();
 

@@ -7,15 +7,19 @@ namespace GameFramework {
     public class CharacterMovement : ReplicaBehaviour, IPawnMovement {
         public delegate void CharacterEvent(Character character);
 
-        const float minPitch = -55;
-        const float maxPitch = 60;
+        const float minViewPitch = -55;
+        const float maxViewPitch = 60;
 
         public event CharacterEvent onJump;
         public event CharacterEvent onLand;
 
         public LayerMask clientGroundMask, serverGroundMask;
 
+        float _nextSendTime;
+        const float minSendDelay = 1 / 60f;
+
         [Range(0, 500)]
+        [Tooltip("The delay remote players are displayed at")]
         public int interpolationDelayMs;
 
         public Platform platform;
@@ -28,6 +32,7 @@ namespace GameFramework {
         Vector3 _move;
         float _yaw;
         float _viewPitch;
+        float _viewPitchLerp;
         bool _jump;
         bool _run;
 
@@ -48,7 +53,7 @@ namespace GameFramework {
 
         public void AddPitchInput(float value) {
             _viewPitch += value;
-            _viewPitch = Mathf.Clamp(_viewPitch, minPitch, maxPitch);
+            _viewPitch = Mathf.Clamp(_viewPitch, minViewPitch, maxViewPitch);
         }
 
         public void SetRun(bool run) {
@@ -68,31 +73,55 @@ namespace GameFramework {
         public void OnExitLadder() {
         }
 
-        public void Tick() {
-            if (isClient && isOwner) {
-                RpcServerMove(transform.position, _yaw, _viewPitch);
-            }
+        public override void Serialize(BitStream bs, SerializeContext ctx) {
+            if (replica.Owner == ctx.Observer.connection)
+                return;
+
+            bs.Write(transform.position);
+            bs.WriteLossyFloat(_yaw, 0, 360, 5);
+            bs.WriteLossyFloat(_viewPitch, minViewPitch, maxViewPitch, 5);
         }
 
-        protected virtual void FixedUpdate() {
+        public override void Deserialize(BitStream bs) {
+            if (isOwner)
+                return;
+
+            var pos = bs.ReadVector3();
+            var yaw = bs.ReadLossyFloat(0, 360, 5);
+            _viewPitch = bs.ReadLossyFloat(minViewPitch, maxViewPitch, 5);
+            _history.Add(new Pose(pos, Quaternion.AngleAxis(yaw, Vector3.up)), Time.time + interpolationDelayMs * 0.001f);
+        }
+
+        protected void Update() {
             UpdateGround();
             UpdatePlatform();
-
-            _character.view.localRotation = Quaternion.AngleAxis(_viewPitch, Vector3.left);
 
             if (isClient && !isOwner) {
                 UpdateRemote();
                 return;
             }
 
+            _character.view.localRotation = Quaternion.AngleAxis(_viewPitch, Vector3.left);
             transform.localRotation = Quaternion.AngleAxis(_yaw, Vector3.up);
 
-            var actualMovement = _move.normalized * (!_run ? _character.moveSpeed : _character.runSpeed);
+            var actualMovement = _move.normalized;
+
+
+            // Apply modifiers
+            var speed = !_run ? _character.moveSpeed : _character.runSpeed;
+            actualMovement *= speed;
+
+            if (actualMovement.z < 0) {
+                actualMovement.z *= _character.backwardSpeedModifier;
+            }
+            actualMovement.x *= _character.sideSpeedModifier;
 
             var modifier = _character.isGrounded ? _character.groundControl : _character.airControl;
             actualMovement = Vector3.Lerp(_lastMovement, actualMovement, modifier);
 
             _lastMovement = actualMovement;
+
+            actualMovement = transform.rotation * actualMovement;
 
             // Landing
             if (_character.isGrounded) {
@@ -113,9 +142,9 @@ namespace GameFramework {
             // Jump
             var isJumping = _jumpForce > 0.1f;
             if (isJumping) {
-                _jumpForce *= Mathf.Max(1 - 3f * Time.deltaTime, 0);
+                _jumpForce = Mathf.Max(_jumpForce - Time.deltaTime * 1.2f, 0);
 
-                actualMovement += _jumpForce * Vector3.up * _character.jumpForce;
+                actualMovement += _jumpForce * Vector3.up * _character.jumpForce2;
             }
 
             // Gravity
@@ -129,6 +158,12 @@ namespace GameFramework {
             // Consume input
             _move = Vector3.zero;
             _jump = false;
+
+            if (isClient && Time.time >= _nextSendTime) {
+                _nextSendTime = Time.time + minSendDelay;
+
+                RpcServerMove(transform.position, _yaw, _viewPitch);
+            }
         }
 
         void UpdateGround() {
@@ -165,6 +200,9 @@ namespace GameFramework {
         }
 
         void UpdateRemote() {
+            _viewPitchLerp = Mathf.Lerp(_viewPitchLerp, _viewPitch, 5 * Time.deltaTime);
+            _character.view.localRotation = Quaternion.AngleAxis(_viewPitchLerp, Vector3.left);
+
             _history.Sample(Time.time, out Vector3 position, out Quaternion rotation);
             var diff = position - transform.position;
             if (diff.sqrMagnitude < 1) { // Physics might cause the client-side to become desynced
@@ -198,25 +236,6 @@ namespace GameFramework {
         [ReplicaRpc(RpcTarget.Owner)]
         void RpcOwnerResetPosition(Vector3 finalPos) {
             _character.Teleport(finalPos, transform.rotation);
-        }
-
-        public override void Serialize(BitStream bs, SerializeContext ctx) {
-            if (replica.Owner == ctx.Observer.connection)
-                return;
-
-            bs.Write(transform.position);
-            bs.WriteLossyFloat(_yaw, 0, 360, 1);
-            bs.WriteLossyFloat(_viewPitch, minPitch, maxPitch, 1);
-        }
-
-        public override void Deserialize(BitStream bs) {
-            if (isOwner)
-                return;
-
-            var pos = bs.ReadVector3();
-            var yaw = bs.ReadLossyFloat(0, 360, 1);
-            _viewPitch = bs.ReadLossyFloat(minPitch, maxPitch, 1);
-            _history.Add(new Pose(pos, Quaternion.AngleAxis(yaw, Vector3.up)), Time.time + interpolationDelayMs * 0.001f);
         }
     }
 }

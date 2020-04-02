@@ -68,21 +68,12 @@ namespace GameFramework {
             _serverGame = CreateServer(ctx);
         }
 
-        float _tickAccumulator;
         protected virtual void Update() {
             if (_clientGame != null) {
                 _clientGame.Update();
             }
             if (_serverGame != null) {
                 _serverGame.Update();
-            }
-
-            _tickAccumulator += Time.deltaTime;
-            while (_tickAccumulator >= Tick.tickRate) {
-                _tickAccumulator -= Tick.tickRate;
-                ++Tick.tick;
-
-                Pawn.TickAll();
             }
         }
 

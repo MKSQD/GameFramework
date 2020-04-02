@@ -1,6 +1,6 @@
 ﻿namespace GameFramework {
     public interface IGameMode {
-        void Tick();
+        void Update();
 
         void HandleNewPlayer(PlayerController pc);
         void StartToLeaveMap();

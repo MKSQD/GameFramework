@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace GameFramework {
@@ -71,7 +72,7 @@ namespace GameFramework {
             HandleLeavingMap();
         }
 
-        public override void Tick() {
+        public override void Update() {
             switch (matchState) {
                 case MatchState.WaitingToStart:
                     if (ReadyToStartMatch()) {
@@ -80,6 +81,12 @@ namespace GameFramework {
                     break;
 
                 case MatchState.InProgress:
+                    foreach (var pc in server.world.playerControllers) {
+                        if (pc.pawn == null && !_respawnQueue.Any(pair => pair.Item2 == pc)) {
+                            _respawnQueue.Enqueue((Time.time + 3, pc));
+                        }
+                    }
+
                     if (_respawnQueue.Count > 0) {
                         var timeControllerPair = _respawnQueue.Peek();
                         var respawnPlayer = Time.time >= timeControllerPair.Item1;
@@ -125,6 +132,9 @@ namespace GameFramework {
         protected virtual void HandleLeavingMap() {
         }
 
+        protected virtual void HandlePlayerSpawned(Pawn player) {
+        }
+
         protected virtual void SpawnPlayer(PlayerController pc) {
             Debug.Log("[Server][Game] <b>Spawning player</b> <i>" + pc.connection + "</i>");
 
@@ -136,9 +146,9 @@ namespace GameFramework {
             var pawn = go.GetComponent<Pawn>();
             pawn.Teleport(spawnPosition, Quaternion.identity);
 
-            pawn.onDestroy += OnPlayerDeath;
-
             players.Add(pawn);
+
+            HandlePlayerSpawned(pawn);
 
             pc.Possess(pawn);
         }
@@ -155,17 +165,6 @@ namespace GameFramework {
 
             var spawnPosition = spawn.GetRandomizedPosition();
             return spawnPosition;
-        }
-
-        void OnPlayerDeath(Pawn pawn) {
-            players.Remove(pawn);
-
-            if (pawn.controller != null) {
-                var pc = (PlayerController)pawn.controller;
-                Debug.Log("[Server][Game] <b>Player death</b> <i>" + pc.connection + "</i>");
-
-                _respawnQueue.Enqueue((Time.time + 3, pc));
-            }
         }
     }
 }

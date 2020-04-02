@@ -10,7 +10,9 @@ namespace GameFramework {
         public new CinemachineVirtualCamera camera;
         public float moveSpeed = 1;
         public float runSpeed = 1;
-        public float jumpForce = 12;
+        public float backwardSpeedModifier = 0.7f;
+        public float sideSpeedModifier = 0.9f;
+        public float jumpForce2 = 18;
         public float groundControl = 0.95f;
         public float airControl = 0.1f;
         public bool gravity = true;
@@ -27,6 +29,10 @@ namespace GameFramework {
 
         public Vector3 localVelocity {
             get { return transform.InverseTransformDirection(characterController.velocity); }
+        }
+
+        public bool isMoving {
+            get { return characterController.velocity.sqrMagnitude > 0.1f; }
         }
 
         public bool isGrounded {
@@ -50,8 +56,8 @@ namespace GameFramework {
         }
 
         public override void SetupPlayerInputComponent(PawnInput input) {
-            input.BindAxis("Mouse X", movement.AddYawInput);
-            input.BindAxis("Mouse Y", movement.AddPitchInput);
+            input.BindAxis("Mouse X", value => movement.AddYawInput(value * 0.5f)); // #todo sensitivity
+            input.BindAxis("Mouse Y", value => movement.AddPitchInput(value * 0.4f));
             input.BindAxis("Horizontal", OnHorizontalInput);
             input.BindAxis("Vertical", OnVerticalInput);
             input.BindAxis("Run", OnRun);
@@ -66,12 +72,6 @@ namespace GameFramework {
 
             if (camera != null) {
                 camera.enabled = false;
-            }
-        }
-
-        protected override void TickImpl() {
-            if (controller != null && movement != null) {
-                movement.Tick();
             }
         }
 
@@ -106,11 +106,11 @@ namespace GameFramework {
         }
 
         void OnHorizontalInput(float value) {
-            movement.AddMoveInput(transform.right * value);
+            movement.AddMoveInput(Vector3.right * value);
         }
 
         void OnVerticalInput(float value) {
-            movement.AddMoveInput(transform.forward * value);
+            movement.AddMoveInput(Vector3.forward * value);
         }
 
         void OnRun(float value) {

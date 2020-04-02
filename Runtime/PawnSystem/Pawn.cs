@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace GameFramework {
+    [SelectionBase]
     public abstract class Pawn : ReplicaBehaviour {
         public delegate void PawnEvent(Pawn pawn);
 
@@ -20,9 +21,6 @@ namespace GameFramework {
 
         public event PawnEvent onPossession;
         public event PawnEvent onUnpossession;
-        public PawnEvent onDestroy;
-
-        static bool _isApplicationQuitting;
 
         public void OnPossession(PawnController controller, Pawn previousPawn) {
             this.controller = controller;
@@ -48,25 +46,6 @@ namespace GameFramework {
 
         public virtual void Teleport(Vector3 targetPosition, Quaternion targetRotation) { }
 
-
-        public static void TickAll() {
-            foreach (var pawn in All) {
-                pawn.Tick();
-            }
-        }
-
-        public void Tick() {
-            if (controller != null) {
-                if (movement != null) {
-                    movement.Tick();
-                }
-            }
-            TickImpl();
-        }
-
-        protected virtual void TickImpl() { }
-
-
         protected abstract void OnPossessionImpl(Pawn previousPawn);
         protected abstract void OnUnpossessionImpl();
 
@@ -80,20 +59,12 @@ namespace GameFramework {
             }
         }
 
-
         protected virtual void OnEnable() {
             All.Add(this);
         }
 
         protected virtual void OnDisable() {
             All.Remove(this);
-            if (!_isApplicationQuitting) {
-                onDestroy?.Invoke(this);
-            }
-        }
-
-        void OnApplicationQuit() {
-            _isApplicationQuitting = true;
         }
     }
 }

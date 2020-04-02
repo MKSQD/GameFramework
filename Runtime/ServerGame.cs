@@ -5,6 +5,7 @@ using System;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.Events;
+using UnityEngine.SceneManagement; // SceneManager
 using BitStream = Cube.Transport.BitStream;
 
 namespace GameFramework {
@@ -56,6 +57,11 @@ namespace GameFramework {
             return new GameMode(this);
         }
 
+        /// <summary>
+        /// Reset replication, instruct all clients to load the new scene, actually
+        /// load the new scene on the server and finally create a new GameMode instance.
+        /// </summary>
+        /// <param name="sceneName"></param>
         public void LoadScene(string sceneName) {
             if (gameMode != null) {
                 gameMode.StartToLeaveMap();
@@ -135,7 +141,7 @@ namespace GameFramework {
         public virtual void Update() {
             server.Update();
             if (gameMode != null) {
-                gameMode.Tick();
+                gameMode.Update();
             }
         }
 

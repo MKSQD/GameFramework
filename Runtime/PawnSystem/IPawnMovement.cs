@@ -6,7 +6,5 @@ namespace GameFramework {
 
         void OnEnterLadder();
         void OnExitLadder();
-
-        void Tick();
     }
 }
