@@ -63,6 +63,10 @@ namespace GameFramework {
         }
 
         public override void StartToLeaveMap() {
+            if (matchState == MatchState.InProgress) {
+                EndMatch();
+            }
+
             if (matchState != MatchState.WaitingPostMatch) {
                 Debug.LogWarning("StartToLeaveMap called in wrong MatchState " + matchState);
                 return;

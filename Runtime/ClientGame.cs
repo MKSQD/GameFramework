@@ -49,6 +49,11 @@ namespace GameFramework {
                 var replica = client.replicaManager.GetReplicaById(_todoReplicaPossess);
                 if (replica != null) {
                     var pawnsOnReplica = replica.GetComponentsInChildren<Pawn>();
+                    if(_pawnIdxToPossess >= pawnsOnReplica.Length) {
+                        Debug.LogError("Oh shit, abort");
+                        return;
+                    }
+
                     var pawn = pawnsOnReplica[_pawnIdxToPossess];
 
                     var pc = world.playerControllers[0];

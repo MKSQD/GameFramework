@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.ResourceManagement.AsyncOperations;
 
 namespace GameFramework {
     public abstract class GameModeBase : IGameMode {
@@ -16,9 +17,11 @@ namespace GameFramework {
             this.server = server;
 
             var prefab = GetGameStatePrefab();
-            var gsGO = server.server.replicaManager.InstantiateReplica(prefab);
+            prefab.Completed += obj => {
+                var gsGO = server.server.replicaManager.InstantiateReplica(obj.Result);
 
-            gameState = gsGO.GetComponent<GameState>();
+                gameState = gsGO.GetComponent<GameState>();
+            };
         }
 
         public abstract void Update();
@@ -27,8 +30,8 @@ namespace GameFramework {
 
         public abstract void HandleNewPlayer(PlayerController pc);
 
-        public virtual GameObject GetGameStatePrefab() {
-            return GameInstance.instance.DefaultGameStatePrefab;
+        public virtual AsyncOperationHandle<GameObject> GetGameStatePrefab() {
+            return GameInstance.main.DefaultGameStatePrefab.LoadAssetAsync<GameObject>();
         }
     }
 }

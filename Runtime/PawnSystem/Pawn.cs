@@ -64,6 +64,10 @@ namespace GameFramework {
         }
 
         protected virtual void OnDisable() {
+            if (controller != null) {
+                controller.Unpossess();
+            }
+
             All.Remove(this);
         }
     }

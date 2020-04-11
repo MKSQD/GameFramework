@@ -1,15 +1,16 @@
 ﻿using Cube.Replication;
 using Cube.Transport;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.Assertions;
 
 namespace GameFramework {
     public class GameInstance : MonoBehaviour {
-        static GameInstance _instance;
-        public static GameInstance instance {
+        static GameInstance _main;
+        public static GameInstance main {
             get {
-                Assert.IsNotNull(_instance);
-                return _instance;
+                Assert.IsNotNull(_main);
+                return _main;
             }
         }
 
@@ -17,27 +18,21 @@ namespace GameFramework {
         public ServerReplicaManagerSettings ReplicaManagerSettings;
         public SimulatedLagSettings LagSettings;
 
-        public GameObject DefaultGameStatePrefab;
+        public AssetReference DefaultGameStatePrefab;
 
-        ClientGame _clientGame;
-        ServerGame _serverGame;
+        public bool CharacterInputEnabled = true;
 
-        protected virtual void Start() {
-            DontDestroyOnLoad(gameObject);
-
-            Assert.IsNull(_instance);
-            _instance = this;
-
-            StartClient();
-#if UNITY_EDITOR
-            _clientGame.client.networkInterface.Connect("127.0.0.1", Port);
-
-            StartServer();
-#endif
+        public ClientGame GameClient {
+            get;
+            internal set;
+        }
+        public ServerGame GameServer {
+            get;
+            internal set;
         }
 
         public void StartClient() {
-            if (_clientGame != null)
+            if (GameClient != null)
                 return;
 
             var clientWorldGO = new GameObject("Client World");
@@ -48,11 +43,11 @@ namespace GameFramework {
                 World = clientWorld,
                 LagSettings = LagSettings
             };
-            _clientGame = CreateClient(ctx);
+            GameClient = CreateClient(ctx);
         }
 
         public void StartServer() {
-            if (_serverGame != null)
+            if (GameServer != null)
                 return;
 
             var serverWorldGO = new GameObject("Server World");
@@ -65,24 +60,38 @@ namespace GameFramework {
                 ReplicaManagerSettings = ReplicaManagerSettings,
                 LagSettings = LagSettings
             };
-            _serverGame = CreateServer(ctx);
+            GameServer = CreateServer(ctx);
+        }
+
+        protected virtual void Start() {
+            DontDestroyOnLoad(gameObject);
+
+            Assert.IsNull(_main);
+            _main = this;
+
+            StartClient();
+#if UNITY_EDITOR
+            GameClient.client.networkInterface.Connect("127.0.0.1", Port);
+
+            StartServer();
+#endif
         }
 
         protected virtual void Update() {
-            if (_clientGame != null) {
-                _clientGame.Update();
+            if (GameClient != null) {
+                GameClient.Update();
             }
-            if (_serverGame != null) {
-                _serverGame.Update();
+            if (GameServer != null) {
+                GameServer.Update();
             }
         }
 
         protected virtual void OnApplicationQuit() {
-            if (_clientGame != null) {
-                _clientGame.Shutdown();
+            if (GameClient != null) {
+                GameClient.Shutdown();
             }
-            if (_serverGame != null) {
-                _serverGame.Shutdown();
+            if (GameServer != null) {
+                GameServer.Shutdown();
             }
         }
 

@@ -56,12 +56,12 @@ namespace GameFramework {
         }
 
         public override void SetupPlayerInputComponent(PawnInput input) {
-            input.BindAxis("Mouse X", value => movement.AddYawInput(value * 0.5f)); // #todo sensitivity
-            input.BindAxis("Mouse Y", value => movement.AddPitchInput(value * 0.4f));
+            input.BindAxis("Mouse X", OnMouseX);
+            input.BindAxis("Mouse Y", OnMouseY);
             input.BindAxis("Horizontal", OnHorizontalInput);
             input.BindAxis("Vertical", OnVerticalInput);
             input.BindAxis("Run", OnRun);
-            input.BindAction("Jump", movement.Jump);
+            input.BindAction("Jump", OnJump);
         }
 
         protected override void Awake() {
@@ -105,16 +105,46 @@ namespace GameFramework {
             body.velocity = pushDir * pushPower;
         }
 
+        void OnMouseX(float value) {
+            if (!GameInstance.main.CharacterInputEnabled)
+                return;
+
+            movement.AddYawInput(value * 0.5f);
+        }
+
+        void OnMouseY(float value) {
+            if (!GameInstance.main.CharacterInputEnabled)
+                return;
+
+            movement.AddPitchInput(value * 0.5f);
+        }
+
         void OnHorizontalInput(float value) {
+            if (!GameInstance.main.CharacterInputEnabled)
+                return;
+
             movement.AddMoveInput(Vector3.right * value);
         }
 
         void OnVerticalInput(float value) {
+            if (!GameInstance.main.CharacterInputEnabled)
+                return;
+
             movement.AddMoveInput(Vector3.forward * value);
         }
 
         void OnRun(float value) {
+            if (!GameInstance.main.CharacterInputEnabled)
+                return;
+
             movement.SetRun(value > 0.5f);
+        }
+
+        void OnJump() {
+            if (!GameInstance.main.CharacterInputEnabled)
+                return;
+
+            movement.Jump();
         }
 
         void OnDrawGizmos() {
