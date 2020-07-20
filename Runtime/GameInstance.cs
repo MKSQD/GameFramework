@@ -1,5 +1,6 @@
 ﻿using Cube.Replication;
 using Cube.Transport;
+using System;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.Assertions;
@@ -64,16 +65,36 @@ namespace GameFramework {
         }
 
         protected virtual void Start() {
+            if (_main != null) {
+                Destroy(gameObject);
+                return;
+            }
+
             DontDestroyOnLoad(gameObject);
 
             Assert.IsNull(_main);
             _main = this;
 
-            StartClient();
-#if UNITY_EDITOR
-            GameClient.client.networkInterface.Connect("127.0.0.1", Port);
+#if !UNITY_EDITOR
+            var args = System.Environment.GetCommandLineArgs();
+            var isServer = false;
+            for (int i = 0; i < args.Length; i++) {
+                if (args[i] == "-server") {
+                    isServer = true;
+                    break;
+                }
+            }
 
+            if (isServer) {
+                StartServer();
+            }
+            else {
+                StartClient();
+            }
+#else
             StartServer();
+            StartClient();
+            GameClient.client.networkInterface.Connect("127.0.0.1", Port);
 #endif
         }
 
