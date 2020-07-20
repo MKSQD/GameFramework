@@ -46,16 +46,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   settings: {fileID: 0}
   replicateOnlyToOwner: 0
-  id:
+  ReplicaId:
     _data: 0
-  prefabIdx: 0
+  prefabIdx: 11
   sceneIdx: 0
-  onDestroy:
-    m_PersistentCalls:
-      m_Calls: []
-    m_TypeName: UnityEngine.Events.UnityEvent, UnityEngine.CoreModule, Version=0.0.0.0,
-      Culture=neutral, PublicKeyToken=null
-  isOwner: 0
   lastUpdateTime: 0
 --- !u!114 &2345912067032811861
 MonoBehaviour:

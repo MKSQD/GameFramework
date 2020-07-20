@@ -8,16 +8,7 @@ namespace GameFramework {
     public class Character : Pawn {
         public Transform view;
         public new CinemachineVirtualCamera camera;
-        public float moveSpeed = 1;
-        public float runSpeed = 1;
-        public float backwardSpeedModifier = 0.7f;
-        public float sideSpeedModifier = 0.9f;
-        public float jumpForce2 = 18;
-        public float groundControl = 0.95f;
-        public float airControl = 0.1f;
-        public bool gravity = true;
-        public float pushPower = 2f;
-
+        
         public new CharacterMovement movement {
             get;
             internal set;
@@ -87,62 +78,56 @@ namespace GameFramework {
             }
         }
 
-        void OnControllerColliderHit(ControllerColliderHit hit) {
-            var body = hit.collider.attachedRigidbody;
-            if (body == null || body.isKinematic)
-                return;
-
-            var tooHeavyToPush = body.mass > 80;
-            if (tooHeavyToPush)
-                return;
-
-            if (hit.moveDirection.y < -0.3f)
-                return;
-
-            var pushDir = hit.moveDirection;
-            pushDir.y = 0;
-
-            body.velocity = pushDir * pushPower;
-        }
-
         void OnMouseX(float value) {
-            if (!GameInstance.main.CharacterInputEnabled)
+#if UNITY_EDITOR || CLIENT
+            if (isClient && controller is PlayerController && !GameInstance.main.CharacterInputEnabled)
                 return;
+#endif
 
             movement.AddYawInput(value * 0.5f);
         }
 
         void OnMouseY(float value) {
-            if (!GameInstance.main.CharacterInputEnabled)
+#if UNITY_EDITOR || CLIENT
+            if (isClient && controller is PlayerController && !GameInstance.main.CharacterInputEnabled)
                 return;
+#endif
 
             movement.AddPitchInput(value * 0.5f);
         }
 
         void OnHorizontalInput(float value) {
-            if (!GameInstance.main.CharacterInputEnabled)
+#if UNITY_EDITOR || CLIENT
+            if (isClient && controller is PlayerController && !GameInstance.main.CharacterInputEnabled)
                 return;
+#endif
 
             movement.AddMoveInput(Vector3.right * value);
         }
 
         void OnVerticalInput(float value) {
-            if (!GameInstance.main.CharacterInputEnabled)
+#if UNITY_EDITOR || CLIENT
+            if (isClient && controller is PlayerController && !GameInstance.main.CharacterInputEnabled)
                 return;
+#endif
 
             movement.AddMoveInput(Vector3.forward * value);
         }
 
         void OnRun(float value) {
-            if (!GameInstance.main.CharacterInputEnabled)
+#if UNITY_EDITOR || CLIENT
+            if (isClient && controller is PlayerController && !GameInstance.main.CharacterInputEnabled)
                 return;
+#endif
 
             movement.SetRun(value > 0.5f);
         }
 
         void OnJump() {
-            if (!GameInstance.main.CharacterInputEnabled)
+#if UNITY_EDITOR || CLIENT
+            if (isClient && controller is PlayerController && !GameInstance.main.CharacterInputEnabled)
                 return;
+#endif
 
             movement.Jump();
         }

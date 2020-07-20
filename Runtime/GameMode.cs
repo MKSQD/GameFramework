@@ -145,10 +145,10 @@ namespace GameFramework {
             var prefab = GetPlayerPrefab(pc);
             var go = server.server.replicaManager.InstantiateReplica(prefab);
 
-            var spawnPosition = GetPlayerSpawnPosition();
+            var spawnPose = GetPlayerSpawnPosition();
 
             var pawn = go.GetComponent<Pawn>();
-            pawn.Teleport(spawnPosition, Quaternion.identity);
+            pawn.Teleport(spawnPose.position, spawnPose.rotation);
 
             players.Add(pawn);
 
@@ -161,14 +161,14 @@ namespace GameFramework {
             throw new NotImplementedException();
         }
 
-        protected virtual Vector3 GetPlayerSpawnPosition() {
+        protected virtual Pose GetPlayerSpawnPosition() {
             if (PlayerSpawn.all.Count == 0)
-                return Vector3.zero;
+                return Pose.identity;
 
             var spawn = PlayerSpawn.all[UnityEngine.Random.Range(0, PlayerSpawn.all.Count)];
 
             var spawnPosition = spawn.GetRandomizedPosition();
-            return spawnPosition;
+            return new Pose(spawnPosition, spawn.transform.rotation);
         }
     }
 }

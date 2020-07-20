@@ -1,7 +1,6 @@
 ﻿using UnityEditor;
 
 namespace GameFramework {
-#if UNITY_EDITOR
     [CustomEditor(typeof(World))]
     public class WorldEditor : Editor {
         public override void OnInspectorGUI() {
@@ -12,5 +11,4 @@ namespace GameFramework {
             EditorGUILayout.LabelField(myTarget.playerControllers.Count + " PlayerControllers");
         }
     }
-#endif
 }

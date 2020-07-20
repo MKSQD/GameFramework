@@ -33,6 +33,11 @@ namespace GameFramework {
             }
         }
 
+        public override string ToString() {
+            var s = connection != Connection.Invalid ? connection.ToString() : "Invalid";
+            return "PlayerController(" + s + ")";
+        }
+
         protected override void OnPossess(Pawn pawn) {
             if (pawn.isServer) {
                 pawn.replica.AssignOwnership(connection);

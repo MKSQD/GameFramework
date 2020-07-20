@@ -3,6 +3,19 @@ using UnityEngine;
 using BitStream = Cube.Transport.BitStream;
 
 namespace GameFramework {
+    [CreateAssetMenu(menuName = "GameFramework/CharacterMovementSettings")]
+    public class CharacterMovementSettings : ScriptableObject {
+        public float moveSpeed = 2;
+        public float runSpeed = 5;
+        public float backwardSpeedModifier = 0.7f;
+        public float sideSpeedModifier = 0.9f;
+        public float jumpForce2 = 18;
+        public float groundControl = 0.9f;
+        public float airControl = 0.1f;
+        public bool useGravity = true;
+        public float pushPower = 2f;
+    }
+
     [AddComponentMenu("GameFramework/CharacterMovement")]
     public class CharacterMovement : ReplicaBehaviour, IPawnMovement {
         public delegate void CharacterEvent(Character character);
@@ -10,10 +23,10 @@ namespace GameFramework {
         const float minViewPitch = -55;
         const float maxViewPitch = 60;
 
-        public event CharacterEvent onJump;
-        public event CharacterEvent onLand;
-
+        public CharacterMovementSettings settings;
         public LayerMask clientGroundMask, serverGroundMask;
+
+        public event CharacterEvent onJump, onLand;
 
         float _nextSendTime;
         const float minSendDelay = 1 / 60f;
@@ -68,6 +81,7 @@ namespace GameFramework {
         }
 
         public void OnEnterLadder() {
+            Debug.Log("OnEnterLadder");
         }
 
         public void OnExitLadder() {
@@ -78,7 +92,7 @@ namespace GameFramework {
                 return;
 
             bs.Write(transform.position);
-            bs.WriteLossyFloat(_yaw, 0, 360, 5);
+            bs.WriteLossyFloat(_yaw, 0, 360, 2);
             bs.WriteLossyFloat(_viewPitch, minViewPitch, maxViewPitch, 5);
         }
 
@@ -87,8 +101,9 @@ namespace GameFramework {
                 return;
 
             var pos = bs.ReadVector3();
-            var yaw = bs.ReadLossyFloat(0, 360, 5);
+            var yaw = bs.ReadLossyFloat(0, 360, 2);
             _viewPitch = bs.ReadLossyFloat(minViewPitch, maxViewPitch, 5);
+
             _history.Add(new Pose(pos, Quaternion.AngleAxis(yaw, Vector3.up)), Time.time + interpolationDelayMs * 0.001f);
         }
 
@@ -108,15 +123,15 @@ namespace GameFramework {
 
 
             // Apply modifiers
-            var speed = !_run ? _character.moveSpeed : _character.runSpeed;
+            var speed = !_run ? settings.moveSpeed : settings.runSpeed;
             actualMovement *= speed;
 
             if (actualMovement.z < 0) {
-                actualMovement.z *= _character.backwardSpeedModifier;
+                actualMovement.z *= settings.backwardSpeedModifier;
             }
-            actualMovement.x *= _character.sideSpeedModifier;
+            actualMovement.x *= settings.sideSpeedModifier;
 
-            var modifier = _character.isGrounded ? _character.groundControl : _character.airControl;
+            var modifier = _character.isGrounded ? settings.groundControl : settings.airControl;
             actualMovement = Vector3.Lerp(_lastMovement, actualMovement, modifier);
 
             _lastMovement = actualMovement;
@@ -144,11 +159,11 @@ namespace GameFramework {
             if (isJumping) {
                 _jumpForce = Mathf.Max(_jumpForce - Time.deltaTime * 1.2f, 0);
 
-                actualMovement += _jumpForce * Vector3.up * _character.jumpForce2;
+                actualMovement += _jumpForce * Vector3.up * settings.jumpForce2;
             }
 
             // Gravity
-            if (_character.gravity) {
+            if (settings.useGravity) {
                 actualMovement += Physics.gravity;
             }
 
@@ -215,16 +230,11 @@ namespace GameFramework {
             transform.localRotation = rotation;
         }
 
-        void Awake() {
-            _character = GetComponent<Character>();
-            _history = new TransformHistory();
-        }
-
         [ReplicaRpc(RpcTarget.Server)]
         void RpcServerMove(Vector3 finalPosition, float yaw, float viewPitch) {
             var diff = transform.position - finalPosition;
-            if (diff.sqrMagnitude > 10) {
-                RpcOwnerResetPosition(transform.position);
+            if (diff.sqrMagnitude > 3) {
+                RpcOwnerResetPosition(transform.position, transform.rotation.eulerAngles.y);
                 return;
             }
 
@@ -234,8 +244,31 @@ namespace GameFramework {
         }
 
         [ReplicaRpc(RpcTarget.Owner)]
-        void RpcOwnerResetPosition(Vector3 finalPos) {
-            _character.Teleport(finalPos, transform.rotation);
+        void RpcOwnerResetPosition(Vector3 finalPos, float yaw) {
+            _character.Teleport(finalPos, Quaternion.AngleAxis(yaw, Vector3.up));
+        }
+
+        void OnControllerColliderHit(ControllerColliderHit hit) {
+            var body = hit.collider.attachedRigidbody;
+            if (body == null || body.isKinematic)
+                return;
+
+            var tooHeavyToPush = body.mass > 80;
+            if (tooHeavyToPush)
+                return;
+
+            if (hit.moveDirection.y < -0.3f)
+                return;
+
+            var pushDir = hit.moveDirection;
+            pushDir.y = 0;
+
+            body.velocity = pushDir * settings.pushPower;
+        }
+
+        void Awake() {
+            _character = GetComponent<Character>();
+            _history = new TransformHistory();
         }
     }
 }
