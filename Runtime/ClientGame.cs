@@ -71,7 +71,7 @@ namespace GameFramework {
         }
 
         protected virtual PlayerController CreatePlayerController() {
-            return new DefaultPlayerController(Connection.Invalid);
+            return new PlayerController(Connection.Invalid);
         }
 
         void OnConnectionRequestAccepted(BitStream bs) {

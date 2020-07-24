@@ -1,6 +1,5 @@
 ﻿using Cube.Replication;
 using Cube.Transport;
-using System;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.Assertions;
@@ -45,6 +44,8 @@ namespace GameFramework {
                 LagSettings = LagSettings
             };
             GameClient = CreateClient(ctx);
+
+            OnClientRunning();
         }
 
         public void StartServer() {
@@ -62,6 +63,10 @@ namespace GameFramework {
                 LagSettings = LagSettings
             };
             GameServer = CreateServer(ctx);
+
+            OnServerRunning();
+
+            Debug.Log("Server running");
         }
 
         protected virtual void Start() {
@@ -92,9 +97,13 @@ namespace GameFramework {
                 StartClient();
             }
 #else
+#if SERVER
             StartServer();
+#endif
+#if CLIENT
             StartClient();
             GameClient.client.networkInterface.Connect("127.0.0.1", Port);
+#endif
 #endif
         }
 
@@ -123,5 +132,8 @@ namespace GameFramework {
         protected virtual ServerGame CreateServer(ServerGameContext ctx) {
             return new ServerGame(ctx);
         }
+
+        protected virtual void OnClientRunning() { }
+        protected virtual void OnServerRunning() { }
     }
 }
