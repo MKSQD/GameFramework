@@ -5,16 +5,34 @@ using BitStream = Cube.Transport.BitStream;
 
 namespace GameFramework {
     [AddComponentMenu("GameFramework/CharacterMovement")]
+    [RequireComponent(typeof(CharacterController))]
     public class CharacterMovement : ReplicaBehaviour, IPawnMovement {
         public delegate void CharacterEvent(Character character);
 
-        const float minViewPitch = -55;
-        const float maxViewPitch = 60;
-
+        public CharacterController CC;
         public CharacterMovementSettings settings;
         public LayerMask clientGroundMask, serverGroundMask;
 
+        public Vector3 velocity {
+            get { return CC.velocity; }
+        }
+
+        public Vector3 localVelocity {
+            get { return transform.InverseTransformDirection(CC.velocity); }
+        }
+
+        public bool isMoving {
+            get { return CC.velocity.sqrMagnitude > 0.1f; }
+        }
+
+        public bool isGrounded {
+            get { return CC.isGrounded; }
+        }
+
         public event CharacterEvent onJump, onLand;
+
+        const float minViewPitch = -55;
+        const float maxViewPitch = 60;
 
         float _nextSendTime;
         const float minSendDelay = 1 / 60f;
@@ -43,6 +61,15 @@ namespace GameFramework {
 
         TransformHistory _history;
 
+        public void Teleport(Vector3 targetPosition, Quaternion targetRotation) {
+            CC.enabled = false;
+            
+            transform.position = targetPosition;
+            transform.rotation = targetRotation;
+            
+            CC.enabled = true;
+        }
+
         public void AddMoveInput(Vector3 direction) {
             _move += direction;
         }
@@ -62,7 +89,7 @@ namespace GameFramework {
         }
 
         public void Jump() {
-            if (!_character.isGrounded)
+            if (!isGrounded)
                 return;
 
             _jump = true;
@@ -119,7 +146,7 @@ namespace GameFramework {
             }
             actualMovement.x *= settings.sideSpeedModifier;
 
-            var modifier = _character.isGrounded ? settings.groundControl : settings.airControl;
+            var modifier = isGrounded ? settings.groundControl : settings.airControl;
             actualMovement = Vector3.Lerp(_lastMovement, actualMovement, modifier);
 
             _lastMovement = actualMovement;
@@ -127,7 +154,7 @@ namespace GameFramework {
             actualMovement = transform.rotation * actualMovement;
 
             // Landing
-            if (_character.isGrounded) {
+            if (isGrounded) {
                 if (_lastGroundedTime < Time.time - 0.2f) {
                     onLand?.Invoke(_character);
                     _jumpForce = 0;
@@ -156,7 +183,7 @@ namespace GameFramework {
             }
 
             // Move
-            _character.characterController.Move(actualMovement * Time.deltaTime);
+            CC.Move(actualMovement * Time.deltaTime);
 
             // Consume input
             _move = Vector3.zero;
@@ -192,7 +219,7 @@ namespace GameFramework {
                 var playerMovementLastFrame = transform.position - _platformGlobalPoint;
 
                 var finalPos = (playerNoMovePlatformWorldPos + playerMovementLastFrame);
-                _character.Teleport(finalPos, transform.rotation);
+                Teleport(finalPos, transform.rotation);
             }
             else {
                 hasNewPlatform = false;
@@ -209,10 +236,10 @@ namespace GameFramework {
             _history.Sample(Time.time, out Vector3 position, out Quaternion rotation);
             var diff = position - transform.position;
             if (diff.sqrMagnitude < 1) { // Physics might cause the client-side to become desynced
-                _character.characterController.Move(position - transform.position);
+                CC.Move(position - transform.position);
             }
             else {
-                _character.Teleport(position, transform.rotation);
+                Teleport(position, transform.rotation);
             }
 
             transform.localRotation = rotation;
@@ -228,12 +255,12 @@ namespace GameFramework {
 
             _yaw = yaw;
             _viewPitch = viewPitch;
-            _character.Teleport(finalPosition, Quaternion.AngleAxis(yaw, Vector3.up));
+            Teleport(finalPosition, Quaternion.AngleAxis(yaw, Vector3.up));
         }
 
         [ReplicaRpc(RpcTarget.Owner)]
         void RpcOwnerResetPosition(Vector3 finalPos, float yaw) {
-            _character.Teleport(finalPos, Quaternion.AngleAxis(yaw, Vector3.up));
+            Teleport(finalPos, Quaternion.AngleAxis(yaw, Vector3.up));
         }
 
         void OnControllerColliderHit(ControllerColliderHit hit) {
@@ -255,9 +282,10 @@ namespace GameFramework {
         }
 
         void Awake() {
-            Assert.IsNotNull(settings);
-
+            CC = GetComponent<CharacterController>();
             _character = GetComponent<Character>();
+            Assert.IsNotNull(CC);
+            Assert.IsNotNull(settings);
             Assert.IsNotNull(_character);
 
             _history = new TransformHistory();

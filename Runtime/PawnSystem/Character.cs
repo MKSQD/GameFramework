@@ -3,7 +3,6 @@ using UnityEngine;
 
 namespace GameFramework {
     [AddComponentMenu("GameFramework/Character")]
-    [RequireComponent(typeof(CharacterController))]
     [RequireComponent(typeof(CharacterMovement))]
     public class Character : Pawn {
         public Transform view;
@@ -12,38 +11,6 @@ namespace GameFramework {
         public new CharacterMovement movement {
             get;
             internal set;
-        }
-
-        public Vector3 velocity {
-            get { return characterController.velocity; }
-        }
-
-        public Vector3 localVelocity {
-            get { return transform.InverseTransformDirection(characterController.velocity); }
-        }
-
-        public bool isMoving {
-            get { return characterController.velocity.sqrMagnitude > 0.1f; }
-        }
-
-        public bool isGrounded {
-            get { return characterController.isGrounded; }
-        }
-
-        public CharacterController characterController {
-            get;
-            internal set;
-        }
-
-        public override void Teleport(Vector3 targetPosition, Quaternion targetRotation) {
-            if (characterController != null) {
-                characterController.enabled = false;
-            }
-            transform.position = targetPosition;
-            transform.rotation = targetRotation;
-            if (characterController != null) {
-                characterController.enabled = true;
-            }
         }
 
         public override void SetupPlayerInputComponent(PawnInput input) {
@@ -58,7 +25,6 @@ namespace GameFramework {
         protected override void Awake() {
             base.Awake();
 
-            characterController = GetComponent<CharacterController>();
             movement = GetComponent<CharacterMovement>();
 
             if (camera != null) {

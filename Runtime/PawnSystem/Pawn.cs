@@ -44,8 +44,6 @@ namespace GameFramework {
 
         public abstract void SetupPlayerInputComponent(PawnInput input);
 
-        public virtual void Teleport(Vector3 targetPosition, Quaternion targetRotation) { }
-
         protected abstract void OnPossessionImpl(Pawn previousPawn);
         protected abstract void OnUnpossessionImpl();
 

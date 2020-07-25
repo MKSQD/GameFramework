@@ -147,14 +147,14 @@ namespace GameFramework {
 
             var spawnPose = GetPlayerSpawnPosition();
 
-            var pawn = go.GetComponent<Pawn>();
-            pawn.Teleport(spawnPose.position, spawnPose.rotation);
+            var character = go.GetComponent<Character>();
+            character.movement.Teleport(spawnPose.position, spawnPose.rotation);
 
-            players.Add(pawn);
+            players.Add(character);
 
-            HandlePlayerSpawned(pawn);
+            HandlePlayerSpawned(character);
 
-            pc.Possess(pawn);
+            pc.Possess(character);
         }
 
         protected virtual GameObject GetPlayerPrefab(PlayerController pc) {
