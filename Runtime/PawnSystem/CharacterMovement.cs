@@ -138,7 +138,7 @@ namespace GameFramework {
 
 
             // Apply modifiers
-            var speed = !_run ? settings.moveSpeed : settings.runSpeed;
+            var speed = _run ? settings.moveSpeed : settings.runSpeed;
             actualMovement *= speed;
 
             if (actualMovement.z < 0) {
