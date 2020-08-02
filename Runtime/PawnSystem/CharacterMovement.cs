@@ -48,7 +48,7 @@ namespace GameFramework {
         float _lastGroundedTime;
         float _jumpForce;
         Vector3 _lastMovement;
-        Vector3 _move;
+        Vector3 _moveInput;
         float _yaw;
         float _viewPitch;
         float _viewPitchLerp;
@@ -58,6 +58,8 @@ namespace GameFramework {
         bool hasNewPlatform;
         Vector3 _platformLocalPoint;
         Vector3 _platformGlobalPoint;
+
+        bool _onLadder;
 
         TransformHistory _history;
 
@@ -71,7 +73,7 @@ namespace GameFramework {
         }
 
         public void AddMoveInput(Vector3 direction) {
-            _move += direction;
+            _moveInput += direction;
         }
 
         public void AddYawInput(float value) {
@@ -96,10 +98,11 @@ namespace GameFramework {
         }
 
         public void OnEnterLadder() {
-            Debug.Log("OnEnterLadder");
+            _onLadder = true;
         }
 
         public void OnExitLadder() {
+            _onLadder = false;
         }
 
         public override void Serialize(BitStream bs, SerializeContext ctx) {
@@ -119,7 +122,8 @@ namespace GameFramework {
             var yaw = bs.ReadLossyFloat(0, 360, 2);
             _viewPitch = bs.ReadLossyFloat(minViewPitch, maxViewPitch, 5);
 
-            _history.Add(new Pose(pos, Quaternion.AngleAxis(yaw, Vector3.up)), Time.time + interpolationDelayMs * 0.001f);
+            var t = Time.time + interpolationDelayMs * 0.001f;
+            _history.Add(t, new Pose(pos, Quaternion.AngleAxis(yaw, Vector3.up)));
         }
 
         protected void Update() {
@@ -134,7 +138,12 @@ namespace GameFramework {
             _character.view.localRotation = Quaternion.AngleAxis(_viewPitch, Vector3.left);
             transform.localRotation = Quaternion.AngleAxis(_yaw, Vector3.up);
 
-            var actualMovement = _move.normalized;
+            var actualMovement = _moveInput.normalized;
+            if(_onLadder) {
+                var f = actualMovement.z;
+                actualMovement.z = 0;
+                actualMovement.y = f;
+            }
 
 
             // Apply modifiers
@@ -149,8 +158,8 @@ namespace GameFramework {
             var modifier = isGrounded ? settings.groundControl : settings.airControl;
             actualMovement = Vector3.Lerp(_lastMovement, actualMovement, modifier);
 
+            // Apply movement
             _lastMovement = actualMovement;
-
             actualMovement = transform.rotation * actualMovement;
 
             // Landing
@@ -178,7 +187,7 @@ namespace GameFramework {
             }
 
             // Gravity
-            if (settings.useGravity) {
+            if (settings.useGravity && !_onLadder) {
                 actualMovement += Physics.gravity;
             }
 
@@ -186,7 +195,7 @@ namespace GameFramework {
             CC.Move(actualMovement * Time.deltaTime);
 
             // Consume input
-            _move = Vector3.zero;
+            _moveInput = Vector3.zero;
             _jump = false;
 
             if (isClient && Time.time >= _nextSendTime) {
@@ -288,7 +297,7 @@ namespace GameFramework {
             Assert.IsNotNull(settings);
             Assert.IsNotNull(_character);
 
-            _history = new TransformHistory();
+            _history = new TransformHistory(replica.settings.desiredUpdateRateMs, interpolationDelayMs * 2.5f);
         }
     }
 }
