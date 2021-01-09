@@ -19,10 +19,6 @@ namespace GameFramework {
             this.connection = connection;
         }
 
-        public virtual PlayerInput CreatePlayerInput() {
-            return new PlayerInput();
-        }
-
         public override void Update() {
             if (input != null) {
                 input.Update();
@@ -45,7 +41,7 @@ namespace GameFramework {
                 SendPossession();
             }
             if (pawn.isClient) {
-                input = CreatePlayerInput();
+                input = new PlayerInput();
                 SetupInputComponent(input);
                 pawn.SetupPlayerInputComponent(input);
             }

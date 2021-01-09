@@ -65,10 +65,10 @@ namespace GameFramework {
 
         public void Teleport(Vector3 targetPosition, Quaternion targetRotation) {
             CC.enabled = false;
-            
+
             transform.position = targetPosition;
             transform.rotation = targetRotation;
-            
+
             CC.enabled = true;
         }
 
@@ -139,7 +139,7 @@ namespace GameFramework {
             transform.localRotation = Quaternion.AngleAxis(_yaw, Vector3.up);
 
             var actualMovement = _moveInput.normalized;
-            if(_onLadder) {
+            if (_onLadder) {
                 var f = actualMovement.z;
                 actualMovement.z = 0;
                 actualMovement.y = f;
@@ -297,7 +297,7 @@ namespace GameFramework {
             Assert.IsNotNull(settings);
             Assert.IsNotNull(_character);
 
-            _history = new TransformHistory(replica.settings.desiredUpdateRateMs, interpolationDelayMs * 2.5f);
+            _history = new TransformHistory(replica.settings.desiredUpdateRateMs, interpolationDelayMs);
         }
     }
 }
