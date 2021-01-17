@@ -1,5 +1,4 @@
 ﻿using Cube.Replication;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace GameFramework {
@@ -7,34 +6,32 @@ namespace GameFramework {
     public abstract class Pawn : ReplicaBehaviour {
         public delegate void PawnEvent(Pawn pawn);
 
-        static List<Pawn> All = new List<Pawn>();
-
-        public PawnController controller {
+        public PawnController Controller {
             get;
             internal set;
         }
-        public bool hasController {
-            get { return controller != null; }
+        public bool HasController {
+            get { return Controller != null; }
         }
 
         public IPawnMovement movement;
 
-        public event PawnEvent onPossession;
-        public event PawnEvent onUnpossession;
+        public event PawnEvent OnPossession;
+        public event PawnEvent OnUnpossession;
 
-        public void OnPossession(PawnController controller, Pawn previousPawn) {
-            this.controller = controller;
-            OnPossessionImpl(previousPawn);
-            onPossession?.Invoke(this);
+        public void HandlePossession(PawnController controller, Pawn previousPawn) {
+            Controller = controller;
+            HandlePossessionImpl(previousPawn);
+            OnPossession?.Invoke(this);
         }
 
-        public void OnUnpossession() {
+        public void HandleUnpossession() {
             try {
-                onUnpossession?.Invoke(this);
-                OnUnpossessionImpl();
+                OnUnpossession?.Invoke(this);
+                HandleUnpossessionImpl();
             }
             finally {
-                controller = null;
+                Controller = null;
             }
         }
 
@@ -44,29 +41,26 @@ namespace GameFramework {
 
         public abstract void SetupPlayerInputComponent(PawnInput input);
 
-        protected abstract void OnPossessionImpl(Pawn previousPawn);
-        protected abstract void OnUnpossessionImpl();
+        protected abstract void HandlePossessionImpl(Pawn previousPawn);
+        protected abstract void HandleUnpossessionImpl();
 
         protected virtual void Awake() {
             movement = GetComponent<IPawnMovement>();
         }
 
         protected virtual void Update() {
-            if (controller != null) {
-                controller.Update();
+            if (Controller != null) {
+                Controller.Update();
             }
         }
 
         protected virtual void OnEnable() {
-            All.Add(this);
         }
 
         protected virtual void OnDisable() {
-            if (controller != null) {
-                controller.Unpossess();
+            if (Controller != null) {
+                Controller.Unpossess();
             }
-
-            All.Remove(this);
         }
     }
 }

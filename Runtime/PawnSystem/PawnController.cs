@@ -18,13 +18,13 @@ namespace GameFramework {
 
             Unpossess();
 
-            if (newPawn.controller != null) {
-                newPawn.controller.Unpossess();
+            if (newPawn.Controller != null) {
+                newPawn.Controller.Unpossess();
             }
 
             pawn = newPawn;
 
-            newPawn.OnPossession(this, previousPawn);
+            newPawn.HandlePossession(this, previousPawn);
             OnPossess(newPawn);
             return true;
         }
@@ -34,7 +34,7 @@ namespace GameFramework {
                 return;
 
             try {
-                pawn.OnUnpossession();
+                pawn.HandleUnpossession();
                 OnUnpossess();
             }
             finally {

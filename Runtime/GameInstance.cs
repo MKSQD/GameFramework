@@ -7,7 +7,7 @@ using UnityEngine.Assertions;
 namespace GameFramework {
     public class GameInstance : MonoBehaviour {
         static GameInstance _main;
-        public static GameInstance main {
+        public static GameInstance Main {
             get {
                 Assert.IsNotNull(_main);
                 return _main;

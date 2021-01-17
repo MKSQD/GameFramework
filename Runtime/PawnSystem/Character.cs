@@ -32,13 +32,13 @@ namespace GameFramework {
             }
         }
 
-        protected override void OnPossessionImpl(Pawn previousPawn) {
+        protected override void HandlePossessionImpl(Pawn previousPawn) {
             if (camera != null) {
                 camera.enabled = true;
             }
         }
 
-        protected override void OnUnpossessionImpl() {
+        protected override void HandleUnpossessionImpl() {
             if (camera != null) {
                 camera.enabled = false;
             }
@@ -46,7 +46,7 @@ namespace GameFramework {
 
         void OnMouseX(float value) {
 #if UNITY_EDITOR || CLIENT
-            if (isClient && controller is PlayerController && !GameInstance.main.CharacterInputEnabled)
+            if (isClient && Controller is PlayerController && !GameInstance.Main.CharacterInputEnabled)
                 return;
 #endif
 
@@ -55,7 +55,7 @@ namespace GameFramework {
 
         void OnMouseY(float value) {
 #if UNITY_EDITOR || CLIENT
-            if (isClient && controller is PlayerController && !GameInstance.main.CharacterInputEnabled)
+            if (isClient && Controller is PlayerController && !GameInstance.Main.CharacterInputEnabled)
                 return;
 #endif
 
@@ -64,7 +64,7 @@ namespace GameFramework {
 
         void OnHorizontalInput(float value) {
 #if UNITY_EDITOR || CLIENT
-            if (isClient && controller is PlayerController && !GameInstance.main.CharacterInputEnabled)
+            if (isClient && Controller is PlayerController && !GameInstance.Main.CharacterInputEnabled)
                 return;
 #endif
 
@@ -73,7 +73,7 @@ namespace GameFramework {
 
         void OnVerticalInput(float value) {
 #if UNITY_EDITOR || CLIENT
-            if (isClient && controller is PlayerController && !GameInstance.main.CharacterInputEnabled)
+            if (isClient && Controller is PlayerController && !GameInstance.Main.CharacterInputEnabled)
                 return;
 #endif
 
@@ -82,7 +82,7 @@ namespace GameFramework {
 
         void OnRun(float value) {
 #if UNITY_EDITOR || CLIENT
-            if (isClient && controller is PlayerController && !GameInstance.main.CharacterInputEnabled)
+            if (isClient && Controller is PlayerController && !GameInstance.Main.CharacterInputEnabled)
                 return;
 #endif
 
@@ -91,7 +91,7 @@ namespace GameFramework {
 
         void OnJump() {
 #if UNITY_EDITOR || CLIENT
-            if (isClient && controller is PlayerController && !GameInstance.main.CharacterInputEnabled)
+            if (isClient && Controller is PlayerController && !GameInstance.Main.CharacterInputEnabled)
                 return;
 #endif
 

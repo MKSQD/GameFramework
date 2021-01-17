@@ -31,7 +31,7 @@ namespace GameFramework {
         public abstract void HandleNewPlayer(PlayerController pc);
 
         public virtual AsyncOperationHandle<GameObject> GetGameStatePrefab() {
-            return GameInstance.main.DefaultGameStatePrefab.LoadAssetAsync<GameObject>();
+            return GameInstance.Main.DefaultGameStatePrefab.LoadAssetAsync<GameObject>();
         }
     }
 }
