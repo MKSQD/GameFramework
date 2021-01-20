@@ -9,24 +9,23 @@ namespace GameFramework {
     public class CharacterMovement : ReplicaBehaviour, IPawnMovement {
         public delegate void CharacterEvent(Character character);
 
-        public CharacterController CC;
         public CharacterMovementSettings settings;
         public LayerMask clientGroundMask, serverGroundMask;
 
         public Vector3 velocity {
-            get { return CC.velocity; }
+            get { return characterController.velocity; }
         }
 
         public Vector3 localVelocity {
-            get { return transform.InverseTransformDirection(CC.velocity); }
+            get { return transform.InverseTransformDirection(characterController.velocity); }
         }
 
         public bool isMoving {
-            get { return CC.velocity.sqrMagnitude > 0.1f; }
+            get { return characterController.velocity.sqrMagnitude > 0.1f; }
         }
 
         public bool isGrounded {
-            get { return CC.isGrounded; }
+            get { return characterController.isGrounded; }
         }
 
         public event CharacterEvent onJump, onLand;
@@ -40,9 +39,10 @@ namespace GameFramework {
         [Range(0, 500)]
         [Tooltip("The delay remote players are displayed at")]
         public int interpolationDelayMs;
-
+        [ReadOnly]
         public Platform platform;
 
+        CharacterController characterController;
         Character _character;
 
         float _lastGroundedTime;
@@ -64,12 +64,12 @@ namespace GameFramework {
         TransformHistory _history;
 
         public void Teleport(Vector3 targetPosition, Quaternion targetRotation) {
-            CC.enabled = false;
+            characterController.enabled = false;
 
             transform.position = targetPosition;
             transform.rotation = targetRotation;
 
-            CC.enabled = true;
+            characterController.enabled = true;
         }
 
         public void AddMoveInput(Vector3 direction) {
@@ -192,7 +192,7 @@ namespace GameFramework {
             }
 
             // Move
-            CC.Move(actualMovement * Time.deltaTime);
+            characterController.Move(actualMovement * Time.deltaTime);
 
             // Consume input
             _moveInput = Vector3.zero;
@@ -245,7 +245,7 @@ namespace GameFramework {
             _history.Sample(Time.time, out Vector3 position, out Quaternion rotation);
             var diff = position - transform.position;
             if (diff.sqrMagnitude < 1) { // Physics might cause the client-side to become desynced
-                CC.Move(position - transform.position);
+                characterController.Move(position - transform.position);
             }
             else {
                 Teleport(position, transform.rotation);
@@ -291,9 +291,9 @@ namespace GameFramework {
         }
 
         void Awake() {
-            CC = GetComponent<CharacterController>();
+            characterController = GetComponent<CharacterController>();
             _character = GetComponent<Character>();
-            Assert.IsNotNull(CC);
+            Assert.IsNotNull(characterController);
             Assert.IsNotNull(settings);
             Assert.IsNotNull(_character);
 
