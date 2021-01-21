@@ -46,7 +46,7 @@ namespace GameFramework {
 
         void OnMouseX(float value) {
 #if UNITY_EDITOR || CLIENT
-            if (isClient && Controller is PlayerController && !GameInstance.Main.CharacterInputEnabled)
+            if (isClient && Controller is PlayerController && !ClientGame.CharacterInputEnabled)
                 return;
 #endif
 
@@ -55,7 +55,7 @@ namespace GameFramework {
 
         void OnMouseY(float value) {
 #if UNITY_EDITOR || CLIENT
-            if (isClient && Controller is PlayerController && !GameInstance.Main.CharacterInputEnabled)
+            if (isClient && Controller is PlayerController && !ClientGame.CharacterInputEnabled)
                 return;
 #endif
 
@@ -64,7 +64,7 @@ namespace GameFramework {
 
         void OnHorizontalInput(float value) {
 #if UNITY_EDITOR || CLIENT
-            if (isClient && Controller is PlayerController && !GameInstance.Main.CharacterInputEnabled)
+            if (isClient && Controller is PlayerController && !ClientGame.CharacterInputEnabled)
                 return;
 #endif
 
@@ -73,7 +73,7 @@ namespace GameFramework {
 
         void OnVerticalInput(float value) {
 #if UNITY_EDITOR || CLIENT
-            if (isClient && Controller is PlayerController && !GameInstance.Main.CharacterInputEnabled)
+            if (isClient && Controller is PlayerController && !ClientGame.CharacterInputEnabled)
                 return;
 #endif
 
@@ -82,7 +82,7 @@ namespace GameFramework {
 
         void OnRun(float value) {
 #if UNITY_EDITOR || CLIENT
-            if (isClient && Controller is PlayerController && !GameInstance.Main.CharacterInputEnabled)
+            if (isClient && Controller is PlayerController && !ClientGame.CharacterInputEnabled)
                 return;
 #endif
 
@@ -91,7 +91,7 @@ namespace GameFramework {
 
         void OnJump() {
 #if UNITY_EDITOR || CLIENT
-            if (isClient && Controller is PlayerController && !GameInstance.Main.CharacterInputEnabled)
+            if (isClient && Controller is PlayerController && !ClientGame.CharacterInputEnabled)
                 return;
 #endif
 

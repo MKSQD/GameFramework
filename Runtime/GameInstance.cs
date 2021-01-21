@@ -19,9 +19,7 @@ namespace GameFramework {
         public SimulatedLagSettings LagSettings;
 
         public AssetReference DefaultGameStatePrefab;
-
-        public bool CharacterInputEnabled = true;
-
+        
         public ClientGame GameClient {
             get;
             internal set;
