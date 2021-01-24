@@ -25,7 +25,13 @@ namespace GameFramework {
         }
 
         public bool isGrounded {
-            get { return characterController.isGrounded; }
+            get;
+            internal set;
+        }
+
+        public PhysicMaterial groundMaterial {
+            get;
+            internal set;
         }
 
         public event CharacterEvent onJump, onLand;
@@ -205,12 +211,28 @@ namespace GameFramework {
             }
         }
 
+        Collider[] groundColliders;
         void UpdateGround() {
-            Platform newPlatform = null;
+            var epsilon = 0.1f;
 
+            var cc = characterController;
+            var pos = transform.position + Vector3.up * (cc.radius - epsilon);
             var layerMask = isClient ? clientGroundMask : serverGroundMask;
-            if (Physics.Raycast(transform.position + Vector3.up * 0.01f, Vector3.down, out RaycastHit hit, 0.2f, layerMask)) {
-                newPlatform = hit.collider.GetComponentInParent<Platform>();
+            var num = Physics.OverlapSphereNonAlloc(pos, cc.radius * (1f + epsilon), groundColliders, layerMask);
+
+            Platform newPlatform = null;
+            isGrounded = false;
+
+            for (int i = 0; i < num; ++i) {
+                var collider = groundColliders[i];
+
+                if (collider.attachedRigidbody != null && collider.attachedRigidbody.gameObject.isStatic) {
+                    newPlatform = collider.GetComponentInParent<Platform>();
+                }
+
+                groundMaterial = collider.sharedMaterial;
+                isGrounded = true;
+                break;
             }
 
             if (newPlatform != platform) {
@@ -291,6 +313,8 @@ namespace GameFramework {
         }
 
         void Awake() {
+            groundColliders = new Collider[4];
+
             characterController = GetComponent<CharacterController>();
             _character = GetComponent<Character>();
             Assert.IsNotNull(characterController);
