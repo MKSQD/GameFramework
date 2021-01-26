@@ -12,62 +12,62 @@ namespace GameFramework {
         public CharacterMovementSettings settings;
         public LayerMask clientGroundMask, serverGroundMask;
 
-        public Vector3 velocity {
+        public Vector3 Velocity {
             get { return characterController.velocity; }
         }
 
-        public Vector3 localVelocity {
+        public Vector3 LocalVelocity {
             get { return transform.InverseTransformDirection(characterController.velocity); }
         }
 
-        public bool isMoving {
+        public bool IsMoving {
             get { return characterController.velocity.sqrMagnitude > 0.1f; }
         }
 
-        public bool isGrounded {
+        public bool IsGrounded {
             get;
             internal set;
         }
 
-        public PhysicMaterial groundMaterial {
+        public PhysicMaterial GroundMaterial {
             get;
             internal set;
         }
 
-        public event CharacterEvent onJump, onLand;
+        public event CharacterEvent OnJump, OnLand;
 
         const float minViewPitch = -55;
         const float maxViewPitch = 60;
 
-        float _nextSendTime;
+        float nextSendTime;
         const float minSendDelay = 1 / 60f;
 
         [Range(0, 500)]
         [Tooltip("The delay remote players are displayed at")]
         public int interpolationDelayMs;
         [ReadOnly]
-        public Platform platform;
+        public Platform Platform;
 
         CharacterController characterController;
-        Character _character;
+        Character character;
 
-        float _lastGroundedTime;
-        float _jumpForce;
-        Vector3 _lastMovement;
-        Vector3 _moveInput;
-        float _yaw;
-        float _viewPitch;
-        float _viewPitchLerp;
-        bool _jump;
-        bool _run;
+        float lastGroundedTime;
+        float jumpForce;
+        Vector3 lastMovement;
+        Vector3 moveInput;
+        float yaw;
+        float viewPitch;
+        float viewPitchLerp;
+        bool jump;
+        bool run;
 
         bool hasNewPlatform;
-        Vector3 _platformLocalPoint;
-        Vector3 _platformGlobalPoint;
+        Vector3 platformLocalPoint;
+        Vector3 platformGlobalPoint;
 
-        bool _onLadder;
+        bool onLadder;
 
-        TransformHistory _history;
+        TransformHistory history;
 
         public void Teleport(Vector3 targetPosition, Quaternion targetRotation) {
             characterController.enabled = false;
@@ -79,36 +79,36 @@ namespace GameFramework {
         }
 
         public void AddMoveInput(Vector3 direction) {
-            _moveInput += direction;
+            moveInput += direction;
         }
 
         public void AddYawInput(float value) {
-            _yaw += value;
-            _yaw = Mathf.Repeat(_yaw, 360);
+            yaw += value;
+            yaw = Mathf.Repeat(yaw, 360);
         }
 
         public void AddPitchInput(float value) {
-            _viewPitch += value;
-            _viewPitch = Mathf.Clamp(_viewPitch, minViewPitch, maxViewPitch);
+            viewPitch += value;
+            viewPitch = Mathf.Clamp(viewPitch, minViewPitch, maxViewPitch);
         }
 
         public void SetRun(bool run) {
-            _run = run;
+            this.run = run;
         }
 
         public void Jump() {
-            if (!isGrounded)
+            if (!IsGrounded)
                 return;
 
-            _jump = true;
+            jump = true;
         }
 
         public void OnEnterLadder() {
-            _onLadder = true;
+            onLadder = true;
         }
 
         public void OnExitLadder() {
-            _onLadder = false;
+            onLadder = false;
         }
 
         public override void Serialize(BitStream bs, SerializeContext ctx) {
@@ -116,8 +116,8 @@ namespace GameFramework {
                 return;
 
             bs.Write(transform.position);
-            bs.WriteLossyFloat(_yaw, 0, 360, 2);
-            bs.WriteLossyFloat(_viewPitch, minViewPitch, maxViewPitch, 5);
+            bs.WriteLossyFloat(yaw, 0, 360, 2);
+            bs.WriteLossyFloat(viewPitch, minViewPitch, maxViewPitch, 5);
         }
 
         public override void Deserialize(BitStream bs) {
@@ -126,10 +126,10 @@ namespace GameFramework {
 
             var pos = bs.ReadVector3();
             var yaw = bs.ReadLossyFloat(0, 360, 2);
-            _viewPitch = bs.ReadLossyFloat(minViewPitch, maxViewPitch, 5);
+            viewPitch = bs.ReadLossyFloat(minViewPitch, maxViewPitch, 5);
 
             var t = Time.time + interpolationDelayMs * 0.001f;
-            _history.Add(t, new Pose(pos, Quaternion.AngleAxis(yaw, Vector3.up)));
+            history.Add(t, new Pose(pos, Quaternion.AngleAxis(yaw, Vector3.up)));
         }
 
         protected void Update() {
@@ -141,11 +141,11 @@ namespace GameFramework {
                 return;
             }
 
-            _character.view.localRotation = Quaternion.AngleAxis(_viewPitch, Vector3.left);
-            transform.localRotation = Quaternion.AngleAxis(_yaw, Vector3.up);
+            character.view.localRotation = Quaternion.AngleAxis(viewPitch, Vector3.left);
+            transform.localRotation = Quaternion.AngleAxis(yaw, Vector3.up);
 
-            var actualMovement = _moveInput.normalized;
-            if (_onLadder) {
+            var actualMovement = moveInput.normalized;
+            if (onLadder) {
                 var f = actualMovement.z;
                 actualMovement.z = 0;
                 actualMovement.y = f;
@@ -153,7 +153,7 @@ namespace GameFramework {
 
 
             // Apply modifiers
-            var speed = _run ? settings.moveSpeed : settings.runSpeed;
+            var speed = run ? settings.moveSpeed : settings.runSpeed;
             actualMovement *= speed;
 
             if (actualMovement.z < 0) {
@@ -161,39 +161,39 @@ namespace GameFramework {
             }
             actualMovement.x *= settings.sideSpeedModifier;
 
-            var modifier = isGrounded ? settings.groundControl : settings.airControl;
-            actualMovement = Vector3.Lerp(_lastMovement, actualMovement, modifier);
+            var modifier = IsGrounded ? settings.groundControl : settings.airControl;
+            actualMovement = Vector3.Lerp(lastMovement, actualMovement, modifier);
 
             // Apply movement
-            _lastMovement = actualMovement;
+            lastMovement = actualMovement;
             actualMovement = transform.rotation * actualMovement;
 
             // Landing
-            if (isGrounded) {
-                if (_lastGroundedTime < Time.time - 0.2f) {
-                    onLand?.Invoke(_character);
-                    _jumpForce = 0;
+            if (IsGrounded) {
+                if (lastGroundedTime < Time.time - 0.2f) {
+                    OnLand?.Invoke(character);
+                    jumpForce = 0;
                 }
 
-                var beginNewJump = _jump && _jumpForce < 0.1f;
+                var beginNewJump = jump && jumpForce < 0.1f;
                 if (beginNewJump) {
-                    _jumpForce = 1;
-                    onJump?.Invoke(_character);
+                    jumpForce = 1;
+                    OnJump?.Invoke(character);
                 }
 
-                _lastGroundedTime = Time.time;
+                lastGroundedTime = Time.time;
             }
 
             // Jump
-            var isJumping = _jumpForce > 0.1f;
+            var isJumping = jumpForce > 0.1f;
             if (isJumping) {
-                _jumpForce = Mathf.Max(_jumpForce - Time.deltaTime * 1.2f, 0);
+                jumpForce = Mathf.Max(jumpForce - Time.deltaTime * 1.2f, 0);
 
-                actualMovement += _jumpForce * Vector3.up * settings.jumpForce2;
+                actualMovement += jumpForce * Vector3.up * settings.jumpForce2;
             }
 
             // Gravity
-            if (settings.useGravity && !_onLadder) {
+            if (settings.useGravity && !onLadder) {
                 actualMovement += Physics.gravity;
             }
 
@@ -201,13 +201,13 @@ namespace GameFramework {
             characterController.Move(actualMovement * Time.deltaTime);
 
             // Consume input
-            _moveInput = Vector3.zero;
-            _jump = false;
+            moveInput = Vector3.zero;
+            jump = false;
 
-            if (isClient && Time.time >= _nextSendTime) {
-                _nextSendTime = Time.time + minSendDelay;
+            if (isClient && Time.time >= nextSendTime) {
+                nextSendTime = Time.time + minSendDelay;
 
-                RpcServerMove(transform.position, _yaw, _viewPitch);
+                RpcServerMove(transform.position, yaw, viewPitch);
             }
         }
 
@@ -221,7 +221,7 @@ namespace GameFramework {
             var num = Physics.OverlapSphereNonAlloc(pos, cc.radius * (1f + epsilon), groundColliders, layerMask);
 
             Platform newPlatform = null;
-            isGrounded = false;
+            IsGrounded = false;
 
             for (int i = 0; i < num; ++i) {
                 var collider = groundColliders[i];
@@ -230,24 +230,24 @@ namespace GameFramework {
                     newPlatform = collider.GetComponentInParent<Platform>();
                 }
 
-                groundMaterial = collider.sharedMaterial;
-                isGrounded = true;
+                GroundMaterial = collider.sharedMaterial;
+                IsGrounded = true;
                 break;
             }
 
-            if (newPlatform != platform) {
-                platform = newPlatform;
+            if (newPlatform != Platform) {
+                Platform = newPlatform;
                 hasNewPlatform = true;
             }
         }
 
         void UpdatePlatform() {
-            if (platform == null)
+            if (Platform == null)
                 return;
 
             if (!hasNewPlatform) {
-                var playerNoMovePlatformWorldPos = platform.referenceTransform.TransformPoint(_platformLocalPoint);
-                var playerMovementLastFrame = transform.position - _platformGlobalPoint;
+                var playerNoMovePlatformWorldPos = Platform.referenceTransform.TransformPoint(platformLocalPoint);
+                var playerMovementLastFrame = transform.position - platformGlobalPoint;
 
                 var finalPos = (playerNoMovePlatformWorldPos + playerMovementLastFrame);
                 Teleport(finalPos, transform.rotation);
@@ -256,15 +256,15 @@ namespace GameFramework {
                 hasNewPlatform = false;
             }
 
-            _platformLocalPoint = platform.referenceTransform.InverseTransformPoint(transform.position);
-            _platformGlobalPoint = transform.position;
+            platformLocalPoint = Platform.referenceTransform.InverseTransformPoint(transform.position);
+            platformGlobalPoint = transform.position;
         }
 
         void UpdateRemote() {
-            _viewPitchLerp = Mathf.Lerp(_viewPitchLerp, _viewPitch, 5 * Time.deltaTime);
-            _character.view.localRotation = Quaternion.AngleAxis(_viewPitchLerp, Vector3.left);
+            viewPitchLerp = Mathf.Lerp(viewPitchLerp, viewPitch, 5 * Time.deltaTime);
+            character.view.localRotation = Quaternion.AngleAxis(viewPitchLerp, Vector3.left);
 
-            _history.Sample(Time.time, out Vector3 position, out Quaternion rotation);
+            history.Sample(Time.time, out Vector3 position, out Quaternion rotation);
             var diff = position - transform.position;
             if (diff.sqrMagnitude < 1) { // Physics might cause the client-side to become desynced
                 characterController.Move(position - transform.position);
@@ -284,8 +284,8 @@ namespace GameFramework {
                 return;
             }
 
-            _yaw = yaw;
-            _viewPitch = viewPitch;
+            this.yaw = yaw;
+            this.viewPitch = viewPitch;
             Teleport(finalPosition, Quaternion.AngleAxis(yaw, Vector3.up));
         }
 
@@ -316,12 +316,12 @@ namespace GameFramework {
             groundColliders = new Collider[4];
 
             characterController = GetComponent<CharacterController>();
-            _character = GetComponent<Character>();
+            character = GetComponent<Character>();
             Assert.IsNotNull(characterController);
             Assert.IsNotNull(settings);
-            Assert.IsNotNull(_character);
+            Assert.IsNotNull(character);
 
-            _history = new TransformHistory(replica.settings.desiredUpdateRateMs, interpolationDelayMs);
+            history = new TransformHistory(replica.settings.desiredUpdateRateMs, interpolationDelayMs);
         }
     }
 }
