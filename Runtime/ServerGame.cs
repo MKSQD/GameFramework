@@ -44,7 +44,8 @@ namespace GameFramework {
         bool _onAllClientsLoadedSceneTriggeredThisGeneration;
 
         public ServerGame(ServerGameContext ctx) {
-            world = ctx.World ?? throw new ArgumentNullException("world");
+            Assert.IsNotNull(ctx.World);
+            world = ctx.World;
 
             server = new CubeServer(ctx.Port, ctx.World, ctx.LagSettings, ctx.ReplicaManagerSettings);
 
@@ -87,7 +88,7 @@ namespace GameFramework {
                 if (replicaView == null)
                     continue;
 
-                replicaView.isLoadingLevel = true;
+                replicaView.IsLoadingLevel = true;
             }
 
 #if !UNITY_EDITOR
@@ -154,7 +155,7 @@ namespace GameFramework {
             view.transform.parent = server.world.transform;
 
             var rw = view.AddComponent<ReplicaView>();
-            rw.connection = connection;
+            rw.Connection = connection;
 
             server.replicaManager.AddReplicaView(rw);
         }
@@ -173,7 +174,7 @@ namespace GameFramework {
             //
             var replicaView = server.replicaManager.GetReplicaView(connection);
             if (replicaView != null) {
-                replicaView.isLoadingLevel = false;
+                replicaView.IsLoadingLevel = false;
                 server.replicaManager.ForceReplicaViewRefresh(replicaView);
             }
         }

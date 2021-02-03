@@ -98,9 +98,9 @@ namespace GameFramework {
             movement.Jump();
         }
 
-        void OnDrawGizmos() {
+        void OnDrawGizmosSelected() {
             if (view != null) {
-                Debug.DrawLine(view.transform.position, view.transform.position + view.transform.forward * 0.25f, Color.yellow);
+                Debug.DrawLine(view.transform.position, view.transform.position + view.transform.forward * 0.5f, Color.yellow);
             }
         }
     }

@@ -42,9 +42,6 @@ namespace GameFramework {
         float nextSendTime;
         const float minSendDelay = 1 / 60f;
 
-        [Range(0, 500)]
-        [Tooltip("The delay remote players are displayed at")]
-        public int interpolationDelayMs;
         [ReadOnly]
         public Platform Platform;
 
@@ -67,7 +64,17 @@ namespace GameFramework {
 
         bool onLadder;
 
-        TransformHistory history;
+        // Interpolation
+        double m_InterpolationBackTime = 0.1;
+
+        struct State {
+            internal double timestamp;
+            internal Vector3 pos;
+            internal Quaternion rot;
+        }
+
+        State[] m_BufferedState = new State[20];
+        int m_TimestampCount;
 
         public void Teleport(Vector3 targetPosition, Quaternion targetRotation) {
             characterController.enabled = false;
@@ -112,12 +119,12 @@ namespace GameFramework {
         }
 
         public override void Serialize(BitStream bs, SerializeContext ctx) {
-            if (replica.Owner == ctx.Observer.connection)
+            if (replica.Owner == ctx.Observer.Connection)
                 return;
 
             bs.Write(transform.position);
             bs.WriteLossyFloat(yaw, 0, 360, 2);
-            bs.WriteLossyFloat(viewPitch, minViewPitch, maxViewPitch, 5);
+            bs.WriteLossyFloat(viewPitch, minViewPitch, maxViewPitch, 2);
         }
 
         public override void Deserialize(BitStream bs) {
@@ -126,10 +133,21 @@ namespace GameFramework {
 
             var pos = bs.ReadVector3();
             var yaw = bs.ReadLossyFloat(0, 360, 2);
-            viewPitch = bs.ReadLossyFloat(minViewPitch, maxViewPitch, 5);
+            viewPitch = bs.ReadLossyFloat(minViewPitch, maxViewPitch, 2);
 
-            var t = Time.time + interpolationDelayMs * 0.001f;
-            history.Add(t, new Pose(pos, Quaternion.AngleAxis(yaw, Vector3.up)));
+            // Shift the buffer sideways, deleting state 20
+            for (int i = m_BufferedState.Length - 1; i >= 1; i--) {
+                m_BufferedState[i] = m_BufferedState[i - 1];
+            }
+
+            // Record current state in slot 0
+            State state;
+            state.timestamp = Time.timeAsDouble;
+            state.pos = pos;
+            state.rot = Quaternion.AngleAxis(yaw, Vector3.up);
+            m_BufferedState[0] = state;
+
+            m_TimestampCount = Mathf.Min(m_TimestampCount + 1, m_BufferedState.Length);
         }
 
         protected void Update() {
@@ -264,16 +282,47 @@ namespace GameFramework {
             viewPitchLerp = Mathf.Lerp(viewPitchLerp, viewPitch, 5 * Time.deltaTime);
             character.view.localRotation = Quaternion.AngleAxis(viewPitchLerp, Vector3.left);
 
-            history.Sample(Time.time, out Vector3 position, out Quaternion rotation);
-            var diff = position - transform.position;
-            if (diff.sqrMagnitude < 1) { // Physics might cause the client-side to become desynced
-                characterController.Move(position - transform.position);
-            }
-            else {
-                Teleport(position, transform.rotation);
-            }
+            // This is the target playback time of the rigid body
+            double interpolationTime = Time.timeAsDouble - m_InterpolationBackTime;
 
-            transform.localRotation = rotation;
+            // Use interpolation if the target playback time is present in the buffer
+            if (m_BufferedState[0].timestamp > interpolationTime) {
+                // Go through buffer and find correct state to play back
+                for (int i = 0; i < m_TimestampCount; i++) {
+                    if (m_BufferedState[i].timestamp <= interpolationTime || i == m_TimestampCount - 1) {
+                        // The state one slot newer (<100ms) than the best playback state
+                        State rhs = m_BufferedState[Mathf.Max(i - 1, 0)];
+                        // The best playback state (closest to 100 ms old (default time))
+                        State lhs = m_BufferedState[i];
+
+                        // Use the time between the two slots to determine if interpolation is necessary
+                        double length = rhs.timestamp - lhs.timestamp;
+                        float t = 0.0F;
+                        // As the time difference gets closer to 100 ms t gets closer to 1 in 
+                        // which case rhs is only used
+                        // Example:
+                        // Time is 10.000, so sampleTime is 9.900 
+                        // lhs.time is 9.910 rhs.time is 9.980 length is 0.070
+                        // t is 9.900 - 9.910 / 0.070 = 0.14. So it uses 14% of rhs, 86% of lhs
+                        if (length > 0.0001) {
+                            t = (float)((interpolationTime - lhs.timestamp) / length);
+                        }
+                        //	Debug.Log(t);
+                        // if t=0 => lhs is used directly
+                        var position = Vector3.Lerp(lhs.pos, rhs.pos, t);
+                        transform.localRotation = Quaternion.Slerp(lhs.rot, rhs.rot, t);
+
+                        var diff = position - transform.position;
+                        if (diff.sqrMagnitude < 1) { // Physics might cause the client-side to become desynced
+                            characterController.Move(position - transform.position);
+                        }
+                        else {
+                            Teleport(position, transform.rotation);
+                        }
+                        return;
+                    }
+                }
+            }
         }
 
         [ReplicaRpc(RpcTarget.Server)]
@@ -312,6 +361,21 @@ namespace GameFramework {
             body.velocity = pushDir * settings.pushPower;
         }
 
+        void OnDrawGizmosSelected() {
+            Gizmos.color = Color.green;
+
+            State lastS = m_BufferedState[0];
+            for (int i = 1; i < m_TimestampCount; ++i) {
+                Gizmos.DrawLine(lastS.pos, m_BufferedState[i].pos);
+                lastS = m_BufferedState[i];
+            }
+
+            Gizmos.color = Color.red;
+            for (int i = 0; i < m_TimestampCount; ++i) {
+                Gizmos.DrawSphere(m_BufferedState[i].pos, 0.05f);
+            }
+        }
+
         void Awake() {
             groundColliders = new Collider[4];
 
@@ -320,8 +384,6 @@ namespace GameFramework {
             Assert.IsNotNull(characterController);
             Assert.IsNotNull(settings);
             Assert.IsNotNull(character);
-
-            history = new TransformHistory(replica.settings.desiredUpdateRateMs, interpolationDelayMs);
         }
     }
 }

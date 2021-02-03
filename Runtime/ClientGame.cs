@@ -3,6 +3,7 @@ using Cube.Replication;
 using Cube.Transport;
 using System;
 using UnityEngine;
+using UnityEngine.Assertions;
 using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 using BitStream = Cube.Transport.BitStream;
@@ -37,7 +38,8 @@ namespace GameFramework {
         byte _pawnIdxToPossess;
 
         public ClientGame(ClientGameContext ctx) {
-            world = ctx.World ?? throw new ArgumentNullException("world");
+            Assert.IsNotNull(ctx.World);
+            world = ctx.World;
 
             client = new CubeClient(ctx.World, ctx.LagSettings);
 
@@ -55,7 +57,7 @@ namespace GameFramework {
                 var replica = client.replicaManager.GetReplicaById(_todoReplicaPossess);
                 if (replica != null) {
                     var pawnsOnReplica = replica.GetComponentsInChildren<Pawn>();
-                    if(_pawnIdxToPossess >= pawnsOnReplica.Length) {
+                    if (_pawnIdxToPossess >= pawnsOnReplica.Length) {
                         Debug.LogError("Oh shit, abort");
                         return;
                     }
