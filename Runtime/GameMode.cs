@@ -148,7 +148,7 @@ namespace GameFramework {
             var spawnPose = GetPlayerSpawnPosition();
 
             var character = go.GetComponent<Character>();
-            character.movement.Teleport(spawnPose.position, spawnPose.rotation);
+            character.Movement.Teleport(spawnPose.position, spawnPose.rotation);
 
             players.Add(character);
 

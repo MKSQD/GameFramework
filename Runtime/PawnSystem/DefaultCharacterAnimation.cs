@@ -15,10 +15,10 @@ namespace GameFramework {
         }
 
         protected virtual void Update() {
-            var isMoving = character.movement.IsMoving;
+            var isMoving = character.Movement.IsMoving;
             animator.SetBool("Moving", isMoving);
 
-            var velocity = character.movement.LocalVelocity;
+            var velocity = character.Movement.LocalVelocity;
             animator.SetFloat("ForwardSpeed", velocity.z);
         }
     }

@@ -6,9 +6,9 @@ namespace GameFramework {
     [RequireComponent(typeof(CharacterMovement))]
     public class Character : Pawn {
         public Transform view;
-        public new CinemachineVirtualCamera camera;
+        public CinemachineVirtualCamera Camera;
         
-        public new CharacterMovement movement {
+        public new CharacterMovement Movement {
             get;
             internal set;
         }
@@ -25,22 +25,22 @@ namespace GameFramework {
         protected override void Awake() {
             base.Awake();
 
-            movement = GetComponent<CharacterMovement>();
+            Movement = GetComponent<CharacterMovement>();
 
-            if (camera != null) {
-                camera.enabled = false;
+            if (Camera != null) {
+                Camera.enabled = false;
             }
         }
 
         protected override void HandlePossessionImpl(Pawn previousPawn) {
-            if (camera != null) {
-                camera.enabled = true;
+            if (Camera != null) {
+                Camera.enabled = true;
             }
         }
 
         protected override void HandleUnpossessionImpl() {
-            if (camera != null) {
-                camera.enabled = false;
+            if (Camera != null) {
+                Camera.enabled = false;
             }
         }
 
@@ -50,7 +50,7 @@ namespace GameFramework {
                 return;
 #endif
 
-            movement.AddYawInput(value * 0.5f);
+            Movement.AddYawInput(value * 0.5f);
         }
 
         void OnMouseY(float value) {
@@ -59,7 +59,7 @@ namespace GameFramework {
                 return;
 #endif
 
-            movement.AddPitchInput(value * 0.5f);
+            Movement.AddPitchInput(value * 0.5f);
         }
 
         void OnHorizontalInput(float value) {
@@ -68,7 +68,7 @@ namespace GameFramework {
                 return;
 #endif
 
-            movement.AddMoveInput(Vector3.right * value);
+            Movement.AddMoveInput(Vector3.right * value);
         }
 
         void OnVerticalInput(float value) {
@@ -77,7 +77,7 @@ namespace GameFramework {
                 return;
 #endif
 
-            movement.AddMoveInput(Vector3.forward * value);
+            Movement.AddMoveInput(Vector3.forward * value);
         }
 
         void OnRun(float value) {
@@ -86,7 +86,7 @@ namespace GameFramework {
                 return;
 #endif
 
-            movement.SetRun(value > 0.5f);
+            Movement.SetRun(value > 0.5f);
         }
 
         void OnJump() {
@@ -95,7 +95,7 @@ namespace GameFramework {
                 return;
 #endif
 
-            movement.Jump();
+            Movement.Jump();
         }
 
         void OnDrawGizmosSelected() {
