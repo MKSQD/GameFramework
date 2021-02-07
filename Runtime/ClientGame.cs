@@ -1,7 +1,6 @@
 using Cube.Networking;
 using Cube.Replication;
 using Cube.Transport;
-using System;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.Events;
@@ -34,8 +33,8 @@ namespace GameFramework {
 
         byte _lastOnLoadSceneGeneration;
 
-        ReplicaId _todoReplicaPossess;
-        byte _pawnIdxToPossess;
+        ReplicaId currentReplicaPossess;
+        byte pawnIdxToPossess;
 
         public ClientGame(ClientGameContext ctx) {
             Assert.IsNotNull(ctx.World);
@@ -53,23 +52,22 @@ namespace GameFramework {
         public virtual void Update() {
             client.Update();
 
-            if (_todoReplicaPossess != ReplicaId.Invalid) {
-                var replica = client.replicaManager.GetReplicaById(_todoReplicaPossess);
+            if (currentReplicaPossess != ReplicaId.Invalid) {
+                var replica = client.replicaManager.GetReplicaById(currentReplicaPossess);
                 if (replica != null) {
                     var pawnsOnReplica = replica.GetComponentsInChildren<Pawn>();
-                    if (_pawnIdxToPossess >= pawnsOnReplica.Length) {
+                    if (pawnIdxToPossess >= pawnsOnReplica.Length) {
                         Debug.LogError("Oh shit, abort");
                         return;
                     }
 
-                    var pawn = pawnsOnReplica[_pawnIdxToPossess];
+                    var pawn = pawnsOnReplica[pawnIdxToPossess];
 
                     var pc = world.playerControllers[0];
-                    pc.Possess(pawn);
-
-                    _todoReplicaPossess = ReplicaId.Invalid;
-
-                    Debug.Log("[Client][Game] <b>Possessed Pawn</b> <i>" + pawn + "</i> idx=" + _pawnIdxToPossess, pawn);
+                    if (pawn.Controller != pc) {
+                        pc.Possess(pawn);
+                        Debug.Log("[Client][Game] <b>Possessed Pawn</b> <i>" + pawn + "</i> idx=" + pawnIdxToPossess, pawn);
+                    }
                 }
             }
         }
@@ -129,8 +127,8 @@ namespace GameFramework {
             var replicaId = bs.ReadReplicaId();
             var pawnIdx = bs.ReadByte();
 
-            _todoReplicaPossess = replicaId;
-            _pawnIdxToPossess = pawnIdx;
+            currentReplicaPossess = replicaId;
+            pawnIdxToPossess = pawnIdx;
         }
     }
 }

@@ -57,7 +57,6 @@ namespace GameFramework {
         }
 
         void SendPossession() {
-            // #todo this whole lookup should be cached!
             var pawnIdx = byte.MaxValue;
             var pawnsOnReplica = pawn.replica.GetComponentsInChildren<Pawn>();
             for(int i = 0; i < pawnsOnReplica.Length; ++i) {
