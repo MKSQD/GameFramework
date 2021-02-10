@@ -42,9 +42,9 @@ namespace GameFramework {
 
             client = new CubeClient(ctx.World, ctx.LagSettings);
 
-            client.reactor.AddHandler((byte)Cube.Transport.MessageId.ConnectionRequestAccepted, OnConnectionRequestAccepted);
-            client.reactor.AddHandler((byte)Cube.Transport.MessageId.ConnectionRequestFailed, OnConnectionRequestFailed);
-            client.reactor.AddHandler((byte)Cube.Transport.MessageId.DisconnectNotification, OnDisconnectNotification);
+            client.networkInterface.ConnectionRequestAccepted += OnConnectionRequestAccepted;
+            client.networkInterface.Disconnected += OnDisconnected;
+
             client.reactor.AddHandler((byte)MessageId.LoadScene, OnLoadScene);
             client.reactor.AddHandler((byte)MessageId.PossessPawn, OnPossessPawn);
         }
@@ -80,18 +80,14 @@ namespace GameFramework {
             return new PlayerController(Connection.Invalid);
         }
 
-        void OnConnectionRequestAccepted(BitStream bs) {
+        void OnConnectionRequestAccepted() {
             Debug.Log("[Client] Connection request to server accepted");
 
             var newPC = CreatePlayerController();
             world.playerControllers.Add(newPC);
         }
 
-        void OnConnectionRequestFailed(BitStream bs) {
-            Debug.Log("Connection request to server failed");
-        }
-
-        void OnDisconnectNotification(BitStream bs) {
+        void OnDisconnected() {
             Debug.Log("[Client] <b>Disconnected</b>");
         }
 

@@ -49,13 +49,18 @@ namespace GameFramework {
 
             server = new CubeServer(ctx.Port, ctx.World, ctx.LagSettings, ctx.ReplicaManagerSettings);
 
-            server.reactor.AddMessageHandler((byte)Cube.Transport.MessageId.NewConnectionEstablished, OnNewIncomingConnection);
-            server.reactor.AddMessageHandler((byte)Cube.Transport.MessageId.DisconnectNotification, OnDisconnectionNotification);
+            server.networkInterface.ApproveConnection += OnApproveConnection;
+            server.networkInterface.NewConnectionEstablished += OnNewIncomingConnection;
+            server.networkInterface.DisconnectNotification += OnDisconnectNotification;
             server.reactor.AddMessageHandler((byte)MessageId.LoadSceneDone, OnLoadSceneDone);
         }
 
         public virtual IGameMode CreateGameModeForScene(string sceneName) {
             return new GameMode(this);
+        }
+
+        protected virtual bool OnApproveConnection(BitStream bs) {
+            return true;
         }
 
         /// <summary>
@@ -102,7 +107,7 @@ namespace GameFramework {
             Debug.Log("[Server][Game] New game mode '<b>" + gameMode + "</b>'");
         }
 
-        protected virtual void OnNewIncomingConnection(Connection connection, BitStream bs) {
+        void OnNewIncomingConnection(Connection connection) {
             Debug.Log("[Server] <b>New connection</b> <i>" + connection + "</i>");
 
             // Send load scene packet if we loaded one previously
@@ -129,7 +134,7 @@ namespace GameFramework {
             return new PlayerController(connection);
         }
 
-        protected virtual void OnDisconnectionNotification(Connection connection, BitStream bs) {
+        protected virtual void OnDisconnectNotification(Connection connection) {
             Debug.Log("[Server] Lost connection: " + connection);
 
             onDisconnectionNotification.Invoke(connection);
