@@ -65,8 +65,8 @@ namespace GameFramework {
         bool onLadder;
 
         // Interpolation
-        double interpolationBackTime = 0.1;
-        double extrapolationLimit = 0.5;
+        double interpolationBackTime = 0.15;
+        double extrapolationLimit = 0.3;
 
         struct State {
             internal double timestamp;
@@ -126,7 +126,7 @@ namespace GameFramework {
 
             bs.Write(transform.position);
             bs.WriteLossyFloat(yaw, 0, 360, 2);
-            bs.WriteLossyFloat(viewPitch, minViewPitch, maxViewPitch, 2);
+            bs.WriteLossyFloat(viewPitch, minViewPitch, maxViewPitch, 5);
             bs.Write(run);
         }
 
@@ -136,7 +136,7 @@ namespace GameFramework {
 
             var pos = bs.ReadVector3();
             var yaw = bs.ReadLossyFloat(0, 360, 2);
-            viewPitch = bs.ReadLossyFloat(minViewPitch, maxViewPitch, 2);
+            viewPitch = bs.ReadLossyFloat(minViewPitch, maxViewPitch, 5);
             var run = bs.ReadBool();
 
             // Shift the buffer sideways, deleting state 20
