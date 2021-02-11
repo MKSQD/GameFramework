@@ -330,9 +330,18 @@ namespace GameFramework {
                     var speed = latest.run ? settings.moveSpeed : settings.runSpeed;
                     var velocity = (latest.pos - latest2.pos).normalized * speed;
 
-                    Debug.DrawLine(transform.position + Vector3.up * 2, transform.position + Vector3.up * 3, Color.red);
+                   
                     var position = latest.pos + velocity * extrapolationLength;
-                    characterController.Move(position - transform.position);
+
+                    var diff = position - transform.position;
+                    if (diff.sqrMagnitude < 1) { // Physics might cause the client-side to become desynced
+                        characterController.Move(position - transform.position);
+                    }
+                    else {
+                        Teleport(position, transform.rotation);
+                    }
+
+                    Debug.DrawLine(transform.position + Vector3.up * 2, transform.position + Vector3.up * 3, Color.red);
                 }
             }
         }
