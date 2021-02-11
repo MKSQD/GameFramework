@@ -59,8 +59,8 @@ namespace GameFramework {
             return new GameMode(this);
         }
 
-        protected virtual bool OnApproveConnection(BitStream bs) {
-            return true;
+        protected virtual ApprovalResult OnApproveConnection(BitStream bs) {
+            return new ApprovalResult() { Approved = true };
         }
 
         /// <summary>

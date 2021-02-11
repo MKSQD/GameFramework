@@ -87,8 +87,8 @@ namespace GameFramework {
             world.playerControllers.Add(newPC);
         }
 
-        void OnDisconnected() {
-            Debug.Log("[Client] <b>Disconnected</b>");
+        void OnDisconnected(string reason) {
+            Debug.Log("[Client] <b>Disconnected</b> (" + reason + ")");
         }
 
         void OnLoadScene(BitStream bs) {
