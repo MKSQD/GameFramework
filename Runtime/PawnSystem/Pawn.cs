@@ -49,9 +49,7 @@ namespace GameFramework {
         }
 
         protected virtual void Update() {
-            if (Controller != null) {
-                Controller.Update();
-            }
+            Controller?.Update();
         }
 
         protected virtual void OnEnable() {
