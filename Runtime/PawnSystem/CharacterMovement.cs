@@ -21,7 +21,7 @@ namespace GameFramework {
         }
 
         public bool IsMoving {
-            get { return characterController.velocity.sqrMagnitude > 0.1f; }
+            get { return characterController.velocity.sqrMagnitude > 0.02f; }
         }
 
         public bool IsGrounded {
@@ -65,9 +65,6 @@ namespace GameFramework {
         bool onLadder;
 
         // Interpolation
-        double interpolationBackTime = 0.15;
-        double extrapolationLimit = 0.3;
-
         struct State {
             internal double timestamp;
             internal Vector3 pos;
@@ -288,7 +285,7 @@ namespace GameFramework {
             character.view.localRotation = Quaternion.AngleAxis(viewPitchLerp, Vector3.left);
 
             // This is the target playback time of the rigid body
-            double interpolationTime = Time.timeAsDouble - interpolationBackTime;
+            double interpolationTime = Time.timeAsDouble - settings.InterpolationBackTime;
 
             // Use interpolation if the target playback time is present in the buffer
             if (bufferedState[0].timestamp > interpolationTime) {
@@ -326,7 +323,7 @@ namespace GameFramework {
                 State latest2 = bufferedState[Mathf.Min(1, timestampCount - 1)];
 
                 float extrapolationLength = (float)(interpolationTime - latest.timestamp);
-                if (extrapolationLength < extrapolationLimit) {
+                if (extrapolationLength < settings.ExtrapolationLimit) {
                     var speed = latest.run ? settings.moveSpeed : settings.runSpeed;
                     var velocity = (latest.pos - latest2.pos).normalized * speed;
 

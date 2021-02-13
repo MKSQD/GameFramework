@@ -12,5 +12,11 @@ namespace GameFramework {
         public float airControl = 0.1f;
         public bool useGravity = true;
         public float pushPower = 2f;
+
+        [Header("Interpolation/Extrapolation")]
+        [Range(0, 1)]
+        public float InterpolationBackTime = 0.15f;
+        [Range(0, 1)]
+        public float ExtrapolationLimit = 0.3f;
     }
 }
