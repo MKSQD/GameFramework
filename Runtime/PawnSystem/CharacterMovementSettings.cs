@@ -11,7 +11,6 @@ namespace GameFramework {
         public float groundControl = 0.9f;
         public float airControl = 0.1f;
         public bool useGravity = true;
-        public float pushPower = 2f;
 
         [Header("Interpolation/Extrapolation")]
         [Range(0, 1)]

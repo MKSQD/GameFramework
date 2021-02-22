@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace GameFramework {
     public sealed class PlayerInput : PawnInput {
@@ -12,7 +13,12 @@ namespace GameFramework {
                 if (Input.GetAxis(actionHandler.Key) == 0)
                     continue;
 
-                actionHandler.Value();
+                try {
+                    actionHandler.Value();
+                }
+                catch (Exception e) {
+                    Debug.LogException(e);
+                }
             }
         }
 

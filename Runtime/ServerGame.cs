@@ -170,7 +170,7 @@ namespace GameFramework {
             if (generation != _loadSceneGeneration)
                 return;
 
-            Debug.Log("[Server] On load scene done: " + connection + " generation=" + generation);
+            Debug.Log("[Server] On load scene done: <i>" + connection + "</i> (generation=" + generation + ")");
 
             ++_loadScenePlayerAcks;
 

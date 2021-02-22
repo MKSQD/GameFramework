@@ -19,7 +19,7 @@ namespace GameFramework {
         public SimulatedLagSettings LagSettings;
 
         public AssetReference DefaultGameStatePrefab;
-        
+
         public ClientGame GameClient {
             get;
             internal set;
@@ -64,7 +64,7 @@ namespace GameFramework {
 
             OnServerRunning();
 
-            Debug.Log("Server running");
+            Debug.Log("[Server] Up and running");
         }
 
         protected virtual void Start() {
@@ -106,21 +106,14 @@ namespace GameFramework {
         }
 
         protected virtual void Update() {
-            if (GameClient != null) {
-                GameClient.Update();
-            }
-            if (GameServer != null) {
-                GameServer.Update();
-            }
+            GameClient?.Update();
+            GameServer?.Update();
         }
 
-        protected virtual void OnApplicationQuit() {
-            if (GameClient != null) {
-                GameClient.Shutdown();
-            }
-            if (GameServer != null) {
-                GameServer.Shutdown();
-            }
+        void OnApplicationQuit() {
+            Debug.Log("--- <b>Shutdown</b> ---");
+            GameClient?.Shutdown();
+            GameServer?.Shutdown();
         }
 
         protected virtual ClientGame CreateClient(ClientGameContext ctx) {

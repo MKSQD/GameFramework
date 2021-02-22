@@ -6,8 +6,9 @@ using BitStream = Cube.Transport.BitStream;
 namespace GameFramework {
     [AddComponentMenu("GameFramework/CharacterMovement")]
     [RequireComponent(typeof(CharacterController))]
-    public class CharacterMovement : ReplicaBehaviour, IPawnMovement {
-        public delegate void CharacterEvent(Character character);
+    public class CharacterMovement : ReplicaBehaviour, ICharacterMovement {
+        public event CharacterEvent OnJump;
+        public event CharacterEvent OnLand;
 
         public CharacterMovementSettings settings;
         public LayerMask clientGroundMask, serverGroundMask;
@@ -17,11 +18,16 @@ namespace GameFramework {
         }
 
         public Vector3 LocalVelocity {
-            get { return transform.InverseTransformDirection(characterController.velocity); }
+            get { return transform.InverseTransformDirection(Velocity); }
         }
 
         public bool IsMoving {
-            get { return characterController.velocity.sqrMagnitude > 0.02f; }
+            get { return Velocity.sqrMagnitude > 0.02f; }
+        }
+
+        public bool IsRunning {
+            get;
+            internal set;
         }
 
         public bool IsGrounded {
@@ -33,8 +39,6 @@ namespace GameFramework {
             get;
             internal set;
         }
-
-        public event CharacterEvent OnJump, OnLand;
 
         const float minViewPitch = -55;
         const float maxViewPitch = 60;
@@ -56,7 +60,6 @@ namespace GameFramework {
         float viewPitch;
         float viewPitchLerp;
         bool jump;
-        bool run;
 
         bool hasNewPlatform;
         Vector3 platformLocalPoint;
@@ -99,7 +102,7 @@ namespace GameFramework {
         }
 
         public void SetRun(bool run) {
-            this.run = run;
+            IsRunning = run;
         }
 
         public void Jump() {
@@ -107,6 +110,18 @@ namespace GameFramework {
                 return;
 
             jump = true;
+        }
+
+        public void Disable() {
+            characterController.detectCollisions = false;
+        }
+
+        public void Enable() {
+            characterController.detectCollisions = true;
+        }
+
+        public void AddVelocity(Vector3 velocity) {
+            // #todo
         }
 
         public void OnEnterLadder() {
@@ -124,7 +139,7 @@ namespace GameFramework {
             bs.Write(transform.position);
             bs.WriteLossyFloat(yaw, 0, 360, 2);
             bs.WriteLossyFloat(viewPitch, minViewPitch, maxViewPitch, 5);
-            bs.Write(run);
+            bs.Write(IsRunning);
         }
 
         public override void Deserialize(BitStream bs) {
@@ -173,7 +188,7 @@ namespace GameFramework {
 
 
             // Apply modifiers
-            var speed = run ? settings.moveSpeed : settings.runSpeed;
+            var speed = IsRunning ? settings.moveSpeed : settings.runSpeed;
             actualMovement *= speed;
 
             if (actualMovement.z < 0) {
@@ -232,6 +247,7 @@ namespace GameFramework {
         }
 
         Collider[] groundColliders;
+
         void UpdateGround() {
             var epsilon = 0.1f;
 
@@ -252,7 +268,6 @@ namespace GameFramework {
 
                 GroundMaterial = collider.sharedMaterial;
                 IsGrounded = true;
-                break;
             }
 
             if (newPlatform != Platform) {
@@ -312,7 +327,9 @@ namespace GameFramework {
                             Teleport(position, transform.rotation);
                         }
 
-                        Debug.DrawLine(transform.position + Vector3.up * 2, transform.position + Vector3.up * 3, Color.green);
+                        IsRunning = lhs.run;
+
+                        //Debug.DrawLine(transform.position + Vector3.up * 2, transform.position + Vector3.up * 3, Color.green);
                         return;
                     }
                 }
@@ -338,7 +355,7 @@ namespace GameFramework {
                         Teleport(position, transform.rotation);
                     }
 
-                    Debug.DrawLine(transform.position + Vector3.up * 2, transform.position + Vector3.up * 3, Color.red);
+                    //Debug.DrawLine(transform.position + Vector3.up * 2, transform.position + Vector3.up * 3, Color.red);
                 }
             }
         }
@@ -361,24 +378,6 @@ namespace GameFramework {
             Teleport(finalPos, Quaternion.AngleAxis(yaw, Vector3.up));
         }
 
-        void OnControllerColliderHit(ControllerColliderHit hit) {
-            var body = hit.collider.attachedRigidbody;
-            if (body == null || body.isKinematic)
-                return;
-
-            var tooHeavyToPush = body.mass > 80;
-            if (tooHeavyToPush)
-                return;
-
-            if (hit.moveDirection.y < -0.3f)
-                return;
-
-            var pushDir = hit.moveDirection;
-            pushDir.y = 0;
-
-            body.velocity = pushDir * settings.pushPower;
-        }
-
         void OnDrawGizmosSelected() {
             Gizmos.color = Color.green;
 
@@ -395,7 +394,7 @@ namespace GameFramework {
         }
 
         void Awake() {
-            groundColliders = new Collider[4];
+            groundColliders = new Collider[1];
 
             characterController = GetComponent<CharacterController>();
             character = GetComponent<Character>();

@@ -87,7 +87,7 @@ namespace GameFramework {
                 case MatchState.InProgress:
                     foreach (var pc in server.world.playerControllers) {
                         if (pc.pawn == null && !_respawnQueue.Any(pair => pair.Item2 == pc)) {
-                            _respawnQueue.Enqueue((Time.time + 1, pc));
+                            _respawnQueue.Enqueue((Time.time + 5, pc));
                         }
                     }
 

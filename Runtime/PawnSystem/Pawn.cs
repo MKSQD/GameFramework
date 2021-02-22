@@ -56,9 +56,7 @@ namespace GameFramework {
         }
 
         protected virtual void OnDisable() {
-            if (Controller != null) {
-                Controller.Unpossess();
-            }
+            Controller?.Unpossess();
         }
     }
 }
