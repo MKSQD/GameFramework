@@ -36,7 +36,7 @@ namespace GameFramework {
 
         protected override void OnPossess(Pawn pawn) {
             if (pawn.isServer) {
-                pawn.replica.AssignOwnership(connection);
+                pawn.Replica.AssignOwnership(connection);
                 _replicaView = pawn.server.replicaManager.GetReplicaView(connection);
                 SendPossession();
             }
@@ -49,7 +49,7 @@ namespace GameFramework {
 
         protected override void OnUnpossess() {
             if (pawn.isServer) {
-                pawn.replica.TakeOwnership();
+                pawn.Replica.TakeOwnership();
             }
         }
 
@@ -58,7 +58,7 @@ namespace GameFramework {
 
         void SendPossession() {
             var pawnIdx = byte.MaxValue;
-            var pawnsOnReplica = pawn.replica.GetComponentsInChildren<Pawn>();
+            var pawnsOnReplica = pawn.Replica.GetComponentsInChildren<Pawn>();
             for(int i = 0; i < pawnsOnReplica.Length; ++i) {
                 var pawnOnReplica = pawnsOnReplica[i];
                 if(pawn == pawnOnReplica) {
@@ -71,7 +71,7 @@ namespace GameFramework {
 
             var bs = pawn.server.networkInterface.bitStreamPool.Create();
             bs.Write((byte)MessageId.PossessPawn);
-            bs.Write(pawn.replica.ReplicaId);
+            bs.Write(pawn.Replica.Id);
             bs.Write(pawnIdx);
 
             pawn.server.networkInterface.SendBitStream(bs, PacketPriority.High, PacketReliability.ReliableSequenced, connection);

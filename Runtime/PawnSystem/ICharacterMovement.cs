@@ -15,23 +15,11 @@ namespace GameFramework {
         void Enable();
         void AddVelocity(Vector3 velocity);
 
-        bool IsMoving {
-            get;
-        }
-        bool IsRunning {
-            get;
-        }
-        bool IsGrounded {
-            get;
-        }
-        Vector3 Velocity {
-            get;
-        }
-        Vector3 LocalVelocity {
-            get;
-        }
-        PhysicMaterial GroundMaterial {
-            get;
-        }
+        bool IsMoving { get; }
+        bool IsRunning { get; }
+        bool IsGrounded { get; }
+        Vector3 Velocity { get; }
+        Vector3 LocalVelocity { get; }
+        PhysicMaterial GroundMaterial { get; }
     }
 }

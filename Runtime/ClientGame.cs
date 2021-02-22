@@ -53,7 +53,7 @@ namespace GameFramework {
             client.Update();
 
             if (currentReplicaPossess != ReplicaId.Invalid) {
-                var replica = client.replicaManager.GetReplicaById(currentReplicaPossess);
+                var replica = client.replicaManager.GetReplica(currentReplicaPossess);
                 if (replica != null) {
                     var pawnsOnReplica = replica.GetComponentsInChildren<Pawn>();
                     if (pawnIdxToPossess >= pawnsOnReplica.Length) {
@@ -66,7 +66,7 @@ namespace GameFramework {
                     var pc = world.playerControllers[0];
                     if (pawn.Controller != pc) {
                         pc.Possess(pawn);
-                        Debug.Log("[Client][Game] <b>Possessed Pawn</b> <i>" + pawn + "</i> idx=" + pawnIdxToPossess, pawn);
+                        Debug.Log("[Client] <b>Possessed Pawn</b> <i>" + pawn + "</i> idx=" + pawnIdxToPossess, pawn);
                     }
                 }
             }

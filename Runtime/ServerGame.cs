@@ -104,7 +104,7 @@ namespace GameFramework {
             gameMode = CreateGameModeForScene(sceneName);
             Assert.IsNotNull(gameMode);
 
-            Debug.Log("[Server][Game] New game mode '<b>" + gameMode + "</b>'");
+            Debug.Log("[Server] <b>New GameMode</b> <i>" + gameMode + "</i>");
         }
 
         void OnNewIncomingConnection(Connection connection) {

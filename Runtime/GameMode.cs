@@ -44,7 +44,7 @@ namespace GameFramework {
                 return;
             }
 
-            Debug.Log("[Server][Game] <b>Match starting...</b>");
+            Debug.Log("[Server] <b>Match starting...</b>");
 
             matchState = MatchState.InProgress;
             HandleMatchHasStarted();
@@ -59,7 +59,7 @@ namespace GameFramework {
             matchState = MatchState.WaitingPostMatch;
             HandleMatchHasEnded();
 
-            Debug.Log("[Server][Game] <b>Match has ended</b>");
+            Debug.Log("[Server] <b>Match has ended</b>");
         }
 
         public override void StartToLeaveMap() {
@@ -140,7 +140,7 @@ namespace GameFramework {
         }
 
         protected virtual void SpawnPlayer(PlayerController pc) {
-            Debug.Log("[Server][Game] <b>Spawning player</b> <i>" + pc.connection + "</i>");
+            Debug.Log("[Server] <b>Spawning player</b> <i>" + pc.connection + "</i>");
 
             var prefab = GetPlayerPrefab(pc);
             var go = server.server.replicaManager.InstantiateReplica(prefab);

@@ -133,7 +133,7 @@ namespace GameFramework {
         }
 
         public override void Serialize(BitStream bs, SerializeContext ctx) {
-            if (replica.Owner == ctx.Observer.Connection)
+            if (Replica.Owner == ctx.Observer.Connection)
                 return;
 
             bs.Write(transform.position);
