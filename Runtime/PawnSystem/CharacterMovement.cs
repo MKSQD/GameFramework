@@ -11,6 +11,7 @@ namespace GameFramework {
         public event CharacterEvent OnLand;
 
         public CharacterMovementSettings settings;
+        public CharacterMovementSettings Settings => settings;
         public LayerMask clientGroundMask, serverGroundMask;
 
         public Vector3 Velocity {
@@ -75,7 +76,7 @@ namespace GameFramework {
             internal bool run;
         }
 
-        State[] bufferedState = new State[20];
+        readonly State[] bufferedState = new State[10];
         int timestampCount;
 
         public void Teleport(Vector3 targetPosition, Quaternion targetRotation) {

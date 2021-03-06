@@ -46,9 +46,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   settings: {fileID: 0}
   replicateOnlyToOwner: 0
-  ReplicaId:
+  Id:
     data: 0
-  prefabIdx: 22
+  prefabIdx: 44
   sceneIdx: 0
   lastUpdateTime: 0
 --- !u!114 &2345912067032811861
@@ -65,4 +65,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   replicaComponentIdx: 0
   dirtyFieldsMask: 0
-  replica: {fileID: 0}
+  Replica: {fileID: 0}

@@ -63,8 +63,6 @@ namespace GameFramework {
             GameServer = CreateServer(ctx);
 
             OnServerRunning();
-
-            Debug.Log("[Server] Up and running");
         }
 
         protected virtual void Start() {
@@ -111,7 +109,6 @@ namespace GameFramework {
         }
 
         void OnApplicationQuit() {
-            Debug.Log("--- <b>Shutdown</b> ---");
             GameClient?.Shutdown();
             GameServer?.Shutdown();
         }

@@ -21,7 +21,7 @@ namespace GameFramework {
 
         public override void Update() {
             if (input != null) {
-                input.Update();
+                input?.Update();
             }
 
             if (_replicaView != null && pawn != null) {
@@ -69,7 +69,7 @@ namespace GameFramework {
 
             Assert.IsTrue(pawnIdx != byte.MaxValue);
 
-            var bs = pawn.server.networkInterface.bitStreamPool.Create();
+            var bs = BitStreamPool.Create();
             bs.Write((byte)MessageId.PossessPawn);
             bs.Write(pawn.Replica.Id);
             bs.Write(pawnIdx);

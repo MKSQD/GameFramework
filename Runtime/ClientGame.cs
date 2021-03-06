@@ -33,7 +33,7 @@ namespace GameFramework {
 
         byte _lastOnLoadSceneGeneration;
 
-        ReplicaId currentReplicaPossess;
+        ReplicaId currentReplicaPossess = ReplicaId.Invalid;
         byte pawnIdxToPossess;
 
         public ClientGame(ClientGameContext ctx) {

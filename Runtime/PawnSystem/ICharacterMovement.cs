@@ -21,5 +21,6 @@ namespace GameFramework {
         Vector3 Velocity { get; }
         Vector3 LocalVelocity { get; }
         PhysicMaterial GroundMaterial { get; }
+        CharacterMovementSettings Settings { get; }
     }
 }
