@@ -26,6 +26,7 @@ namespace GameFramework {
 
             if (_replicaView != null && pawn != null) {
                 _replicaView.transform.position = pawn.transform.position;
+                _replicaView.transform.rotation = pawn.transform.rotation;
             }
         }
 

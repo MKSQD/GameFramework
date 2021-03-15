@@ -40,7 +40,9 @@ namespace GameFramework {
             Assert.IsNotNull(ctx.World);
             world = ctx.World;
 
-            client = new CubeClient(ctx.World, ctx.LagSettings);
+            //var networkInterface = new LidgrenClientNetworkInterface(ctx.LagSettings);
+            var networkInterface = new LiteNetClientNetworkInterface();
+            client = new CubeClient(ctx.World, networkInterface);
 
             client.networkInterface.ConnectionRequestAccepted += OnConnectionRequestAccepted;
             client.networkInterface.Disconnected += OnDisconnected;
@@ -115,7 +117,7 @@ namespace GameFramework {
                 bs2.Write((byte)MessageId.LoadSceneDone);
                 bs2.Write(generation);
 
-                client.networkInterface.Send(bs2, PacketPriority.High, PacketReliability.Reliable);
+                client.networkInterface.Send(bs2, PacketPriority.High, PacketReliability.ReliableUnordered);
             };
         }
 

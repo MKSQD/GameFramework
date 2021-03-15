@@ -14,8 +14,8 @@ namespace GameFramework {
     }
 
     public struct ServerGameContext {
-        public ushort Port;
         public World World;
+        public ushort Port;
         public ServerReplicaManagerSettings ReplicaManagerSettings;
         public SimulatedLagSettings LagSettings;
     }
@@ -47,7 +47,9 @@ namespace GameFramework {
             Assert.IsNotNull(ctx.World);
             world = ctx.World;
 
-            server = new CubeServer(ctx.Port, ctx.World, ctx.LagSettings, ctx.ReplicaManagerSettings);
+            //var networkInterface = new LidgrenServerNetworkInterface(ctx.Settings.Port, ctx.LagSettings);
+            var networkInterface = new LiteNetServerNetworkInterface(ctx.Port);
+            server = new CubeServer(ctx.World, networkInterface, ctx.ReplicaManagerSettings);
 
             server.networkInterface.ApproveConnection += OnApproveConnection;
             server.networkInterface.NewConnectionEstablished += OnNewIncomingConnection;
@@ -104,11 +106,11 @@ namespace GameFramework {
             gameMode = CreateGameModeForScene(sceneName);
             Assert.IsNotNull(gameMode);
 
-            Debug.Log("[Server] <b>New GameMode</b> <i>" + gameMode + "</i>");
+            Debug.Log($"[Server] New GameMode <i>{gameMode}</i>");
         }
 
         void OnNewIncomingConnection(Connection connection) {
-            Debug.Log("[Server] <b>New connection</b> <i>" + connection + "</i>");
+            Debug.Log($"[Server] <b>New connection</b> <i>{connection}</i>");
 
             // Send load scene packet if we loaded one previously
             if (_loadSceneName != null) {
@@ -123,7 +125,8 @@ namespace GameFramework {
             var newPC = CreatePlayerController(connection);
             world.playerControllers.Add(newPC);
 
-            CreateReplicaView(connection);
+            var replicaView = CreateReplicaView(connection);
+            server.replicaManager.AddReplicaView(replicaView);
 
             gameMode.HandleNewPlayer(newPC);
 
@@ -155,14 +158,14 @@ namespace GameFramework {
             server.Shutdown();
         }
 
-        void CreateReplicaView(Connection connection) {
+        ReplicaView CreateReplicaView(Connection connection) {
             var view = new GameObject("ReplicaView " + connection);
             view.transform.parent = server.world.transform;
 
             var rw = view.AddComponent<ReplicaView>();
             rw.Connection = connection;
 
-            server.replicaManager.AddReplicaView(rw);
+            return rw;
         }
 
         void OnLoadSceneDone(Connection connection, BitStream bs) {

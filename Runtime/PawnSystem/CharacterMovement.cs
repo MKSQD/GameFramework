@@ -14,17 +14,10 @@ namespace GameFramework {
         public CharacterMovementSettings Settings => settings;
         public LayerMask clientGroundMask, serverGroundMask;
 
-        public Vector3 Velocity {
-            get { return characterController.velocity; }
-        }
+        public Vector3 Velocity => characterController.velocity;
+        public Vector3 LocalVelocity => transform.InverseTransformDirection(Velocity);
 
-        public Vector3 LocalVelocity {
-            get { return transform.InverseTransformDirection(Velocity); }
-        }
-
-        public bool IsMoving {
-            get { return Velocity.sqrMagnitude > 0.02f; }
-        }
+        public bool IsMoving => Velocity.sqrMagnitude > 0.02f;
 
         public bool IsRunning {
             get;

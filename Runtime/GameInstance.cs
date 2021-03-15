@@ -55,8 +55,8 @@ namespace GameFramework {
             DontDestroyOnLoad(serverWorldGO);
 
             var ctx = new ServerGameContext() {
-                Port = Port,
                 World = serverWorld,
+                Port = Port,
                 ReplicaManagerSettings = ReplicaManagerSettings,
                 LagSettings = LagSettings
             };
