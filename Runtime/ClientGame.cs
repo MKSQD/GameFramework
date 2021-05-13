@@ -23,18 +23,14 @@ namespace GameFramework {
             internal set;
         }
 
-        public static bool CharacterInputEnabled {
-            get {
-                return Application.isFocused;
-            }
-        }
-
         public UnityEvent onSceneLoadStart = new UnityEvent();
 
         byte _lastOnLoadSceneGeneration;
 
         ReplicaId currentReplicaPossess = ReplicaId.Invalid;
         byte pawnIdxToPossess;
+
+        public static bool CharacterInputEnabled = true;
 
         public ClientGame(ClientGameContext ctx) {
             Assert.IsNotNull(ctx.World);

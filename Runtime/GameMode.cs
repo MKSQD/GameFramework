@@ -17,20 +17,15 @@ namespace GameFramework {
             internal set;
         }
 
-        public bool hasMatchStarted {
-            get { return matchState == MatchState.InProgress; }
-        }
-
-        public bool hasMatchEnded {
-            get { return matchState == MatchState.WaitingPostMatch; }
-        }
+        public bool HasMatchStarted => matchState == MatchState.InProgress;
+        public bool HasMatchEnded => matchState == MatchState.WaitingPostMatch;
 
         public List<Pawn> players {
             get;
             internal set;
         }
 
-        Queue<(float, PlayerController)> _respawnQueue = new Queue<(float, PlayerController)>();
+        Queue<(float, PlayerController)> respawnQueue = new Queue<(float, PlayerController)>();
 
         public GameMode(ServerGame server) : base(server) {
             matchState = MatchState.WaitingToStart;
@@ -86,16 +81,16 @@ namespace GameFramework {
 
                 case MatchState.InProgress:
                     foreach (var pc in server.world.playerControllers) {
-                        if (pc.pawn == null && !_respawnQueue.Any(pair => pair.Item2 == pc)) {
-                            _respawnQueue.Enqueue((Time.time + 5, pc));
+                        if (pc.pawn == null && !respawnQueue.Any(pair => pair.Item2 == pc)) {
+                            respawnQueue.Enqueue((Time.time + 5, pc));
                         }
                     }
 
-                    if (_respawnQueue.Count > 0) {
-                        var timeControllerPair = _respawnQueue.Peek();
+                    if (respawnQueue.Count > 0) {
+                        var timeControllerPair = respawnQueue.Peek();
                         var respawnPlayer = Time.time >= timeControllerPair.Item1;
                         if (respawnPlayer) {
-                            _respawnQueue.Dequeue();
+                            respawnQueue.Dequeue();
                             SpawnPlayer(timeControllerPair.Item2);
                         }
                     }
@@ -108,7 +103,7 @@ namespace GameFramework {
         }
 
         public override void HandleNewPlayer(PlayerController pc) {
-            if (hasMatchStarted) {
+            if (HasMatchStarted) {
                 SpawnPlayer(pc);
             }
         }
@@ -140,7 +135,7 @@ namespace GameFramework {
         }
 
         protected virtual void SpawnPlayer(PlayerController pc) {
-            Debug.Log("[Server] <b>Spawning player</b> <i>" + pc.connection + "</i>");
+            Debug.Log("[Server] <b>Spawning player</b> <i>" + pc.Connection + "</i>");
 
             var prefab = GetPlayerPrefab(pc);
             var go = server.server.replicaManager.InstantiateReplica(prefab);

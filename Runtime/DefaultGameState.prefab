@@ -64,5 +64,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   replicaComponentIdx: 0
-  dirtyFieldsMask: 0
   Replica: {fileID: 0}

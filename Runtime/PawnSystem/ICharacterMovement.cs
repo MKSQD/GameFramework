@@ -6,8 +6,8 @@ namespace GameFramework {
     public interface ICharacterMovement : IPawnMovement {
         event CharacterEvent OnJump, OnLand;
 
-        void AddYawInput(float value);
-        void AddPitchInput(float value);
+        void SetLook(Vector2 value);
+        void SetMove(Vector2 value);
         void SetRun(bool run);
         void Jump();
         void Teleport(Vector3 targetPosition, Quaternion targetRotation);

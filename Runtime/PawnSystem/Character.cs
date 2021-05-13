@@ -19,12 +19,10 @@ namespace GameFramework {
         CinemachineVirtualCamera currentCamera;
 
         public override void SetupPlayerInputComponent(PawnInput input) {
-            input.BindAxis("Mouse X", OnMouseX);
-            input.BindAxis("Mouse Y", OnMouseY);
-            input.BindAxis("Horizontal", OnHorizontalInput);
-            input.BindAxis("Vertical", OnVerticalInput);
-            input.BindAxis("Run", OnRun);
-            input.BindAction("Jump", OnJump);
+            input.BindAxis("Gameplay/Look", OnLook);
+            input.BindAxis("Gameplay/Move", OnMove);
+            //input.BindAxis("Run", OnRun);
+            input.BindStartedAction("Gameplay/Jump", OnJump);
         }
 
         protected override void Awake() {
@@ -48,40 +46,22 @@ namespace GameFramework {
             }
         }
 
-        void OnMouseX(float value) {
+        void OnLook(Vector2 value) {
 #if UNITY_EDITOR || CLIENT
             if (isClient && Controller is PlayerController && !ClientGame.CharacterInputEnabled)
                 return;
 #endif
 
-            Movement.AddYawInput(value * 0.5f);
+            Movement.SetLook(new Vector2(value.x * 0.5f, value.y * 0.5f));
         }
 
-        void OnMouseY(float value) {
+        void OnMove(Vector2 value) {
 #if UNITY_EDITOR || CLIENT
             if (isClient && Controller is PlayerController && !ClientGame.CharacterInputEnabled)
                 return;
 #endif
 
-            Movement.AddPitchInput(value * 0.5f);
-        }
-
-        void OnHorizontalInput(float value) {
-#if UNITY_EDITOR || CLIENT
-            if (isClient && Controller is PlayerController && !ClientGame.CharacterInputEnabled)
-                return;
-#endif
-
-            Movement.AddMoveInput(Vector3.right * value);
-        }
-
-        void OnVerticalInput(float value) {
-#if UNITY_EDITOR || CLIENT
-            if (isClient && Controller is PlayerController && !ClientGame.CharacterInputEnabled)
-                return;
-#endif
-
-            Movement.AddMoveInput(Vector3.forward * value);
+            Movement.SetMove(value);
         }
 
         void OnRun(float value) {

@@ -7,6 +7,7 @@ namespace GameFramework {
     [AddComponentMenu("GameFramework/CharacterMovement")]
     [RequireComponent(typeof(CharacterController))]
     public class CharacterMovement : ReplicaBehaviour, ICharacterMovement {
+
         public event CharacterEvent OnJump;
         public event CharacterEvent OnLand;
 
@@ -81,18 +82,14 @@ namespace GameFramework {
             characterController.enabled = true;
         }
 
-        public void AddMoveInput(Vector3 direction) {
-            moveInput += direction;
+        public void SetMove(Vector2 value) {
+            moveInput.x += value.x;
+            moveInput.z += value.y;
         }
 
-        public void AddYawInput(float value) {
-            yaw += value;
-            yaw = Mathf.Repeat(yaw, 360);
-        }
-
-        public void AddPitchInput(float value) {
-            viewPitch += value;
-            viewPitch = Mathf.Clamp(viewPitch, minViewPitch, maxViewPitch);
+        public void SetLook(Vector2 value) {
+            yaw = Mathf.Repeat(yaw + value.x, 360);
+            viewPitch = Mathf.Clamp(viewPitch + value.y, minViewPitch, maxViewPitch);
         }
 
         public void SetRun(bool run) {
@@ -280,8 +277,7 @@ namespace GameFramework {
 
                 var finalPos = (playerNoMovePlatformWorldPos + playerMovementLastFrame);
                 Teleport(finalPos, transform.rotation);
-            }
-            else {
+            } else {
                 hasNewPlatform = false;
             }
 
@@ -316,8 +312,7 @@ namespace GameFramework {
                         var diff = position - transform.position;
                         if (diff.sqrMagnitude < 1) { // Physics might cause the client-side to become desynced
                             characterController.Move(position - transform.position);
-                        }
-                        else {
+                        } else {
                             Teleport(position, transform.rotation);
                         }
 
@@ -327,8 +322,7 @@ namespace GameFramework {
                         return;
                     }
                 }
-            }
-            else {
+            } else {
                 // Use extrapolation
                 State latest = bufferedState[0];
                 State latest2 = bufferedState[Mathf.Min(1, timestampCount - 1)];
@@ -338,14 +332,13 @@ namespace GameFramework {
                     var speed = latest.run ? settings.moveSpeed : settings.runSpeed;
                     var velocity = (latest.pos - latest2.pos).normalized * speed;
 
-                   
+
                     var position = latest.pos + velocity * extrapolationLength;
 
                     var diff = position - transform.position;
                     if (diff.sqrMagnitude < 1) { // Physics might cause the client-side to become desynced
                         characterController.Move(position - transform.position);
-                    }
-                    else {
+                    } else {
                         Teleport(position, transform.rotation);
                     }
 

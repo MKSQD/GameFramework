@@ -1,18 +1,20 @@
 ﻿using Cube.Replication;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.InputSystem;
 
 namespace GameFramework {
     [SelectionBase]
     public abstract class Pawn : ReplicaBehaviour {
         public delegate void PawnEvent(Pawn pawn);
 
+        public AssetReference InputMap;
+
         public PawnController Controller {
             get;
             internal set;
         }
-        public bool HasController {
-            get { return Controller != null; }
-        }
+        public bool HasController => Controller != null;
 
         public IPawnMovement Movement;
 

@@ -1,50 +1,51 @@
 ﻿using Cube.Replication;
 using Cube.Transport;
 using UnityEngine.Assertions;
+using UnityEngine.InputSystem;
 
 namespace GameFramework {
     public class PlayerController : PawnController {
-        public PlayerInput input {
+        public PlayerInput Input {
             get;
             internal set;
         }
-        public Connection connection {
+        public Connection Connection {
             get;
             internal set;
         }
 
-        ReplicaView _replicaView;
+        ReplicaView replicaView;
 
         public PlayerController(Connection connection) {
-            this.connection = connection;
+            Connection = connection;
         }
 
         public override void Update() {
-            if (input != null) {
-                input?.Update();
-            }
+            Input?.Update();
 
-            if (_replicaView != null && pawn != null) {
-                _replicaView.transform.position = pawn.transform.position;
-                _replicaView.transform.rotation = pawn.transform.rotation;
+            if (replicaView != null && pawn != null) {
+                replicaView.transform.position = pawn.transform.position;
+                replicaView.transform.rotation = pawn.transform.rotation;
             }
         }
 
         public override string ToString() {
-            var s = connection != Connection.Invalid ? connection.ToString() : "Invalid";
+            var s = Connection != Connection.Invalid ? Connection.ToString() : "Invalid";
             return "PlayerController(" + s + ")";
         }
 
         protected override void OnPossess(Pawn pawn) {
             if (pawn.isServer) {
-                pawn.Replica.AssignOwnership(connection);
-                _replicaView = pawn.server.replicaManager.GetReplicaView(connection);
+                pawn.Replica.AssignOwnership(Connection);
+                replicaView = pawn.server.replicaManager.GetReplicaView(Connection);
                 SendPossession();
             }
             if (pawn.isClient) {
-                input = new PlayerInput();
-                SetupInputComponent(input);
-                pawn.SetupPlayerInputComponent(input);
+                pawn.InputMap.LoadAssetAsync<InputActionAsset>().Completed += result => {
+                    Input = new PlayerInput(result.Result);
+                    pawn.SetupPlayerInputComponent(Input);
+                    result.Result.Enable();
+                };
             }
         }
 
@@ -54,15 +55,12 @@ namespace GameFramework {
             }
         }
 
-        protected virtual void SetupInputComponent(PlayerInput input) {
-        }
-
         void SendPossession() {
             var pawnIdx = byte.MaxValue;
             var pawnsOnReplica = pawn.Replica.GetComponentsInChildren<Pawn>();
-            for(int i = 0; i < pawnsOnReplica.Length; ++i) {
+            for (int i = 0; i < pawnsOnReplica.Length; ++i) {
                 var pawnOnReplica = pawnsOnReplica[i];
-                if(pawn == pawnOnReplica) {
+                if (pawn == pawnOnReplica) {
                     pawnIdx = (byte)i;
                     break;
                 }
@@ -75,7 +73,7 @@ namespace GameFramework {
             bs.Write(pawn.Replica.Id);
             bs.Write(pawnIdx);
 
-            pawn.server.networkInterface.SendBitStream(bs, PacketPriority.High, PacketReliability.ReliableSequenced, connection);
+            pawn.server.networkInterface.SendBitStream(bs, PacketPriority.High, PacketReliability.ReliableSequenced, Connection);
         }
     }
 }

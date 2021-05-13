@@ -16,12 +16,7 @@ namespace GameFramework {
         public GameModeBase(ServerGame server) {
             this.server = server;
 
-            var prefab = GetGameStatePrefab();
-            prefab.Completed += obj => {
-                var gsGO = server.server.replicaManager.InstantiateReplica(obj.Result);
-
-                gameState = gsGO.GetComponent<GameState>();
-            };
+            InstantiateGameState();
         }
 
         public abstract void Update();
@@ -30,8 +25,17 @@ namespace GameFramework {
 
         public abstract void HandleNewPlayer(PlayerController pc);
 
-        public virtual AsyncOperationHandle<GameObject> GetGameStatePrefab() {
+        protected virtual AsyncOperationHandle<GameObject> GetGameStatePrefab() {
             return GameInstance.Main.DefaultGameStatePrefab.LoadAssetAsync<GameObject>();
+        }
+
+        void InstantiateGameState() {
+            var prefabAsyncHandle = GetGameStatePrefab();
+            prefabAsyncHandle.Completed += obj => {
+                var gsGO = server.server.replicaManager.InstantiateReplica(obj.Result);
+
+                gameState = gsGO.GetComponent<GameState>();
+            };
         }
     }
 }

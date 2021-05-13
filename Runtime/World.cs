@@ -9,7 +9,7 @@ namespace GameFramework {
 
         public PlayerController GetPlayerController(Connection connection) {
             foreach (var pc in playerControllers) {
-                if (pc.connection == connection)
+                if (pc.Connection == connection)
                     return pc;
             }
             return null;

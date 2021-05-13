@@ -20,8 +20,9 @@ namespace GameFramework {
         }
 
         void OnDrawGizmos() {
+            Gizmos.matrix = Matrix4x4.TRS(transform.position, transform.rotation, transform.lossyScale);
             Gizmos.color = new Color(1, 1, 0, 0.5f);
-            Gizmos.DrawCube(transform.position, transform.lossyScale);
+            Gizmos.DrawCube(Vector3.zero, Vector3.one);
         }
     }
 }
