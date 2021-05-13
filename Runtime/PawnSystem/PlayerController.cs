@@ -41,17 +41,18 @@ namespace GameFramework {
                 SendPossession();
             }
             if (pawn.isClient) {
-                pawn.InputMap.LoadAssetAsync<InputActionAsset>().Completed += result => {
-                    Input = new PlayerInput(result.Result);
-                    pawn.SetupPlayerInputComponent(Input);
-                    result.Result.Enable();
-                };
+                Input = new PlayerInput(pawn.InputMap);
+                pawn.SetupPlayerInputComponent(Input);
+                pawn.InputMap.Enable();
             }
         }
 
         protected override void OnUnpossess() {
             if (pawn.isServer) {
                 pawn.Replica.TakeOwnership();
+            }
+            if (pawn.isClient) {
+                pawn.InputMap.Disable();
             }
         }
 

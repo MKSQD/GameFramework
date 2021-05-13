@@ -48,7 +48,7 @@ MonoBehaviour:
   replicateOnlyToOwner: 0
   Id:
     data: 0
-  prefabIdx: 39
+  prefabIdx: 37
   sceneIdx: 0
   lastUpdateTime: 0
 --- !u!114 &2345912067032811861

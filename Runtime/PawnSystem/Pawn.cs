@@ -1,6 +1,5 @@
 ﻿using Cube.Replication;
 using UnityEngine;
-using UnityEngine.AddressableAssets;
 using UnityEngine.InputSystem;
 
 namespace GameFramework {
@@ -8,7 +7,7 @@ namespace GameFramework {
     public abstract class Pawn : ReplicaBehaviour {
         public delegate void PawnEvent(Pawn pawn);
 
-        public AssetReference InputMap;
+        public InputActionAsset InputMap;
 
         public PawnController Controller {
             get;
@@ -31,8 +30,7 @@ namespace GameFramework {
             try {
                 OnUnpossession?.Invoke(this);
                 HandleUnpossessionImpl();
-            }
-            finally {
+            } finally {
                 Controller = null;
             }
         }
