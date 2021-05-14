@@ -91,7 +91,9 @@ namespace GameFramework {
                         var respawnPlayer = Time.time >= timeControllerPair.Item1;
                         if (respawnPlayer) {
                             respawnQueue.Dequeue();
-                            SpawnPlayer(timeControllerPair.Item2);
+                            if (timeControllerPair.Item2.pawn == null) { // Queued player for respawn but he's already alive
+                                SpawnPlayer(timeControllerPair.Item2);
+                            }
                         }
                     }
 
@@ -137,22 +139,23 @@ namespace GameFramework {
         protected virtual void SpawnPlayer(PlayerController pc) {
             Debug.Log("[Server] <b>Spawning player</b> <i>" + pc.Connection + "</i>");
 
-            var prefab = GetPlayerPrefab(pc);
-            var go = server.server.replicaManager.InstantiateReplica(prefab);
+            var prefabAddress = GetPlayerPrefabAddress(pc);
+            var go = server.server.replicaManager.InstantiateReplicaAsync(prefabAddress);
+            go.Completed += ctx => {
+                var character = ctx.Result.GetComponent<Character>();
 
-            var spawnPose = GetPlayerSpawnPosition();
+                var spawnPose = GetPlayerSpawnPosition();
+                character.Movement.Teleport(spawnPose.position, spawnPose.rotation);
 
-            var character = go.GetComponent<Character>();
-            character.Movement.Teleport(spawnPose.position, spawnPose.rotation);
+                players.Add(character);
 
-            players.Add(character);
+                HandlePlayerSpawned(character);
 
-            HandlePlayerSpawned(character);
-
-            pc.Possess(character);
+                pc.Possess(character);
+            };
         }
 
-        protected virtual GameObject GetPlayerPrefab(PlayerController pc) {
+        protected virtual object GetPlayerPrefabAddress(PlayerController pc) {
             throw new NotImplementedException();
         }
 

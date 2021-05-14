@@ -9,13 +9,10 @@ namespace GameFramework {
         }
         public ServerGame server;
 
-        public T GetGameState<T>() where T : GameState {
-            return (T)gameState;
-        }
+        public T GetGameState<T>() where T : GameState => (T)gameState;
 
         public GameModeBase(ServerGame server) {
             this.server = server;
-
             InstantiateGameState();
         }
 
@@ -25,12 +22,12 @@ namespace GameFramework {
 
         public abstract void HandleNewPlayer(PlayerController pc);
 
-        protected virtual AsyncOperationHandle<GameObject> GetGameStatePrefab() {
+        protected virtual AsyncOperationHandle<GameObject> InstantiateGameStatePrefabAsync() {
             return GameInstance.Main.DefaultGameStatePrefab.LoadAssetAsync<GameObject>();
         }
 
         void InstantiateGameState() {
-            var prefabAsyncHandle = GetGameStatePrefab();
+            var prefabAsyncHandle = InstantiateGameStatePrefabAsync();
             prefabAsyncHandle.Completed += obj => {
                 var gsGO = server.server.replicaManager.InstantiateReplica(obj.Result);
 
