@@ -1,13 +1,11 @@
-﻿using Cinemachine;
-using UnityEngine;
-using UnityEngine.AddressableAssets;
+﻿using UnityEngine;
 using UnityEngine.Assertions;
 
 namespace GameFramework {
     [AddComponentMenu("GameFramework/Character")]
     public class Character : Pawn {
-        [Tooltip("The camera asset that gets spawned when entering")]
-        public AssetReference Camera;
+        [Tooltip("The camera asset that gets enabled when entering")]
+        public GameObject Camera;
 
         public Transform view;
 
@@ -15,8 +13,6 @@ namespace GameFramework {
             get;
             internal set;
         }
-
-        CinemachineVirtualCamera currentCamera;
 
         public override void SetupPlayerInputComponent(PawnInput input) {
             input.BindAxis("Gameplay/Look", OnLook);
@@ -28,21 +24,23 @@ namespace GameFramework {
         protected override void Awake() {
             base.Awake();
 
+            if (Camera != null) {
+                Camera.SetActive(false);
+            }
+
             Movement = GetComponent<ICharacterMovement>();
             Assert.IsNotNull(Movement);
         }
 
         protected override void HandlePossessionImpl(Pawn previousPawn) {
             if (isClient) {
-                Camera.InstantiateAsync(view).Completed += result => {
-                    currentCamera = result.Result.GetComponent<CinemachineVirtualCamera>();
-                };
+                Camera.SetActive(true);
             }
         }
 
         protected override void HandleUnpossessionImpl() {
-            if (currentCamera != null) {
-                Destroy(currentCamera);
+            if (Camera != null) {
+                Camera.SetActive(false);
             }
         }
 

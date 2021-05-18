@@ -4,7 +4,7 @@ namespace GameFramework {
     public delegate void CharacterEvent(Character character);
 
     public interface ICharacterMovement : IPawnMovement {
-        event CharacterEvent OnJump, OnLand;
+        event CharacterEvent Jumped, Landed;
 
         void SetLook(Vector2 value);
         void SetMove(Vector2 value);

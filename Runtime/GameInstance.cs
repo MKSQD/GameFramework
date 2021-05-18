@@ -35,7 +35,6 @@ namespace GameFramework {
 
             var clientWorldGO = new GameObject("Client World");
             var clientWorld = clientWorldGO.AddComponent<World>();
-            DontDestroyOnLoad(clientWorldGO);
 
             var ctx = new ClientGameContext() {
                 World = clientWorld,
@@ -52,7 +51,6 @@ namespace GameFramework {
 
             var serverWorldGO = new GameObject("Server World");
             var serverWorld = serverWorldGO.AddComponent<World>();
-            DontDestroyOnLoad(serverWorldGO);
 
             var ctx = new ServerGameContext() {
                 World = serverWorld,
@@ -70,8 +68,6 @@ namespace GameFramework {
                 Destroy(gameObject);
                 return;
             }
-
-            DontDestroyOnLoad(gameObject);
 
             Assert.IsNull(_main);
             _main = this;

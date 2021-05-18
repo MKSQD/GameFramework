@@ -3,8 +3,11 @@ using Cube.Replication;
 using Cube.Transport;
 using System;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.Assertions;
 using UnityEngine.Events;
+using UnityEngine.ResourceManagement.AsyncOperations;
+using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement; // SceneManager
 using BitStream = Cube.Transport.BitStream;
 
@@ -34,14 +37,15 @@ namespace GameFramework {
             internal set;
         }
 
-        public ConnectionEvent onNewIncomingConnection = new ConnectionEvent();
-        public ConnectionEvent onDisconnectionNotification = new ConnectionEvent();
-        public UnityEvent onAllClientsLoadedScene = new UnityEvent();
+        public ConnectionEvent NewIncomingConnection = new ConnectionEvent();
+        public ConnectionEvent DisconnectionNotification = new ConnectionEvent();
+        public UnityEvent AllClientsLoadedScene = new UnityEvent();
 
-        string _loadSceneName;
-        byte _loadSceneGeneration;
-        byte _loadScenePlayerAcks;
-        bool _onAllClientsLoadedSceneTriggeredThisGeneration;
+        AsyncOperationHandle<SceneInstance> sceneHandle;
+        string loadSceneName;
+        byte loadSceneGeneration;
+        byte numLoadScenePlayerAcks;
+        bool triggeredAllClientsLoadedScene;
 
         public ServerGame(ServerGameContext ctx) {
             Assert.IsNotNull(ctx.World);
@@ -71,25 +75,30 @@ namespace GameFramework {
         /// </summary>
         /// <param name="sceneName"></param>
         public void LoadScene(string sceneName) {
+            // Cleanup
             if (gameMode != null) {
                 gameMode.StartToLeaveMap();
             }
 
-            ++_loadSceneGeneration;
-            _loadScenePlayerAcks = 0;
-            _loadSceneName = sceneName;
-            _onAllClientsLoadedSceneTriggeredThisGeneration = false;
+            ++loadSceneGeneration;
+            numLoadScenePlayerAcks = 0;
+            loadSceneName = sceneName;
+            triggeredAllClientsLoadedScene = false;
 
             server.replicaManager.Reset();
+            if (sceneHandle.IsValid()) {
+                Addressables.UnloadSceneAsync(sceneHandle);
+            }
 
+            // Instruct clients
             var bs = new BitStream();
             bs.Write((byte)MessageId.LoadScene);
-            bs.Write(sceneName); // #todo send scene idx instead
-            bs.Write(_loadSceneGeneration);
+            bs.Write(sceneName);
+            bs.Write(loadSceneGeneration);
 
             server.networkInterface.BroadcastBitStream(bs, PacketPriority.High, PacketReliability.ReliableSequenced);
 
-            // Disable Replicas during level load
+            // Disable ReplicaViews during level load
             foreach (var connection in server.connections) {
                 var replicaView = server.replicaManager.GetReplicaView(connection);
                 if (replicaView == null)
@@ -98,9 +107,10 @@ namespace GameFramework {
                 replicaView.IsLoadingLevel = true;
             }
 
+            // Load new map
 #if !UNITY_EDITOR
             Debug.Log("[Server] Loading level " + sceneName);
-            SceneManager.LoadScene(sceneName);
+            sceneHandle = Addressables.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
 #endif
 
             gameMode = CreateGameModeForScene(sceneName);
@@ -113,11 +123,11 @@ namespace GameFramework {
             Debug.Log($"[Server] <b>New connection</b> <i>{connection}</i>");
 
             // Send load scene packet if we loaded one previously
-            if (_loadSceneName != null) {
+            if (loadSceneName != null) {
                 var bs2 = new BitStream();
                 bs2.Write((byte)MessageId.LoadScene);
-                bs2.Write(_loadSceneName);
-                bs2.Write(_loadSceneGeneration);
+                bs2.Write(loadSceneName);
+                bs2.Write(loadSceneGeneration);
 
                 server.networkInterface.SendBitStream(bs2, PacketPriority.High, PacketReliability.ReliableSequenced, connection);
             }
@@ -130,7 +140,7 @@ namespace GameFramework {
 
             gameMode.HandleNewPlayer(newPC);
 
-            onNewIncomingConnection.Invoke(connection);
+            NewIncomingConnection.Invoke(connection);
         }
 
         protected virtual PlayerController CreatePlayerController(Connection connection) {
@@ -140,7 +150,7 @@ namespace GameFramework {
         protected virtual void OnDisconnectNotification(Connection connection) {
             Debug.Log("[Server] Lost connection: " + connection);
 
-            onDisconnectionNotification.Invoke(connection);
+            DisconnectionNotification.Invoke(connection);
 
             server.replicaManager.RemoveReplicaView(connection);
 
@@ -170,12 +180,12 @@ namespace GameFramework {
 
         void OnLoadSceneDone(Connection connection, BitStream bs) {
             var generation = bs.ReadByte();
-            if (generation != _loadSceneGeneration)
+            if (generation != loadSceneGeneration)
                 return;
 
             Debug.Log("[Server] On load scene done: <i>" + connection + "</i> (generation=" + generation + ")");
 
-            ++_loadScenePlayerAcks;
+            ++numLoadScenePlayerAcks;
 
             OnNumReadyClientsChanged();
 
@@ -188,9 +198,9 @@ namespace GameFramework {
         }
 
         void OnNumReadyClientsChanged() {
-            if (!_onAllClientsLoadedSceneTriggeredThisGeneration && _loadScenePlayerAcks >= server.connections.Count) {
-                _onAllClientsLoadedSceneTriggeredThisGeneration = true;
-                onAllClientsLoadedScene.Invoke();
+            if (!triggeredAllClientsLoadedScene && numLoadScenePlayerAcks >= server.connections.Count) {
+                triggeredAllClientsLoadedScene = true;
+                AllClientsLoadedScene.Invoke();
             }
         }
     }

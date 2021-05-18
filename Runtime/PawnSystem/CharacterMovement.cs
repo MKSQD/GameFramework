@@ -7,9 +7,8 @@ namespace GameFramework {
     [AddComponentMenu("GameFramework/CharacterMovement")]
     [RequireComponent(typeof(CharacterController))]
     public class CharacterMovement : ReplicaBehaviour, ICharacterMovement {
-
-        public event CharacterEvent OnJump;
-        public event CharacterEvent OnLand;
+        public event CharacterEvent Jumped;
+        public event CharacterEvent Landed;
 
         public CharacterMovementSettings settings;
         public CharacterMovementSettings Settings => settings;
@@ -197,14 +196,14 @@ namespace GameFramework {
             // Landing
             if (IsGrounded) {
                 if (lastGroundedTime < Time.time - 0.2f) {
-                    OnLand?.Invoke(character);
+                    Landed?.Invoke(character);
                     jumpForce = 0;
                 }
 
                 var beginNewJump = jump && jumpForce < 0.1f;
                 if (beginNewJump) {
                     jumpForce = 1;
-                    OnJump?.Invoke(character);
+                    Jumped?.Invoke(character);
                 }
 
                 lastGroundedTime = Time.time;

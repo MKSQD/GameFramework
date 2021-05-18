@@ -2,8 +2,11 @@ using Cube.Networking;
 using Cube.Replication;
 using Cube.Transport;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.Assertions;
 using UnityEngine.Events;
+using UnityEngine.ResourceManagement.AsyncOperations;
+using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 using BitStream = Cube.Transport.BitStream;
 
@@ -23,14 +26,16 @@ namespace GameFramework {
             internal set;
         }
 
-        public UnityEvent onSceneLoadStart = new UnityEvent();
+        public static bool CharacterInputEnabled = true;
 
-        byte _lastOnLoadSceneGeneration;
+        public UnityEvent SceneLoadingStarted = new UnityEvent();
+
+        AsyncOperationHandle<SceneInstance> sceneHandle;
+        byte currentLoadedSceneGeneration;
 
         ReplicaId currentReplicaPossess = ReplicaId.Invalid;
         byte pawnIdxToPossess;
 
-        public static bool CharacterInputEnabled = true;
 
         public ClientGame(ClientGameContext ctx) {
             Assert.IsNotNull(ctx.World);
@@ -54,10 +59,8 @@ namespace GameFramework {
                 var replica = client.replicaManager.GetReplica(currentReplicaPossess);
                 if (replica != null) {
                     var pawnsOnReplica = replica.GetComponentsInChildren<Pawn>();
-                    if (pawnIdxToPossess >= pawnsOnReplica.Length) {
-                        Debug.LogError("Oh shit, abort");
+                    if (pawnIdxToPossess >= pawnsOnReplica.Length)
                         return;
-                    }
 
                     var pawn = pawnsOnReplica[pawnIdxToPossess];
 
@@ -93,28 +96,42 @@ namespace GameFramework {
             var sceneName = bs.ReadString();
             var generation = bs.ReadByte();
 
-            if (_lastOnLoadSceneGeneration == generation)
+            if (currentLoadedSceneGeneration == generation)
                 return;
 
-            _lastOnLoadSceneGeneration = generation;
+            currentLoadedSceneGeneration = generation;
 
             Debug.Log("[Client] <b>Loading level</b> '<i>" + sceneName + "</i>' (generation=" + generation + ")");
 
+            // Cleanup
+            currentReplicaPossess = ReplicaId.Invalid;
+
             client.replicaManager.Reset();
 
-            onSceneLoadStart.Invoke();
+            if (sceneHandle.IsValid()) {
+                Addressables.UnloadSceneAsync(sceneHandle);
+            }
 
-            var op = SceneManager.LoadSceneAsync(sceneName);
-            if (op == null)
-                return; // See log for errors
+            // New map
+            SceneLoadingStarted.Invoke();
 
-            op.completed += _ => {
-                var bs2 = new BitStream();
-                bs2.Write((byte)MessageId.LoadSceneDone);
-                bs2.Write(generation);
+#if UNITY_EDITOR
+            if (SceneManager.GetSceneByName(sceneName).isLoaded) {
+                OnSceneLoaded();
+                return;
+            }
+#endif
 
-                client.networkInterface.Send(bs2, PacketPriority.High, PacketReliability.ReliableUnordered);
-            };
+            sceneHandle = Addressables.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+            sceneHandle.Completed += _ => OnSceneLoaded();
+        }
+
+        void OnSceneLoaded() {
+            var bs2 = new BitStream();
+            bs2.Write((byte)MessageId.LoadSceneDone);
+            bs2.Write(currentLoadedSceneGeneration);
+
+            client.networkInterface.Send(bs2, PacketPriority.High, PacketReliability.ReliableUnordered);
         }
 
         void OnPossessPawn(BitStream bs) {

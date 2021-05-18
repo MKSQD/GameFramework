@@ -20,7 +20,7 @@ namespace GameFramework {
         public bool HasMatchStarted => matchState == MatchState.InProgress;
         public bool HasMatchEnded => matchState == MatchState.WaitingPostMatch;
 
-        public List<Pawn> players {
+        public List<Pawn> Players {
             get;
             internal set;
         }
@@ -29,7 +29,7 @@ namespace GameFramework {
 
         public GameMode(ServerGame server) : base(server) {
             matchState = MatchState.WaitingToStart;
-            players = new List<Pawn>();
+            Players = new List<Pawn>();
             HandleMatchIsWaitingToStart();
         }
 
@@ -147,7 +147,7 @@ namespace GameFramework {
                 var spawnPose = GetPlayerSpawnPosition();
                 character.Movement.Teleport(spawnPose.position, spawnPose.rotation);
 
-                players.Add(character);
+                Players.Add(character);
 
                 HandlePlayerSpawned(character);
 
