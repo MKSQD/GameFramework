@@ -29,7 +29,7 @@ namespace GameFramework {
         void InstantiateGameState() {
             var prefabAsyncHandle = InstantiateGameStatePrefabAsync();
             prefabAsyncHandle.Completed += obj => {
-                var gsGO = server.server.replicaManager.InstantiateReplica(obj.Result);
+                var gsGO = server.server.ReplicaManager.InstantiateReplica(obj.Result);
 
                 gameState = gsGO.GetComponent<GameState>();
             };

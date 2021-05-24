@@ -7,6 +7,7 @@ namespace GameFramework {
     [AddComponentMenu("GameFramework/CharacterMovement")]
     [RequireComponent(typeof(CharacterController))]
     public class CharacterMovement : ReplicaBehaviour, ICharacterMovement {
+        
         public event CharacterEvent Jumped;
         public event CharacterEvent Landed;
 
@@ -126,7 +127,9 @@ namespace GameFramework {
             if (Replica.Owner == ctx.Observer.Connection)
                 return;
 
-            bs.Write(transform.position);
+            bs.WriteLossyFloat(transform.position.x, -5000, 5000, 0.01f);
+            bs.WriteLossyFloat(transform.position.y, -1000, 1000, 0.01f);
+            bs.WriteLossyFloat(transform.position.z, -5000, 5000, 0.01f);
             bs.WriteLossyFloat(yaw, 0, 360, 2);
             bs.WriteLossyFloat(viewPitch, minViewPitch, maxViewPitch, 5);
             bs.Write(IsRunning);
@@ -136,7 +139,11 @@ namespace GameFramework {
             if (isOwner)
                 return;
 
-            var pos = bs.ReadVector3();
+            var pos = Vector3.zero;
+            pos.x = bs.ReadLossyFloat(-5000, 5000, 0.01f);
+            pos.y = bs.ReadLossyFloat(-1000, 1000, 0.01f);
+            pos.z = bs.ReadLossyFloat(-5000, 5000, 0.01f);
+
             var yaw = bs.ReadLossyFloat(0, 360, 2);
             viewPitch = bs.ReadLossyFloat(minViewPitch, maxViewPitch, 5);
             var run = bs.ReadBool();

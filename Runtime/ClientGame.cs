@@ -117,21 +117,20 @@ namespace GameFramework {
 
 #if UNITY_EDITOR
             if (SceneManager.GetSceneByName(sceneName).isLoaded) {
-                OnSceneLoaded();
-                return;
+                SceneManager.UnloadScene(sceneName);
             }
 #endif
 
             sceneHandle = Addressables.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
-            sceneHandle.Completed += _ => OnSceneLoaded();
+            sceneHandle.Completed += _ => SendLoadSceneDone();
         }
 
-        void OnSceneLoaded() {
-            var bs2 = new BitStream();
-            bs2.Write((byte)MessageId.LoadSceneDone);
-            bs2.Write(currentLoadedSceneGeneration);
+        void SendLoadSceneDone() {
+            var bs = new BitStream();
+            bs.Write((byte)MessageId.LoadSceneDone);
+            bs.Write(currentLoadedSceneGeneration);
 
-            client.networkInterface.Send(bs2, PacketPriority.High, PacketReliability.ReliableUnordered);
+            client.networkInterface.Send(bs, PacketPriority.High, PacketReliability.ReliableUnordered);
         }
 
         void OnPossessPawn(BitStream bs) {

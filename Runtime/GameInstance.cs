@@ -6,11 +6,11 @@ using UnityEngine.Assertions;
 
 namespace GameFramework {
     public class GameInstance : MonoBehaviour {
-        static GameInstance _main;
+        static GameInstance main;
         public static GameInstance Main {
             get {
-                Assert.IsNotNull(_main);
-                return _main;
+                Assert.IsNotNull(main);
+                return main;
             }
         }
 
@@ -64,39 +64,13 @@ namespace GameFramework {
         }
 
         protected virtual void Start() {
-            if (_main != null) {
+            if (main != null) {
                 Destroy(gameObject);
                 return;
             }
 
-            Assert.IsNull(_main);
-            _main = this;
-
-#if !UNITY_EDITOR
-            var args = System.Environment.GetCommandLineArgs();
-            var isServer = false;
-            for (int i = 0; i < args.Length; i++) {
-                if (args[i] == "-server") {
-                    isServer = true;
-                    break;
-                }
-            }
-
-            if (isServer) {
-                StartServer();
-            }
-            else {
-                StartClient();
-            }
-#else
-#if SERVER
-            StartServer();
-#endif
-#if CLIENT
-            StartClient();
-            GameClient.client.networkInterface.Connect("127.0.0.1", Port);
-#endif
-#endif
+            Assert.IsNull(main);
+            main = this;
         }
 
         protected virtual void Update() {

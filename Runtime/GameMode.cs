@@ -140,7 +140,7 @@ namespace GameFramework {
             Debug.Log("[Server] <b>Spawning player</b> <i>" + pc.Connection + "</i>");
 
             var prefabAddress = GetPlayerPrefabAddress(pc);
-            var go = server.server.replicaManager.InstantiateReplicaAsync(prefabAddress);
+            var go = server.server.ReplicaManager.InstantiateReplicaAsync(prefabAddress);
             go.Completed += ctx => {
                 var character = ctx.Result.GetComponent<Character>();
 

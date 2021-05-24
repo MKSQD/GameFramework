@@ -55,10 +55,10 @@ namespace GameFramework {
             var networkInterface = new LiteNetServerNetworkInterface(ctx.Port);
             server = new CubeServer(ctx.World, networkInterface, ctx.ReplicaManagerSettings);
 
-            server.networkInterface.ApproveConnection += OnApproveConnection;
-            server.networkInterface.NewConnectionEstablished += OnNewIncomingConnection;
-            server.networkInterface.DisconnectNotification += OnDisconnectNotification;
-            server.reactor.AddMessageHandler((byte)MessageId.LoadSceneDone, OnLoadSceneDone);
+            server.NetworkInterface.ApproveConnection += OnApproveConnection;
+            server.NetworkInterface.NewConnectionEstablished += OnNewIncomingConnection;
+            server.NetworkInterface.DisconnectNotification += OnDisconnectNotification;
+            server.Reactor.AddMessageHandler((byte)MessageId.LoadSceneDone, OnLoadSceneDone);
         }
 
         public virtual IGameMode CreateGameModeForScene(string sceneName) {
@@ -85,7 +85,7 @@ namespace GameFramework {
             loadSceneName = sceneName;
             triggeredAllClientsLoadedScene = false;
 
-            server.replicaManager.Reset();
+            server.ReplicaManager.Reset();
             if (sceneHandle.IsValid()) {
                 Addressables.UnloadSceneAsync(sceneHandle);
             }
@@ -96,11 +96,11 @@ namespace GameFramework {
             bs.Write(sceneName);
             bs.Write(loadSceneGeneration);
 
-            server.networkInterface.BroadcastBitStream(bs, PacketPriority.High, PacketReliability.ReliableSequenced);
+            server.NetworkInterface.BroadcastBitStream(bs, PacketPriority.High, PacketReliability.ReliableSequenced);
 
             // Disable ReplicaViews during level load
             foreach (var connection in server.connections) {
-                var replicaView = server.replicaManager.GetReplicaView(connection);
+                var replicaView = server.ReplicaManager.GetReplicaView(connection);
                 if (replicaView == null)
                     continue;
 
@@ -108,8 +108,8 @@ namespace GameFramework {
             }
 
             // Load new map
-#if !UNITY_EDITOR
-            Debug.Log("[Server] Loading level " + sceneName);
+#if !UNITY_EDITOR || !CLIENT
+            Debug.Log($"[Server] Loading level {sceneName}");
             sceneHandle = Addressables.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
 #endif
 
@@ -129,14 +129,14 @@ namespace GameFramework {
                 bs2.Write(loadSceneName);
                 bs2.Write(loadSceneGeneration);
 
-                server.networkInterface.SendBitStream(bs2, PacketPriority.High, PacketReliability.ReliableSequenced, connection);
+                server.NetworkInterface.SendBitStream(bs2, PacketPriority.High, PacketReliability.ReliableSequenced, connection);
             }
 
             var newPC = CreatePlayerController(connection);
             world.playerControllers.Add(newPC);
 
             var replicaView = CreateReplicaView(connection);
-            server.replicaManager.AddReplicaView(replicaView);
+            server.ReplicaManager.AddReplicaView(replicaView);
 
             gameMode.HandleNewPlayer(newPC);
 
@@ -152,7 +152,7 @@ namespace GameFramework {
 
             DisconnectionNotification.Invoke(connection);
 
-            server.replicaManager.RemoveReplicaView(connection);
+            server.ReplicaManager.RemoveReplicaView(connection);
 
             OnNumReadyClientsChanged();
         }
@@ -170,7 +170,7 @@ namespace GameFramework {
 
         ReplicaView CreateReplicaView(Connection connection) {
             var view = new GameObject("ReplicaView " + connection);
-            view.transform.parent = server.world.transform;
+            view.transform.parent = server.World.transform;
 
             var rw = view.AddComponent<ReplicaView>();
             rw.Connection = connection;
@@ -190,10 +190,10 @@ namespace GameFramework {
             OnNumReadyClientsChanged();
 
             //
-            var replicaView = server.replicaManager.GetReplicaView(connection);
+            var replicaView = server.ReplicaManager.GetReplicaView(connection);
             if (replicaView != null) {
                 replicaView.IsLoadingLevel = false;
-                server.replicaManager.ForceReplicaViewRefresh(replicaView);
+                server.ReplicaManager.ForceReplicaViewRefresh(replicaView);
             }
         }
 

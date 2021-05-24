@@ -1,7 +1,6 @@
 ﻿using Cube.Replication;
 using Cube.Transport;
 using UnityEngine.Assertions;
-using UnityEngine.InputSystem;
 
 namespace GameFramework {
     public class PlayerController : PawnController {
@@ -37,7 +36,7 @@ namespace GameFramework {
         protected override void OnPossess(Pawn pawn) {
             if (pawn.isServer) {
                 pawn.Replica.AssignOwnership(Connection);
-                replicaView = pawn.server.replicaManager.GetReplicaView(Connection);
+                replicaView = pawn.server.ReplicaManager.GetReplicaView(Connection);
                 SendPossession();
             }
             if (pawn.isClient) {
@@ -74,7 +73,7 @@ namespace GameFramework {
             bs.Write(pawn.Replica.Id);
             bs.Write(pawnIdx);
 
-            pawn.server.networkInterface.SendBitStream(bs, PacketPriority.High, PacketReliability.ReliableSequenced, Connection);
+            pawn.server.NetworkInterface.SendBitStream(bs, PacketPriority.High, PacketReliability.ReliableSequenced, Connection);
         }
     }
 }
