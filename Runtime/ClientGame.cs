@@ -1,34 +1,35 @@
+using System.Collections;
 using Cube.Networking;
 using Cube.Replication;
 using Cube.Transport;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.Assertions;
-using UnityEngine.Events;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 using BitStream = Cube.Transport.BitStream;
 
 namespace GameFramework {
+    public class StartedLoading : IEvent { }
+    public class EndedLoading : IEvent { }
+
     public struct ClientGameContext {
         public World World;
         public SimulatedLagSettings LagSettings;
     }
 
     public class ClientGame {
-        public CubeClient client {
+        public CubeClient Client {
             get;
             internal set;
         }
-        public World world {
+        public World World {
             get;
             internal set;
         }
 
         public static bool CharacterInputEnabled = true;
-
-        public UnityEvent SceneLoadingStarted = new UnityEvent();
 
         AsyncOperationHandle<SceneInstance> sceneHandle;
         byte currentLoadedSceneGeneration;
@@ -39,24 +40,24 @@ namespace GameFramework {
 
         public ClientGame(ClientGameContext ctx) {
             Assert.IsNotNull(ctx.World);
-            world = ctx.World;
+            World = ctx.World;
 
             //var networkInterface = new LidgrenClientNetworkInterface(ctx.LagSettings);
             var networkInterface = new LiteNetClientNetworkInterface();
-            client = new CubeClient(ctx.World, networkInterface);
+            Client = new CubeClient(ctx.World, networkInterface);
 
-            client.networkInterface.ConnectionRequestAccepted += OnConnectionRequestAccepted;
-            client.networkInterface.Disconnected += OnDisconnected;
+            Client.networkInterface.ConnectionRequestAccepted += OnConnectionRequestAccepted;
+            Client.networkInterface.Disconnected += OnDisconnected;
 
-            client.reactor.AddHandler((byte)MessageId.LoadScene, OnLoadScene);
-            client.reactor.AddHandler((byte)MessageId.PossessPawn, OnPossessPawn);
+            Client.reactor.AddHandler((byte)MessageId.LoadScene, OnLoadScene);
+            Client.reactor.AddHandler((byte)MessageId.PossessPawn, OnPossessPawn);
         }
 
         public virtual void Update() {
-            client.Update();
+            Client.Update();
 
             if (currentReplicaPossess != ReplicaId.Invalid) {
-                var replica = client.replicaManager.GetReplica(currentReplicaPossess);
+                var replica = Client.replicaManager.GetReplica(currentReplicaPossess);
                 if (replica != null) {
                     var pawnsOnReplica = replica.GetComponentsInChildren<Pawn>();
                     if (pawnIdxToPossess >= pawnsOnReplica.Length)
@@ -64,7 +65,7 @@ namespace GameFramework {
 
                     var pawn = pawnsOnReplica[pawnIdxToPossess];
 
-                    var pc = world.playerControllers[0];
+                    var pc = World.playerControllers[0];
                     if (pawn.Controller != pc) {
                         pc.Possess(pawn);
                         Debug.Log("[Client] <b>Possessed Pawn</b> <i>" + pawn + "</i> idx=" + pawnIdxToPossess, pawn);
@@ -74,7 +75,7 @@ namespace GameFramework {
         }
 
         public virtual void Shutdown() {
-            client.Shutdown();
+            Client.Shutdown();
         }
 
         protected virtual PlayerController CreatePlayerController() {
@@ -85,7 +86,7 @@ namespace GameFramework {
             Debug.Log("[Client] Connection request to server accepted");
 
             var newPC = CreatePlayerController();
-            world.playerControllers.Add(newPC);
+            World.playerControllers.Add(newPC);
         }
 
         void OnDisconnected(string reason) {
@@ -101,28 +102,36 @@ namespace GameFramework {
 
             currentLoadedSceneGeneration = generation;
 
-            Debug.Log("[Client] <b>Loading level</b> '<i>" + sceneName + "</i>' (generation=" + generation + ")");
+
+
+            World.StartCoroutine(LoadScene(sceneName));
+        }
+
+        IEnumerator LoadScene(string sceneName) {
+            Debug.Log($"[Client] <b>Loading level</b> '<i>{sceneName}</i>'");
+
+            EventHub<StartedLoading>.Emit(new StartedLoading());
 
             // Cleanup
             currentReplicaPossess = ReplicaId.Invalid;
 
-            client.replicaManager.Reset();
+            Client.replicaManager.Reset();
 
-            if (sceneHandle.IsValid()) {
-                Addressables.UnloadSceneAsync(sceneHandle);
-            }
-
-            // New map
-            SceneLoadingStarted.Invoke();
+            if (sceneHandle.IsValid())
+                yield return Addressables.UnloadSceneAsync(sceneHandle);
 
 #if UNITY_EDITOR
-            if (SceneManager.GetSceneByName(sceneName).isLoaded) {
-                SceneManager.UnloadScene(sceneName);
-            }
+            if (SceneManager.GetSceneByName(sceneName).isLoaded)
+                yield return SceneManager.UnloadSceneAsync(sceneName);
 #endif
 
+            // New map
             sceneHandle = Addressables.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
-            sceneHandle.Completed += _ => SendLoadSceneDone();
+            sceneHandle.Completed += ctx => {
+                SendLoadSceneDone();
+
+                EventHub<EndedLoading>.Emit(new EndedLoading());
+            };
         }
 
         void SendLoadSceneDone() {
@@ -130,7 +139,7 @@ namespace GameFramework {
             bs.Write((byte)MessageId.LoadSceneDone);
             bs.Write(currentLoadedSceneGeneration);
 
-            client.networkInterface.Send(bs, PacketPriority.High, PacketReliability.ReliableUnordered);
+            Client.networkInterface.Send(bs, PacketPriority.High, PacketReliability.ReliableUnordered);
         }
 
         void OnPossessPawn(BitStream bs) {

@@ -15,8 +15,8 @@ namespace GameFramework {
         }
 
         public override void SetupPlayerInputComponent(PawnInput input) {
-            input.BindAxis("Gameplay/Look", OnLook);
-            input.BindAxis("Gameplay/Move", OnMove);
+            input.BindAxis2("Gameplay/Look", OnLook);
+            input.BindAxis2("Gameplay/Move", OnMove);
             //input.BindAxis("Run", OnRun);
             input.BindStartedAction("Gameplay/Jump", OnJump);
         }

@@ -46,10 +46,10 @@ namespace GameFramework {
         }
 
         public void Heal(int amount) {
-            if (IsDead)
+            if (IsDead || !isServer)
                 return;
 
-            Health = Math.Max(Health + amount, MaxHealth);
+            Health = Math.Min(Health + amount, MaxHealth);
         }
 
         public void ApplyDamage(DamageInfo info) {
