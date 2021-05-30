@@ -81,7 +81,7 @@ namespace GameFramework {
 
                 case MatchState.InProgress:
                     foreach (var pc in server.world.playerControllers) {
-                        if (pc.pawn == null && !respawnQueue.Any(pair => pair.Item2 == pc)) {
+                        if (pc.Pawn == null && !respawnQueue.Any(pair => pair.Item2 == pc)) {
                             respawnQueue.Enqueue((Time.time + 5, pc));
                         }
                     }
@@ -91,7 +91,7 @@ namespace GameFramework {
                         var respawnPlayer = Time.time >= timeControllerPair.Item1;
                         if (respawnPlayer) {
                             respawnQueue.Dequeue();
-                            if (timeControllerPair.Item2.pawn == null) { // Queued player for respawn but he's already alive
+                            if (timeControllerPair.Item2.Pawn == null) { // Queued player for respawn but he's already alive
                                 SpawnPlayer(timeControllerPair.Item2);
                             }
                         }

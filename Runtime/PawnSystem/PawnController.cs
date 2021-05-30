@@ -2,7 +2,7 @@
 
 namespace GameFramework {
     public abstract class PawnController {
-        public Pawn pawn {
+        public Pawn Pawn {
             get;
             internal set;
         }
@@ -14,7 +14,7 @@ namespace GameFramework {
             if (newPawn.isServer && !newPawn.CanBePossessedBy(this))
                 return false;
 
-            var previousPawn = pawn;
+            var previousPawn = Pawn;
 
             Unpossess();
 
@@ -22,7 +22,7 @@ namespace GameFramework {
                 newPawn.Controller.Unpossess();
             }
 
-            pawn = newPawn;
+            Pawn = newPawn;
 
             newPawn.HandlePossession(this, previousPawn);
             OnPossess(newPawn);
@@ -30,15 +30,14 @@ namespace GameFramework {
         }
 
         public void Unpossess() {
-            if (pawn == null)
+            if (Pawn == null)
                 return;
 
             try {
-                pawn.HandleUnpossession();
+                Pawn.HandleUnpossession();
                 OnUnpossess();
-            }
-            finally {
-                pawn = null;
+            } finally {
+                Pawn = null;
             }
         }
 

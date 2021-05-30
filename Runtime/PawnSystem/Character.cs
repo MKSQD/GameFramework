@@ -50,7 +50,7 @@ namespace GameFramework {
                 return;
 #endif
 
-            Movement.SetLook(new Vector2(value.x * 0.5f, value.y * 0.5f));
+            Movement.SetLook(new Vector2(value.x * 0.3f, value.y * 0.3f));
         }
 
         void OnMove(Vector2 value) {

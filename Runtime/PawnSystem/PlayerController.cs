@@ -22,9 +22,9 @@ namespace GameFramework {
         public override void Update() {
             Input?.Update();
 
-            if (replicaView != null && pawn != null) {
-                replicaView.transform.position = pawn.transform.position;
-                replicaView.transform.rotation = pawn.transform.rotation;
+            if (replicaView != null && Pawn != null) {
+                replicaView.transform.position = Pawn.transform.position;
+                replicaView.transform.rotation = Pawn.transform.rotation;
             }
         }
 
@@ -47,20 +47,20 @@ namespace GameFramework {
         }
 
         protected override void OnUnpossess() {
-            if (pawn.isServer) {
-                pawn.Replica.TakeOwnership();
+            if (Pawn.isServer) {
+                Pawn.Replica.TakeOwnership();
             }
-            if (pawn.isClient) {
-                pawn.InputMap.Disable();
+            if (Pawn.isClient) {
+                Pawn.InputMap.Disable();
             }
         }
 
         void SendPossession() {
             var pawnIdx = byte.MaxValue;
-            var pawnsOnReplica = pawn.Replica.GetComponentsInChildren<Pawn>();
+            var pawnsOnReplica = Pawn.Replica.GetComponentsInChildren<Pawn>();
             for (int i = 0; i < pawnsOnReplica.Length; ++i) {
                 var pawnOnReplica = pawnsOnReplica[i];
-                if (pawn == pawnOnReplica) {
+                if (Pawn == pawnOnReplica) {
                     pawnIdx = (byte)i;
                     break;
                 }
@@ -70,10 +70,10 @@ namespace GameFramework {
 
             var bs = BitStreamPool.Create();
             bs.Write((byte)MessageId.PossessPawn);
-            bs.Write(pawn.Replica.Id);
+            bs.Write(Pawn.Replica.Id);
             bs.Write(pawnIdx);
 
-            pawn.server.NetworkInterface.SendBitStream(bs, PacketPriority.High, PacketReliability.ReliableSequenced, Connection);
+            Pawn.server.NetworkInterface.SendBitStream(bs, PacketPriority.High, PacketReliability.ReliableSequenced, Connection);
         }
     }
 }
