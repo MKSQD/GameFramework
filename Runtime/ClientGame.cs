@@ -102,8 +102,6 @@ namespace GameFramework {
 
             currentLoadedSceneGeneration = generation;
 
-
-
             World.StartCoroutine(LoadScene(sceneName));
         }
 
@@ -120,18 +118,17 @@ namespace GameFramework {
             if (sceneHandle.IsValid())
                 yield return Addressables.UnloadSceneAsync(sceneHandle);
 
-#if UNITY_EDITOR
-            if (SceneManager.GetSceneByName(sceneName).isLoaded)
-                yield return SceneManager.UnloadSceneAsync(sceneName);
-#endif
-
             // New map
+#if !UNITY_EDITOR
             sceneHandle = Addressables.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
             sceneHandle.Completed += ctx => {
                 SendLoadSceneDone();
-
                 EventHub<EndedLoading>.Emit(new EndedLoading());
             };
+#else
+            SendLoadSceneDone();
+            EventHub<EndedLoading>.Emit(new EndedLoading());
+#endif
         }
 
         void SendLoadSceneDone() {

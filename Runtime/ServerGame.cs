@@ -42,6 +42,10 @@ namespace GameFramework {
         public UnityEvent AllClientsLoadedScene = new UnityEvent();
 
         AsyncOperationHandle<SceneInstance> sceneHandle;
+        public bool IsLoadingScene {
+            get;
+            internal set;
+        }
         string loadSceneName;
         byte loadSceneGeneration;
         byte numLoadScenePlayerAcks;
@@ -80,6 +84,7 @@ namespace GameFramework {
                 gameMode.StartToLeaveMap();
             }
 
+            IsLoadingScene = true;
             ++loadSceneGeneration;
             numLoadScenePlayerAcks = 0;
             loadSceneName = sceneName;
@@ -89,6 +94,12 @@ namespace GameFramework {
             if (sceneHandle.IsValid()) {
                 Addressables.UnloadSceneAsync(sceneHandle);
             }
+
+#if UNITY_EDITOR
+            if (SceneManager.GetSceneByName(sceneName).isLoaded) {
+                SceneManager.UnloadSceneAsync(sceneName);
+            }
+#endif
 
             // Instruct clients
             var bs = new BitStream();
@@ -108,10 +119,11 @@ namespace GameFramework {
             }
 
             // Load new map
-#if !UNITY_EDITOR || !CLIENT
             Debug.Log($"[Server] Loading level {sceneName}");
             sceneHandle = Addressables.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
-#endif
+            sceneHandle.Completed += ctx => {
+                IsLoadingScene = false;
+            };
 
             gameMode = CreateGameModeForScene(sceneName);
             Assert.IsNotNull(gameMode);
@@ -168,7 +180,7 @@ namespace GameFramework {
             server.Shutdown();
         }
 
-        ReplicaView CreateReplicaView(Connection connection) {
+        protected virtual ReplicaView CreateReplicaView(Connection connection) {
             var view = new GameObject("ReplicaView " + connection);
             view.transform.parent = server.World.transform;
 
