@@ -12,13 +12,13 @@ namespace GameFramework {
             LeavingMap
         }
 
-        public MatchState matchState {
+        public MatchState CurrentMatchState {
             get;
             internal set;
         }
 
-        public bool HasMatchStarted => matchState == MatchState.InProgress;
-        public bool HasMatchEnded => matchState == MatchState.WaitingPostMatch;
+        public bool HasMatchStarted => CurrentMatchState == MatchState.InProgress;
+        public bool HasMatchEnded => CurrentMatchState == MatchState.WaitingPostMatch;
 
         public List<Pawn> Players {
             get;
@@ -28,51 +28,51 @@ namespace GameFramework {
         Queue<(float, PlayerController)> respawnQueue = new Queue<(float, PlayerController)>();
 
         public GameMode(ServerGame server) : base(server) {
-            matchState = MatchState.WaitingToStart;
+            CurrentMatchState = MatchState.WaitingToStart;
             Players = new List<Pawn>();
             HandleMatchIsWaitingToStart();
         }
 
         public void StartMatch() {
-            if (matchState != MatchState.WaitingToStart) {
-                Debug.LogWarning("StartMatch called in wrong MatchState " + matchState);
+            if (CurrentMatchState != MatchState.WaitingToStart) {
+                Debug.LogWarning("StartMatch called in wrong MatchState " + CurrentMatchState);
                 return;
             }
 
             Debug.Log("[Server] <b>Match starting...</b>");
 
-            matchState = MatchState.InProgress;
+            CurrentMatchState = MatchState.InProgress;
             HandleMatchHasStarted();
         }
 
         public void EndMatch() {
-            if (matchState != MatchState.InProgress) {
-                Debug.LogWarning("EndMatch called in wrong MatchState " + matchState);
+            if (CurrentMatchState != MatchState.InProgress) {
+                Debug.LogWarning("EndMatch called in wrong MatchState " + CurrentMatchState);
                 return;
             }
 
-            matchState = MatchState.WaitingPostMatch;
+            CurrentMatchState = MatchState.WaitingPostMatch;
             HandleMatchHasEnded();
 
             Debug.Log("[Server] <b>Match has ended</b>");
         }
 
         public override void StartToLeaveMap() {
-            if (matchState == MatchState.InProgress) {
+            if (CurrentMatchState == MatchState.InProgress) {
                 EndMatch();
             }
 
-            if (matchState != MatchState.WaitingPostMatch) {
-                Debug.LogWarning("StartToLeaveMap called in wrong MatchState " + matchState);
+            if (CurrentMatchState != MatchState.WaitingPostMatch) {
+                Debug.LogWarning("StartToLeaveMap called in wrong MatchState " + CurrentMatchState);
                 return;
             }
 
-            matchState = MatchState.LeavingMap;
+            CurrentMatchState = MatchState.LeavingMap;
             HandleLeavingMap();
         }
 
         public override void Update() {
-            switch (matchState) {
+            switch (CurrentMatchState) {
                 case MatchState.WaitingToStart:
                     if (ReadyToStartMatch()) {
                         StartMatch();
@@ -111,11 +111,11 @@ namespace GameFramework {
         }
 
         protected virtual bool ReadyToStartMatch() {
-            return server.server.connections.Count > 0;
+            return server.server.connections.Count > 0 && !server.IsLoadingScene;
         }
 
         protected virtual bool ReadyToEndMatch() {
-            return server.server.connections.Count == 0;
+            return server.server.connections.Count == 0 && !server.IsLoadingScene;
         }
 
         protected virtual void HandleMatchIsWaitingToStart() {
