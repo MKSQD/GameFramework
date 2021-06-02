@@ -14,10 +14,15 @@ namespace GameFramework {
             internal set;
         }
 
+        public CharacterHealth Health {
+            get;
+            internal set;
+        }
+
         public override void SetupPlayerInputComponent(PawnInput input) {
             input.BindAxis2("Gameplay/Look", OnLook);
             input.BindAxis2("Gameplay/Move", OnMove);
-            //input.BindAxis("Run", OnRun);
+            input.BindAxis("Gameplay/Sneak", OnSneak);
             input.BindStartedAction("Gameplay/Jump", OnJump);
         }
 
@@ -28,8 +33,12 @@ namespace GameFramework {
                 Camera.SetActive(false);
             }
 
+            Health = GetComponent<CharacterHealth>();
+
             Movement = GetComponent<ICharacterMovement>();
             Assert.IsNotNull(Movement);
+
+            Movement.DeathByLanding += () => Health.Kill(new DamageInfo(255));
         }
 
         protected override void HandlePossessionImpl(Pawn previousPawn) {
@@ -62,13 +71,13 @@ namespace GameFramework {
             Movement.SetMove(value);
         }
 
-        void OnRun(float value) {
+        void OnSneak(float value) {
 #if UNITY_EDITOR || CLIENT
             if (isClient && Controller is PlayerController && !ClientGame.CharacterInputEnabled)
                 return;
 #endif
 
-            Movement.SetRun(value > 0.5f);
+            Movement.SetSneaking(value > 0.5f);
         }
 
         void OnJump() {

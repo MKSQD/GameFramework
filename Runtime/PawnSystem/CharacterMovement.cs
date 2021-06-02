@@ -1,4 +1,5 @@
-﻿using Cube.Replication;
+﻿using System;
+using Cube.Replication;
 using UnityEngine;
 using UnityEngine.Assertions;
 using BitStream = Cube.Transport.BitStream;
@@ -7,9 +8,9 @@ namespace GameFramework {
     [AddComponentMenu("GameFramework/CharacterMovement")]
     [RequireComponent(typeof(CharacterController))]
     public class CharacterMovement : ReplicaBehaviour, ICharacterMovement {
-        
-        public event CharacterEvent Jumped;
-        public event CharacterEvent Landed;
+        public event Action Jumped;
+        public event Action Landed;
+        public event Action DeathByLanding;
 
         public CharacterMovementSettings settings;
         public CharacterMovementSettings Settings => settings;
@@ -20,7 +21,7 @@ namespace GameFramework {
 
         public bool IsMoving => Velocity.sqrMagnitude > 0.02f;
 
-        public bool IsRunning {
+        public bool IsSneaking {
             get;
             internal set;
         }
@@ -48,9 +49,10 @@ namespace GameFramework {
         Character character;
 
         float lastGroundedTime;
-        float jumpForce;
-        Vector3 lastMovement;
+        float nextJumpTime;
         Vector3 moveInput;
+        Vector3 lastMovement;
+        float y;
         float yaw;
         float viewPitch;
         float viewPitchLerp;
@@ -63,14 +65,14 @@ namespace GameFramework {
         bool onLadder;
 
         // Interpolation
-        struct State {
+        struct RemoteState {
             internal double timestamp;
             internal Vector3 pos;
             internal Quaternion rot;
-            internal bool run;
+            internal bool sneak;
         }
 
-        readonly State[] bufferedState = new State[10];
+        readonly RemoteState[] bufferedRemoteStates = new RemoteState[10];
         int timestampCount;
 
         public void Teleport(Vector3 targetPosition, Quaternion targetRotation) {
@@ -92,8 +94,8 @@ namespace GameFramework {
             viewPitch = Mathf.Clamp(viewPitch + value.y, minViewPitch, maxViewPitch);
         }
 
-        public void SetRun(bool run) {
-            IsRunning = run;
+        public void SetSneaking(bool value) {
+            IsSneaking = value;
         }
 
         public void Jump() {
@@ -132,7 +134,7 @@ namespace GameFramework {
             bs.WriteLossyFloat(transform.position.z, -5000, 5000, 0.01f);
             bs.WriteLossyFloat(yaw, 0, 360, 2);
             bs.WriteLossyFloat(viewPitch, minViewPitch, maxViewPitch, 5);
-            bs.Write(IsRunning);
+            bs.Write(IsSneaking);
         }
 
         public override void Deserialize(BitStream bs) {
@@ -146,22 +148,22 @@ namespace GameFramework {
 
             var yaw = bs.ReadLossyFloat(0, 360, 2);
             viewPitch = bs.ReadLossyFloat(minViewPitch, maxViewPitch, 5);
-            var run = bs.ReadBool();
+            var sneak = bs.ReadBool();
 
             // Shift the buffer sideways, deleting state 20
-            for (int i = bufferedState.Length - 1; i >= 1; i--) {
-                bufferedState[i] = bufferedState[i - 1];
+            for (int i = bufferedRemoteStates.Length - 1; i >= 1; i--) {
+                bufferedRemoteStates[i] = bufferedRemoteStates[i - 1];
             }
 
             // Record current state in slot 0
-            State state;
+            RemoteState state;
             state.timestamp = Time.timeAsDouble;
             state.pos = pos;
             state.rot = Quaternion.AngleAxis(yaw, Vector3.up);
-            state.run = run;
-            bufferedState[0] = state;
+            state.sneak = sneak;
+            bufferedRemoteStates[0] = state;
 
-            timestampCount = Mathf.Min(timestampCount + 1, bufferedState.Length);
+            timestampCount = Mathf.Min(timestampCount + 1, bufferedRemoteStates.Length);
         }
 
         protected void Update() {
@@ -180,12 +182,12 @@ namespace GameFramework {
             if (onLadder) {
                 var f = actualMovement.z;
                 actualMovement.z = 0;
-                actualMovement.y = f;
+                y = f;
             }
 
 
             // Apply modifiers
-            var speed = IsRunning ? settings.moveSpeed : settings.runSpeed;
+            var speed = IsSneaking ? settings.SneakSpeed : settings.runSpeed;
             actualMovement *= speed;
 
             if (actualMovement.z < 0) {
@@ -193,44 +195,43 @@ namespace GameFramework {
             }
             actualMovement.x *= settings.sideSpeedModifier;
 
+            actualMovement.y = 0;
+
             var modifier = IsGrounded ? settings.groundControl : settings.airControl;
             actualMovement = Vector3.Lerp(lastMovement, actualMovement, modifier);
 
-            // Apply movement
             lastMovement = actualMovement;
-            actualMovement = transform.rotation * actualMovement;
 
             // Landing
             if (IsGrounded) {
-                if (lastGroundedTime < Time.time - 0.2f) {
-                    Landed?.Invoke(character);
-                    jumpForce = 0;
+                if (lastGroundedTime < Time.time - 3) {
+                    DeathByLanding?.Invoke();
+                    return;
                 }
 
-                var beginNewJump = jump && jumpForce < 0.1f;
-                if (beginNewJump) {
-                    jumpForce = 1;
-                    Jumped?.Invoke(character);
+                if (lastGroundedTime < Time.time - 0.2f) {
+                    Landed?.Invoke();
                 }
 
                 lastGroundedTime = Time.time;
             }
 
-            // Jump
-            var isJumping = jumpForce > 0.1f;
-            if (isJumping) {
-                jumpForce = Mathf.Max(jumpForce - Time.deltaTime * 1.2f, 0);
-
-                actualMovement += jumpForce * Vector3.up * settings.jumpForce2;
-            }
-
             // Gravity
             if (settings.useGravity && !onLadder) {
-                actualMovement += Physics.gravity;
+                y = Mathf.MoveTowards(y, Physics.gravity.y, Time.deltaTime * 10);
+            }
+
+            // Jump
+            var wasRecentlyGrounded = lastGroundedTime >= Time.time - settings.JumpGroundedGraceTime;
+            var beginJump = jump && Time.time >= nextJumpTime && wasRecentlyGrounded;
+            if (beginJump) {
+                nextJumpTime = Time.time + settings.JumpCooldown;
+                y = settings.JumpForce;
+                Jumped?.Invoke();
             }
 
             // Move
-            characterController.Move(actualMovement * Time.deltaTime);
+            characterController.Move(transform.rotation * actualMovement * Time.deltaTime + Vector3.up * y * Time.deltaTime);
 
             // Consume input
             moveInput = Vector3.zero;
@@ -238,7 +239,6 @@ namespace GameFramework {
 
             if (isClient && Time.time >= nextSendTime) {
                 nextSendTime = Time.time + minSendDelay;
-
                 RpcServerMove(transform.position, yaw, viewPitch);
             }
         }
@@ -296,14 +296,14 @@ namespace GameFramework {
             character.view.localRotation = Quaternion.AngleAxis(viewPitchLerp, Vector3.left);
 
             // This is the target playback time of the rigid body
-            double interpolationTime = Time.timeAsDouble - settings.InterpolationBackTime;
+            double interpolationTime = Time.timeAsDouble - settings.InterpolationDelay;
 
             // Use interpolation if the target playback time is present in the buffer
-            if (bufferedState[0].timestamp > interpolationTime) {
+            if (bufferedRemoteStates[0].timestamp > interpolationTime) {
                 for (int i = 0; i < timestampCount; ++i) {
-                    if (bufferedState[i].timestamp <= interpolationTime || i == timestampCount - 1) {
-                        State rhs = bufferedState[Mathf.Max(i - 1, 0)];
-                        State lhs = bufferedState[i];
+                    if (bufferedRemoteStates[i].timestamp <= interpolationTime || i == timestampCount - 1) {
+                        RemoteState rhs = bufferedRemoteStates[Mathf.Max(i - 1, 0)];
+                        RemoteState lhs = bufferedRemoteStates[i];
 
                         // Use the time between the two slots to determine if interpolation is necessary
                         double length = rhs.timestamp - lhs.timestamp;
@@ -322,7 +322,7 @@ namespace GameFramework {
                             Teleport(position, transform.rotation);
                         }
 
-                        IsRunning = lhs.run;
+                        IsSneaking = lhs.sneak;
 
                         //Debug.DrawLine(transform.position + Vector3.up * 2, transform.position + Vector3.up * 3, Color.green);
                         return;
@@ -330,12 +330,12 @@ namespace GameFramework {
                 }
             } else {
                 // Use extrapolation
-                State latest = bufferedState[0];
-                State latest2 = bufferedState[Mathf.Min(1, timestampCount - 1)];
+                RemoteState latest = bufferedRemoteStates[0];
+                RemoteState latest2 = bufferedRemoteStates[Mathf.Min(1, timestampCount - 1)];
 
                 float extrapolationLength = (float)(interpolationTime - latest.timestamp);
                 if (extrapolationLength < settings.ExtrapolationLimit) {
-                    var speed = latest.run ? settings.moveSpeed : settings.runSpeed;
+                    var speed = latest.sneak ? settings.SneakSpeed : settings.runSpeed;
                     var velocity = (latest.pos - latest2.pos).normalized * speed;
 
 
@@ -356,7 +356,7 @@ namespace GameFramework {
         [ReplicaRpc(RpcTarget.Server)]
         void RpcServerMove(Vector3 finalPosition, float yaw, float viewPitch) {
             var diff = transform.position - finalPosition;
-            if (diff.sqrMagnitude > 3) {
+            if (diff.sqrMagnitude > 5) {
                 RpcOwnerResetPosition(transform.position, transform.rotation.eulerAngles.y);
                 return;
             }
@@ -374,19 +374,21 @@ namespace GameFramework {
         void OnDrawGizmosSelected() {
             Gizmos.color = Color.green;
 
-            State lastS = bufferedState[0];
+            RemoteState lastS = bufferedRemoteStates[0];
             for (int i = 1; i < timestampCount; ++i) {
-                Gizmos.DrawLine(lastS.pos, bufferedState[i].pos);
-                lastS = bufferedState[i];
+                Gizmos.DrawLine(lastS.pos, bufferedRemoteStates[i].pos);
+                lastS = bufferedRemoteStates[i];
             }
 
             Gizmos.color = Color.red;
             for (int i = 0; i < timestampCount; ++i) {
-                Gizmos.DrawSphere(bufferedState[i].pos, 0.05f);
+                Gizmos.DrawSphere(bufferedRemoteStates[i].pos, 0.05f);
             }
         }
 
         void Awake() {
+            lastGroundedTime = Time.time;
+
             groundColliders = new Collider[1];
 
             characterController = GetComponent<CharacterController>();

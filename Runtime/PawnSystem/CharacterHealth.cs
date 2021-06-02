@@ -35,7 +35,8 @@ namespace GameFramework {
 #endif
 
         public void Kill(DamageInfo reason) {
-            Assert.IsTrue(isServer);
+            if (!isServer)
+                return;
 
             deathReason = reason;
             try {
