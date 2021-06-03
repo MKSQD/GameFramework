@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Cube.Transport;
 using UnityEngine;
 
 namespace GameFramework {
@@ -25,7 +26,7 @@ namespace GameFramework {
             internal set;
         }
 
-        Queue<(float, PlayerController)> respawnQueue = new Queue<(float, PlayerController)>();
+        Queue<(float, Connection)> respawnQueue = new Queue<(float, Connection)>();
 
         public GameMode(ServerGame server) : base(server) {
             CurrentMatchState = MatchState.WaitingToStart;
@@ -81,8 +82,8 @@ namespace GameFramework {
 
                 case MatchState.InProgress:
                     foreach (var pc in server.world.playerControllers) {
-                        if (pc.Pawn == null && !respawnQueue.Any(pair => pair.Item2 == pc)) {
-                            respawnQueue.Enqueue((Time.time + 5, pc));
+                        if (pc.Pawn == null && !respawnQueue.Any(pair => pair.Item2 == pc.Connection)) {
+                            respawnQueue.Enqueue((Time.time + 5, pc.Connection));
                         }
                     }
 
@@ -91,8 +92,10 @@ namespace GameFramework {
                         var respawnPlayer = Time.time >= timeControllerPair.Item1;
                         if (respawnPlayer) {
                             respawnQueue.Dequeue();
-                            if (timeControllerPair.Item2.Pawn == null) { // Queued player for respawn but he's already alive
-                                SpawnPlayer(timeControllerPair.Item2);
+
+                            var pc = server.world.GetPlayerController(timeControllerPair.Item2);
+                            if (pc != null && pc.Pawn == null) { // Queued player for respawn but he's already alive
+                                SpawnPlayer(pc);
                             }
                         }
                     }

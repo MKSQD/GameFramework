@@ -37,10 +37,6 @@ namespace GameFramework {
             internal set;
         }
 
-        public ConnectionEvent NewIncomingConnection = new ConnectionEvent();
-        public ConnectionEvent DisconnectionNotification = new ConnectionEvent();
-        public UnityEvent AllClientsLoadedScene = new UnityEvent();
-
         AsyncOperationHandle<SceneInstance> sceneHandle;
         public bool IsLoadingScene {
             get;
@@ -49,7 +45,6 @@ namespace GameFramework {
         string loadSceneName;
         byte loadSceneGeneration;
         byte numLoadScenePlayerAcks;
-        bool triggeredAllClientsLoadedScene;
 
         public ServerGame(ServerGameContext ctx) {
             Assert.IsNotNull(ctx.World);
@@ -88,7 +83,6 @@ namespace GameFramework {
             ++loadSceneGeneration;
             numLoadScenePlayerAcks = 0;
             loadSceneName = sceneName;
-            triggeredAllClientsLoadedScene = false;
 
             server.ReplicaManager.Reset();
             if (sceneHandle.IsValid()) {
@@ -151,8 +145,6 @@ namespace GameFramework {
             server.ReplicaManager.AddReplicaView(replicaView);
 
             gameMode.HandleNewPlayer(newPC);
-
-            NewIncomingConnection.Invoke(connection);
         }
 
         protected virtual PlayerController CreatePlayerController(Connection connection) {
@@ -162,11 +154,16 @@ namespace GameFramework {
         protected virtual void OnDisconnectNotification(Connection connection) {
             Debug.Log("[Server] Lost connection: " + connection);
 
-            DisconnectionNotification.Invoke(connection);
-
             server.ReplicaManager.RemoveReplicaView(connection);
 
-            OnNumReadyClientsChanged();
+            var pc = world.GetPlayerController(connection);
+            world.playerControllers.Remove(pc);
+
+            foreach (var replica in server.ReplicaManager.Replicas) {
+                if (replica.Owner == connection) {
+                    replica.Destroy();
+                }
+            }
         }
 
         public virtual void Update() {
@@ -199,20 +196,11 @@ namespace GameFramework {
 
             ++numLoadScenePlayerAcks;
 
-            OnNumReadyClientsChanged();
-
             //
             var replicaView = server.ReplicaManager.GetReplicaView(connection);
             if (replicaView != null) {
                 replicaView.IsLoadingLevel = false;
                 server.ReplicaManager.ForceReplicaViewRefresh(replicaView);
-            }
-        }
-
-        void OnNumReadyClientsChanged() {
-            if (!triggeredAllClientsLoadedScene && numLoadScenePlayerAcks >= server.connections.Count) {
-                triggeredAllClientsLoadedScene = true;
-                AllClientsLoadedScene.Invoke();
             }
         }
     }
