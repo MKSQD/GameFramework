@@ -27,7 +27,7 @@ namespace GameFramework {
 
         [Header("Interpolation/Extrapolation")]
         [Range(0, 1)]
-        public float InterpolationDelay = 0.15f;
+        public float InterpolationDelay = 0.25f;
         [Range(0, 1)]
         public float ExtrapolationLimit = 0.3f;
     }

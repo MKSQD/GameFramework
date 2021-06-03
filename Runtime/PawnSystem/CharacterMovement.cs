@@ -204,7 +204,7 @@ namespace GameFramework {
 
             // Landing
             if (IsGrounded) {
-                if (lastGroundedTime < Time.time - 3) {
+                if (lastGroundedTime < Time.time - 2.5f) {
                     DeathByLanding?.Invoke();
                     return;
                 }
