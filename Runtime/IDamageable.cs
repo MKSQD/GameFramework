@@ -27,6 +27,10 @@ namespace GameFramework {
         public void Deserialize(BitStream bs) {
             Amount = bs.ReadByte();
         }
+
+        public override string ToString() {
+            return Amount.ToString();
+        }
     }
 
     public interface IDamageable {

@@ -45,6 +45,11 @@ namespace GameFramework {
         [ReadOnly]
         public Platform Platform;
 
+        public float SpeedModifier {
+            get;
+            set;
+        }
+
         CharacterController characterController;
         Character character;
 
@@ -194,6 +199,7 @@ namespace GameFramework {
                 actualMovement.z *= settings.backwardSpeedModifier;
             }
             actualMovement.x *= settings.sideSpeedModifier;
+            actualMovement *= SpeedModifier;
 
             actualMovement.y = 0;
 
@@ -204,9 +210,8 @@ namespace GameFramework {
 
             // Landing
             if (IsGrounded) {
-                if (lastGroundedTime < Time.time - 2.5f) {
+                if (lastGroundedTime < Time.time - 2) {
                     DeathByLanding?.Invoke();
-                    return;
                 }
 
                 if (lastGroundedTime < Time.time - 0.2f) {
@@ -248,10 +253,9 @@ namespace GameFramework {
         void UpdateGround() {
             var epsilon = 0.1f;
 
-            var cc = characterController;
-            var pos = transform.position + Vector3.up * (cc.radius - epsilon);
+            var pos = transform.position + Vector3.up * (characterController.radius - epsilon);
             var layerMask = isClient ? clientGroundMask : serverGroundMask;
-            var num = Physics.OverlapSphereNonAlloc(pos, cc.radius * (1f + epsilon), groundColliders, layerMask);
+            var num = Physics.OverlapSphereNonAlloc(pos, characterController.radius * (1f + epsilon), groundColliders, layerMask);
 
             Platform newPlatform = null;
             IsGrounded = false;
@@ -388,6 +392,7 @@ namespace GameFramework {
 
         void Awake() {
             lastGroundedTime = Time.time;
+            SpeedModifier = 1;
 
             groundColliders = new Collider[1];
 

@@ -91,6 +91,15 @@ namespace GameFramework {
 
         void OnDisconnected(string reason) {
             Debug.Log("[Client] <b>Disconnected</b> (" + reason + ")");
+
+            // Cleanup
+            currentReplicaPossess = ReplicaId.Invalid;
+
+            Client.replicaManager.Reset();
+
+            if (sceneHandle.IsValid()) {
+                Addressables.UnloadSceneAsync(sceneHandle);
+            }
         }
 
         void OnLoadScene(BitStream bs) {

@@ -34,6 +34,7 @@ namespace GameFramework {
             }
 
             Health = GetComponent<CharacterHealth>();
+            Assert.IsNotNull(Health);
 
             Movement = GetComponent<ICharacterMovement>();
             Assert.IsNotNull(Movement);
@@ -89,10 +90,12 @@ namespace GameFramework {
             Movement.Jump();
         }
 
+#if UNITY_EDITOR
         void OnDrawGizmosSelected() {
             if (view != null) {
                 Debug.DrawLine(view.transform.position, view.transform.position + view.transform.forward * 0.5f, Color.yellow);
             }
         }
+#endif
     }
 }
