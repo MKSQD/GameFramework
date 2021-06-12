@@ -4,10 +4,10 @@ namespace GameFramework {
     [CreateAssetMenu(menuName = "GameFramework/CharacterMovementSettings")]
     public class CharacterMovementSettings : ScriptableObject {
 
-        public bool useGravity = true;
 
 
         [Header("Movement")]
+        public bool useGravity = true;
         public float SneakSpeed = 2;
         public float runSpeed = 5;
         public float backwardSpeedModifier = 0.7f;
@@ -15,6 +15,10 @@ namespace GameFramework {
 
         public float groundControl = 0.9f;
         public float airControl = 0.1f;
+
+        [Header("Movement - Momentum")]
+        public bool GainMomentum = false;
+        public float Momentum = 2;
 
 
         [Header("Jumping")]

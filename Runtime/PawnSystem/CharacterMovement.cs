@@ -171,6 +171,11 @@ namespace GameFramework {
             timestampCount = Mathf.Min(timestampCount + 1, bufferedRemoteStates.Length);
         }
 
+        public float Momentum {
+            get;
+            internal set;
+        }
+
         protected void Update() {
             UpdateGround();
             UpdatePlatform();
@@ -187,7 +192,7 @@ namespace GameFramework {
             if (onLadder) {
                 var f = actualMovement.z;
                 actualMovement.z = 0;
-                y = f;
+                y = f * 2;
             }
 
 
@@ -195,11 +200,23 @@ namespace GameFramework {
             var speed = IsSneaking ? settings.SneakSpeed : settings.runSpeed;
             actualMovement *= speed;
 
-            if (actualMovement.z < 0) {
+
+            if (actualMovement.z <= 0) {
                 actualMovement.z *= settings.backwardSpeedModifier;
             }
             actualMovement.x *= settings.sideSpeedModifier;
             actualMovement *= SpeedModifier;
+
+            if (settings.GainMomentum) {
+                if (IsGrounded) {
+                    Momentum = Mathf.Min(Momentum + Time.deltaTime * 0.2f, 1);
+                }
+                if (actualMovement.z < -0.1f || !IsMoving) {
+                    Momentum = Mathf.Max(Momentum - Time.deltaTime * 8, 0);
+                }
+
+                actualMovement.z *= (1 + Momentum * settings.Momentum);
+            }
 
             actualMovement.y = 0;
 
@@ -215,6 +232,8 @@ namespace GameFramework {
                 }
 
                 if (lastGroundedTime < Time.time - 0.2f) {
+                    Momentum *= 0.8f;
+
                     Landed?.Invoke();
                 }
 
@@ -340,19 +359,14 @@ namespace GameFramework {
                 float extrapolationLength = (float)(interpolationTime - latest.timestamp);
                 if (extrapolationLength < settings.ExtrapolationLimit) {
                     var speed = latest.sneak ? settings.SneakSpeed : settings.runSpeed;
-                    var velocity = (latest.pos - latest2.pos).normalized * speed;
+                    var posDiffLastStates = latest.pos - latest2.pos;
+                    if (posDiffLastStates.sqrMagnitude > 0.3f) { // Movement?
+                        var estimatedVelocity = posDiffLastStates.normalized * speed;
+                        var extrapolatedPos = latest.pos + estimatedVelocity * extrapolationLength;
+                        characterController.Move(extrapolatedPos - transform.position);
 
-
-                    var position = latest.pos + velocity * extrapolationLength;
-
-                    var diff = position - transform.position;
-                    if (diff.sqrMagnitude < 1) { // Physics might cause the client-side to become desynced
-                        characterController.Move(position - transform.position);
-                    } else {
-                        Teleport(position, transform.rotation);
+                        Debug.DrawLine(transform.position + Vector3.up * 2, transform.position + Vector3.up * 3, Color.blue);
                     }
-
-                    //Debug.DrawLine(transform.position + Vector3.up * 2, transform.position + Vector3.up * 3, Color.red);
                 }
             }
         }
