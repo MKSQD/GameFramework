@@ -79,6 +79,7 @@ namespace GameFramework {
         }
 
         void OnApplicationQuit() {
+            Debug.Log("--- Shutdown ---");
             GameClient?.Shutdown();
             GameServer?.Shutdown();
         }
