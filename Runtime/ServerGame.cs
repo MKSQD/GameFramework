@@ -89,11 +89,7 @@ namespace GameFramework {
                 Addressables.UnloadSceneAsync(sceneHandle);
             }
 
-#if UNITY_EDITOR
-            if (SceneManager.GetSceneByName(sceneName).isLoaded) {
-                SceneManager.UnloadSceneAsync(sceneName);
-            }
-#endif
+
 
             // Instruct clients
             var bs = new BitStream();
@@ -101,7 +97,7 @@ namespace GameFramework {
             bs.Write(sceneName);
             bs.Write(loadSceneGeneration);
 
-            server.NetworkInterface.BroadcastBitStream(bs, PacketPriority.High, PacketReliability.ReliableSequenced);
+            server.NetworkInterface.BroadcastBitStream(bs, PacketReliability.ReliableSequenced);
 
             // Disable ReplicaViews during level load
             foreach (var connection in server.connections) {
@@ -114,10 +110,19 @@ namespace GameFramework {
 
             // Load new map
             Debug.Log($"[Server] Loading level {sceneName}");
-            sceneHandle = Addressables.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
-            sceneHandle.Completed += ctx => {
+#if UNITY_EDITOR
+            if (!SceneManager.GetSceneByName(sceneName).isLoaded) {
+#endif
+                sceneHandle = Addressables.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+                sceneHandle.Completed += ctx => {
+                    IsLoadingScene = false;
+                };
+#if UNITY_EDITOR
+            } else {
+                server.ReplicaManager.ProcessSceneReplicasInScene(SceneManager.GetSceneByName(sceneName));
                 IsLoadingScene = false;
-            };
+            }
+#endif
 
             gameMode = CreateGameModeForScene(sceneName);
             Assert.IsNotNull(gameMode);
@@ -135,7 +140,7 @@ namespace GameFramework {
                 bs2.Write(loadSceneName);
                 bs2.Write(loadSceneGeneration);
 
-                server.NetworkInterface.SendBitStream(bs2, PacketPriority.High, PacketReliability.ReliableSequenced, connection);
+                server.NetworkInterface.SendBitStream(bs2, PacketReliability.ReliableSequenced, connection);
             }
 
             var newPC = CreatePlayerController(connection);

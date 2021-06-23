@@ -19,6 +19,11 @@ namespace GameFramework {
             internal set;
         }
 
+        public CharacterStats Stats {
+            get;
+            internal set;
+        }
+
         public override void SetupPlayerInputComponent(PawnInput input) {
             input.BindAxis2("Gameplay/Look", OnLook);
             input.BindAxis2("Gameplay/Move", OnMove);
@@ -35,6 +40,9 @@ namespace GameFramework {
 
             Health = GetComponent<CharacterHealth>();
             Assert.IsNotNull(Health);
+
+            Stats = GetComponent<CharacterStats>();
+            Assert.IsNotNull(Stats);
 
             Movement = GetComponent<ICharacterMovement>();
             Assert.IsNotNull(Movement);

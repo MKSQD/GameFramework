@@ -12,10 +12,6 @@ namespace GameFramework {
         Vector3 LocalVelocity { get; }
         PhysicMaterial GroundMaterial { get; }
         CharacterMovementSettings Settings { get; }
-        float SpeedModifier {
-            get;
-            set;
-        }
 
         void SetLook(Vector2 value);
         void SetMove(Vector2 value);
@@ -24,6 +20,5 @@ namespace GameFramework {
         void Teleport(Vector3 targetPosition, Quaternion targetRotation);
         void Disable();
         void Enable();
-        void AddVelocity(Vector3 velocity);
     }
 }

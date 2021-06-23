@@ -106,12 +106,11 @@ namespace GameFramework {
             var sceneName = bs.ReadString();
             var generation = bs.ReadByte();
 
-            if (currentLoadedSceneGeneration == generation)
-                return;
+            if (currentLoadedSceneGeneration != generation) {
+                currentLoadedSceneGeneration = generation;
 
-            currentLoadedSceneGeneration = generation;
-
-            World.StartCoroutine(LoadScene(sceneName));
+                World.StartCoroutine(LoadScene(sceneName));
+            }
         }
 
         IEnumerator LoadScene(string sceneName) {
@@ -141,11 +140,17 @@ namespace GameFramework {
         }
 
         void SendLoadSceneDone() {
+            World.StartCoroutine(Foo());
+        }
+
+        IEnumerator Foo() {
+            yield return new WaitForSeconds(1);
+
             var bs = new BitStream();
             bs.Write((byte)MessageId.LoadSceneDone);
             bs.Write(currentLoadedSceneGeneration);
 
-            Client.networkInterface.Send(bs, PacketPriority.High, PacketReliability.ReliableUnordered);
+            Client.networkInterface.Send(bs, PacketReliability.ReliableUnordered);
         }
 
         void OnPossessPawn(BitStream bs) {

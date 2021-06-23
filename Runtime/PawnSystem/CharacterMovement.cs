@@ -45,11 +45,6 @@ namespace GameFramework {
         [ReadOnly]
         public Platform Platform;
 
-        public float SpeedModifier {
-            get;
-            set;
-        }
-
         CharacterController characterController;
         Character character;
 
@@ -85,6 +80,8 @@ namespace GameFramework {
 
             transform.position = targetPosition;
             transform.rotation = targetRotation;
+            lastMovement = Vector3.zero;
+            y = 0;
 
             characterController.enabled = true;
         }
@@ -118,10 +115,6 @@ namespace GameFramework {
             characterController.detectCollisions = true;
         }
 
-        public void AddVelocity(Vector3 velocity) {
-            // #todo
-        }
-
         public void OnEnterLadder() {
             onLadder = true;
         }
@@ -131,7 +124,7 @@ namespace GameFramework {
         }
 
         public override void Serialize(BitStream bs, SerializeContext ctx) {
-            if (Replica.Owner == ctx.Observer.Connection)
+            if (Replica.Owner == ctx.View.Connection)
                 return;
 
             bs.WriteLossyFloat(transform.position.x, -5000, 5000, 0.01f);
@@ -176,6 +169,8 @@ namespace GameFramework {
             internal set;
         }
 
+        Vector3 lastVelocity;
+
         protected void Update() {
             UpdateGround();
             UpdatePlatform();
@@ -197,15 +192,17 @@ namespace GameFramework {
 
 
             // Apply modifiers
-            var speed = IsSneaking ? settings.SneakSpeed : settings.runSpeed;
-            actualMovement *= speed;
-
+            var runSpeed = IsSneaking ? settings.SneakSpeed : settings.runSpeed;
+            actualMovement *= runSpeed;
 
             if (actualMovement.z <= 0) {
                 actualMovement.z *= settings.backwardSpeedModifier;
             }
             actualMovement.x *= settings.sideSpeedModifier;
-            actualMovement *= SpeedModifier;
+
+            float speedBuff = 1;
+            character.Stats.ModifyStat(CharacterStat.MovementSpeed, ref speedBuff);
+            actualMovement *= speedBuff;
 
             if (settings.GainMomentum) {
                 if (IsGrounded) {
@@ -215,8 +212,13 @@ namespace GameFramework {
                     Momentum = Mathf.Max(Momentum - Time.deltaTime * 8, 0);
                 }
 
+                var angle = Vector2.Angle(new Vector2(characterController.velocity.x, characterController.velocity.z).normalized,
+                                          new Vector2(lastVelocity.x, lastVelocity.z).normalized);
+                Momentum *= 1 - Mathf.Clamp01(angle / 180);
+
                 actualMovement.z *= (1 + Momentum * settings.Momentum);
             }
+            lastVelocity = characterController.velocity;
 
             actualMovement.y = 0;
 
@@ -236,7 +238,10 @@ namespace GameFramework {
 
                     Landed?.Invoke();
                 }
+            }
 
+            // Last grounded
+            if (IsGrounded || onLadder) {
                 lastGroundedTime = Time.time;
             }
 
@@ -351,7 +356,7 @@ namespace GameFramework {
                         return;
                     }
                 }
-            } else {
+            } else if (timestampCount > 1) {
                 // Use extrapolation
                 RemoteState latest = bufferedRemoteStates[0];
                 RemoteState latest2 = bufferedRemoteStates[Mathf.Min(1, timestampCount - 1)];
@@ -360,7 +365,7 @@ namespace GameFramework {
                 if (extrapolationLength < settings.ExtrapolationLimit) {
                     var speed = latest.sneak ? settings.SneakSpeed : settings.runSpeed;
                     var posDiffLastStates = latest.pos - latest2.pos;
-                    if (posDiffLastStates.sqrMagnitude > 0.3f) { // Movement?
+                    if (posDiffLastStates.sqrMagnitude > 0.1f) { // Movement?
                         var estimatedVelocity = posDiffLastStates.normalized * speed;
                         var extrapolatedPos = latest.pos + estimatedVelocity * extrapolationLength;
                         characterController.Move(extrapolatedPos - transform.position);
@@ -368,13 +373,17 @@ namespace GameFramework {
                         Debug.DrawLine(transform.position + Vector3.up * 2, transform.position + Vector3.up * 3, Color.blue);
                     }
                 }
+            } else {
+                RemoteState latest = bufferedRemoteStates[0];
+                characterController.Move(latest.pos);
+                transform.localRotation = latest.rot;
             }
         }
 
         [ReplicaRpc(RpcTarget.Server)]
         void RpcServerMove(Vector3 finalPosition, float yaw, float viewPitch) {
             var diff = transform.position - finalPosition;
-            if (diff.sqrMagnitude > 5) {
+            if (diff.sqrMagnitude > 3) {
                 RpcOwnerResetPosition(transform.position, transform.rotation.eulerAngles.y);
                 return;
             }
@@ -406,7 +415,7 @@ namespace GameFramework {
 
         void Awake() {
             lastGroundedTime = Time.time;
-            SpeedModifier = 1;
+            //SpeedModifier = 1;
 
             groundColliders = new Collider[1];
 
@@ -415,6 +424,12 @@ namespace GameFramework {
             Assert.IsNotNull(characterController);
             Assert.IsNotNull(settings);
             Assert.IsNotNull(character);
+        }
+
+        protected virtual void Start() {
+            if (isServer) {
+                RpcOwnerResetPosition(transform.position, transform.rotation.eulerAngles.y);
+            }
         }
     }
 }
