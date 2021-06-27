@@ -14,7 +14,7 @@ namespace GameFramework {
 
         public CharacterMovementSettings settings;
         public CharacterMovementSettings Settings => settings;
-        public LayerMask clientGroundMask, serverGroundMask;
+
 
         public Vector3 Velocity => characterController.velocity;
         public Vector3 LocalVelocity => transform.InverseTransformDirection(Velocity);
@@ -62,7 +62,10 @@ namespace GameFramework {
         Vector3 platformLocalPoint;
         Vector3 platformGlobalPoint;
 
-        bool onLadder;
+        public bool IsOnLadder {
+            get;
+            internal set;
+        }
 
         // Interpolation
         struct RemoteState {
@@ -116,11 +119,11 @@ namespace GameFramework {
         }
 
         public void OnEnterLadder() {
-            onLadder = true;
+            IsOnLadder = true;
         }
 
         public void OnExitLadder() {
-            onLadder = false;
+            IsOnLadder = false;
         }
 
         public override void Serialize(BitStream bs, SerializeContext ctx) {
@@ -184,7 +187,7 @@ namespace GameFramework {
             transform.localRotation = Quaternion.AngleAxis(yaw, Vector3.up);
 
             var actualMovement = moveInput.normalized;
-            if (onLadder) {
+            if (IsOnLadder) {
                 var f = actualMovement.z;
                 actualMovement.z = 0;
                 y = f * 2;
@@ -241,12 +244,12 @@ namespace GameFramework {
             }
 
             // Last grounded
-            if (IsGrounded || onLadder) {
+            if (IsGrounded || IsOnLadder) {
                 lastGroundedTime = Time.time;
             }
 
             // Gravity
-            if (settings.useGravity && !onLadder) {
+            if (settings.useGravity && !IsOnLadder) {
                 y = Mathf.MoveTowards(y, Physics.gravity.y, Time.deltaTime * 10);
             }
 
@@ -278,7 +281,7 @@ namespace GameFramework {
             var epsilon = 0.1f;
 
             var pos = transform.position + Vector3.up * (characterController.radius - epsilon);
-            var layerMask = isClient ? clientGroundMask : serverGroundMask;
+            var layerMask = isClient ? Settings.ClientGroundMask : Settings.ServerGroundMask;
             var num = Physics.OverlapSphereNonAlloc(pos, characterController.radius * (1f + epsilon), groundColliders, layerMask);
 
             Platform newPlatform = null;
@@ -292,6 +295,10 @@ namespace GameFramework {
                 }
 
                 GroundMaterial = collider.sharedMaterial;
+                IsGrounded = true;
+            }
+
+            if (IsOnLadder) {
                 IsGrounded = true;
             }
 
