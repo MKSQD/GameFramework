@@ -12,6 +12,8 @@ namespace GameFramework {
         Vector3 LocalVelocity { get; }
         PhysicMaterial GroundMaterial { get; }
         CharacterMovementSettings Settings { get; }
+        float Height { get; }
+        bool InProceduralMovement { get; set; }
 
         void SetLook(Vector2 value);
         void SetMove(Vector2 value);

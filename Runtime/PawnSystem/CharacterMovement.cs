@@ -35,6 +35,7 @@ namespace GameFramework {
             get;
             internal set;
         }
+        public float Height => characterController.height;
 
         const float minViewPitch = -55;
         const float maxViewPitch = 60;
@@ -171,6 +172,7 @@ namespace GameFramework {
             get;
             internal set;
         }
+        public bool InProceduralMovement { get; set; }
 
         Vector3 lastVelocity;
 
@@ -209,10 +211,10 @@ namespace GameFramework {
 
             if (settings.GainMomentum) {
                 if (IsGrounded) {
-                    Momentum = Mathf.Min(Momentum + Time.deltaTime * 0.2f, 1);
+                    Momentum = Mathf.Min(Momentum + Time.deltaTime * 0.15f, 1);
                 }
                 if (actualMovement.z < -0.1f || !IsMoving) {
-                    Momentum = Mathf.Max(Momentum - Time.deltaTime * 8, 0);
+                    Momentum = 0;
                 }
 
                 var angle = Vector2.Angle(new Vector2(characterController.velocity.x, characterController.velocity.z).normalized,
@@ -238,19 +240,18 @@ namespace GameFramework {
 
                 if (lastGroundedTime < Time.time - 0.2f) {
                     Momentum *= 0.8f;
-
                     Landed?.Invoke();
                 }
             }
 
             // Last grounded
-            if (IsGrounded || IsOnLadder) {
+            if (IsGrounded || IsOnLadder || InProceduralMovement) {
                 lastGroundedTime = Time.time;
             }
 
             // Gravity
             if (settings.useGravity && !IsOnLadder) {
-                y = Mathf.MoveTowards(y, Physics.gravity.y, Time.deltaTime * 10);
+                y = Mathf.MoveTowards(y, Physics.gravity.y, Time.deltaTime * 20);
             }
 
             // Jump

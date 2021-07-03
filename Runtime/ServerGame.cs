@@ -8,7 +8,7 @@ using UnityEngine.Assertions;
 using UnityEngine.Events;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
-using UnityEngine.SceneManagement; // SceneManager
+using UnityEngine.SceneManagement;
 using BitStream = Cube.Transport.BitStream;
 
 namespace GameFramework {
@@ -111,23 +111,19 @@ namespace GameFramework {
             // Load new map
             Debug.Log($"[Server] Loading level {sceneName}");
 #if UNITY_EDITOR
-            if (!SceneManager.GetSceneByName(sceneName).isLoaded) {
-#endif
-                sceneHandle = Addressables.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
-                sceneHandle.Completed += ctx => {
-                    IsLoadingScene = false;
-                };
-#if UNITY_EDITOR
-            } else {
-                server.ReplicaManager.ProcessSceneReplicasInScene(SceneManager.GetSceneByName(sceneName));
-                IsLoadingScene = false;
+            if (SceneManager.GetSceneByName(sceneName).isLoaded) {
+                SceneManager.UnloadScene(sceneName);
             }
 #endif
+            sceneHandle = Addressables.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+            sceneHandle.Completed += ctx => {
+                IsLoadingScene = false;
 
-            gameMode = CreateGameModeForScene(sceneName);
-            Assert.IsNotNull(gameMode);
+                gameMode = CreateGameModeForScene(sceneName);
+                Assert.IsNotNull(gameMode);
 
-            Debug.Log($"[Server] New GameMode <i>{gameMode}</i>");
+                Debug.Log($"[Server] New GameMode <i>{gameMode}</i>");
+            };
         }
 
         void OnNewIncomingConnection(Connection connection) {
@@ -149,7 +145,9 @@ namespace GameFramework {
             var replicaView = CreateReplicaView(connection);
             server.ReplicaManager.AddReplicaView(replicaView);
 
-            gameMode.HandleNewPlayer(newPC);
+            if (gameMode != null) { // null if there's no ongoing match
+                gameMode.HandleNewPlayer(newPC);
+            }
         }
 
         protected virtual PlayerController CreatePlayerController(Connection connection) {

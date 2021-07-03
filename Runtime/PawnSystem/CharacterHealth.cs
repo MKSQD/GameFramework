@@ -5,7 +5,18 @@ using UnityEngine.Assertions;
 using BitStream = Cube.Transport.BitStream;
 
 namespace GameFramework {
-    public class HurtEvent : IEvent { }
+    public class HurtEvent : IEvent {
+        public CharacterHealth Health;
+        public HurtEvent(CharacterHealth health) {
+            Health = health;
+        }
+    }
+    public class HealedEvent : IEvent {
+        public CharacterHealth Health;
+        public HealedEvent(CharacterHealth health) {
+            Health = health;
+        }
+    }
 
     public class DeathEvent : IEvent { }
 
@@ -18,7 +29,7 @@ namespace GameFramework {
         /// <summary>
         /// [0,1]
         /// </summary>
-        public float PercentHealth => Health / (float)MaxHealth;
+        public float Percent => Health / (float)MaxHealth;
 
         public bool IsDead => Health <= 0;
 
@@ -31,6 +42,11 @@ namespace GameFramework {
         [ContextMenu("Kill")]
         void KillInEditor() {
             Kill(new DamageInfo(255, Vector3.zero, Vector3.zero));
+        }
+
+        [ContextMenu("Damage 10")]
+        void DamageInEditor() {
+            ApplyDamage(new DamageInfo(10, Vector3.zero, Vector3.zero));
         }
 #endif
 
@@ -81,8 +97,11 @@ namespace GameFramework {
                 if (newHealth < Health) {
                     OnDamage?.Invoke(null);
                     if (isOwner) {
-                        EventHub<HurtEvent>.Emit(new HurtEvent());
+                        EventHub<HurtEvent>.Emit(new HurtEvent(this));
                     }
+                }
+                if (newHealth > Health) {
+                    EventHub<HealedEvent>.Emit(new HealedEvent(this));
                 }
                 Health = newHealth;
             }

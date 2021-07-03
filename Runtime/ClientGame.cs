@@ -69,6 +69,9 @@ namespace GameFramework {
                     if (pawn.Controller != pc) {
                         pc.Possess(pawn);
                         Debug.Log("[Client] <b>Possessed Pawn</b> <i>" + pawn + "</i> idx=" + pawnIdxToPossess, pawn);
+
+                        currentReplicaPossess = ReplicaId.Invalid;
+                        // Note: If we ever loose the Pawn we will NOT repossess it! So make sure the Pawn is kept alive #todo
                     }
                 }
             }

@@ -15,8 +15,6 @@ namespace GameFramework {
         }
         public bool HasController => Controller != null;
 
-        public IPawnMovement Movement;
-
         public event PawnEvent OnPossession;
         public event PawnEvent OnUnpossession;
 
@@ -45,7 +43,6 @@ namespace GameFramework {
         protected abstract void HandleUnpossessionImpl();
 
         protected virtual void Awake() {
-            Movement = GetComponent<IPawnMovement>();
         }
 
         protected virtual void Update() {

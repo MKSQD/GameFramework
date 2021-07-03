@@ -9,7 +9,7 @@ namespace GameFramework {
 
         public Transform view;
 
-        public new ICharacterMovement Movement {
+        public ICharacterMovement Movement {
             get;
             internal set;
         }
@@ -68,7 +68,7 @@ namespace GameFramework {
                 return;
 #endif
 
-            Movement.SetLook(new Vector2(value.x * 0.3f, value.y * 0.3f));
+            Movement.SetLook(value);
         }
 
         void OnMove(Vector2 value) {

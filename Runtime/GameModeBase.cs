@@ -1,15 +1,14 @@
-﻿using UnityEngine;
+﻿using Cube.Replication;
+using UnityEngine;
 using UnityEngine.ResourceManagement.AsyncOperations;
 
 namespace GameFramework {
     public abstract class GameModeBase : IGameMode {
-        public GameState gameState {
+        public GameObject GameState {
             get;
             protected set;
         }
         public ServerGame server;
-
-        public T GetGameState<T>() where T : GameState => (T)gameState;
 
         public GameModeBase(ServerGame server) {
             this.server = server;
@@ -22,16 +21,26 @@ namespace GameFramework {
 
         public abstract void HandleNewPlayer(PlayerController pc);
 
-        protected virtual AsyncOperationHandle<GameObject> InstantiateGameStatePrefabAsync() {
-            return GameInstance.Main.DefaultGameStatePrefab.LoadAssetAsync<GameObject>();
-        }
+        protected virtual string GetGameStateKey() => null;
 
         void InstantiateGameState() {
-            var prefabAsyncHandle = InstantiateGameStatePrefabAsync();
-            prefabAsyncHandle.Completed += obj => {
-                var gsGO = server.server.ReplicaManager.InstantiateReplica(obj.Result);
+            var key = GetGameStateKey();
+            if (key == null)
+                return;
 
-                gameState = gsGO.GetComponent<GameState>();
+            var gameStateHandle = server.server.ReplicaManager.InstantiateReplicaAsync(key);
+            gameStateHandle.Completed += ctx => {
+                GameState = ctx.Result;
+
+                var replica = GameState.GetComponent<Replica>();
+                if (replica == null) {
+                    Debug.LogError("GameState Prefab needs to be a Replica!");
+                    return;
+                }
+
+                if ((replica.settingsOrDefault.priorityFlags & ReplicaPriorityFlag.IgnorePosition) == 0) {
+                    Debug.LogWarning("GameState Replica settings should have IgnorePosition flag set!");
+                }
             };
         }
     }

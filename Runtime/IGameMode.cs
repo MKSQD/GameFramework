@@ -1,9 +1,12 @@
-﻿namespace GameFramework {
+﻿using UnityEngine;
+
+namespace GameFramework {
     public interface IGameMode {
+        GameObject GameState { get; }
+
         void Update();
 
         void HandleNewPlayer(PlayerController pc);
         void StartToLeaveMap();
-        T GetGameState<T>() where T : GameState;
     }
 }
