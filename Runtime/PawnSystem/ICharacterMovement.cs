@@ -6,7 +6,8 @@ namespace GameFramework {
         event Action Jumped, Landed, DeathByLanding;
 
         bool IsMoving { get; }
-        bool IsSneaking { get; }
+        bool IsWalking { get; }
+        bool IsCrouching { get; }
         bool IsGrounded { get; }
         Vector3 Velocity { get; }
         Vector3 LocalVelocity { get; }
@@ -15,9 +16,10 @@ namespace GameFramework {
         float Height { get; }
         bool InProceduralMovement { get; set; }
 
-        void SetLook(Vector2 value);
+        void AddLook(Vector2 value);
         void SetMove(Vector2 value);
-        void SetSneaking(bool value);
+        void SetIsWalking(bool value);
+        void SetIsCrouching(bool value);
         void Jump();
         void Teleport(Vector3 targetPosition, Quaternion targetRotation);
         void Disable();

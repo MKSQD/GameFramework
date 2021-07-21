@@ -73,7 +73,7 @@ namespace GameFramework {
             bs.Write(Pawn.Replica.Id);
             bs.Write(pawnIdx);
 
-            Pawn.server.NetworkInterface.SendBitStream(bs, PacketReliability.ReliableSequenced, Connection);
+            Pawn.server.NetworkInterface.Send(bs, PacketReliability.ReliableSequenced, Connection);
         }
     }
 }

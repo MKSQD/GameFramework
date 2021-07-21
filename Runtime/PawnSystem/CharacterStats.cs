@@ -1,7 +1,8 @@
 using UnityEngine;
 
 public enum CharacterStat {
-    MovementSpeed
+    MovementSpeed,
+    PerceptionSighted
 }
 
 public interface ICharacterStatProvider {
@@ -17,7 +18,7 @@ public class CharacterStats : MonoBehaviour {
         }
     }
 
-    void Start() {
+    void Awake() {
         providers = GetComponents<ICharacterStatProvider>();
     }
 }

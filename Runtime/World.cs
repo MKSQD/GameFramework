@@ -5,10 +5,11 @@ using UnityEngine;
 
 namespace GameFramework {
     public class World : MonoBehaviour, IWorld {
-        public List<PlayerController> playerControllers = new List<PlayerController>();
+        public GameObject GameState;
+        public List<PlayerController> PlayerControllers = new List<PlayerController>();
 
         public PlayerController GetPlayerController(Connection connection) {
-            foreach (var pc in playerControllers) {
+            foreach (var pc in PlayerControllers) {
                 if (pc.Connection == connection)
                     return pc;
             }

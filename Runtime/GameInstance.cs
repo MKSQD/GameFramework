@@ -1,7 +1,6 @@
 ﻿using Cube.Replication;
 using Cube.Transport;
 using UnityEngine;
-using UnityEngine.AddressableAssets;
 using UnityEngine.Assertions;
 
 namespace GameFramework {
@@ -17,8 +16,6 @@ namespace GameFramework {
         public ushort Port = 60000;
         public ServerReplicaManagerSettings ReplicaManagerSettings;
         public SimulatedLagSettings LagSettings;
-
-        public AssetReference DefaultGameStatePrefab;
 
         public ClientGame GameClient {
             get;

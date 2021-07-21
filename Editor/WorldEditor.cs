@@ -9,7 +9,7 @@ namespace GameFramework {
 
             DrawDefaultInspector();
 
-            EditorGUILayout.LabelField(myTarget.playerControllers.Count + " PlayerControllers");
+            EditorGUILayout.LabelField(myTarget.PlayerControllers.Count + " PlayerControllers");
         }
     }
 #endif

@@ -7,14 +7,14 @@ namespace GameFramework {
         public LayerMask ClientGroundMask;
         public LayerMask ServerGroundMask;
 
-        public bool useGravity = true;
-        public float SneakSpeed = 2;
-        public float runSpeed = 5;
-        public float backwardSpeedModifier = 0.7f;
-        public float sideSpeedModifier = 0.9f;
+        public bool UseGravity = true;
+        public float WalkSpeed = 2;
+        public float RunSpeed = 5;
+        public float BackwardSpeedModifier = 0.65f;
+        public float SideSpeedModifier = 0.8f;
 
-        public float groundControl = 0.9f;
-        public float airControl = 0.1f;
+        public float GroundControl = 0.5f;
+        public float AirControl = 0.01f;
 
 
         [Header("Movement - Momentum")]
@@ -29,6 +29,15 @@ namespace GameFramework {
         [Range(0.1f, 1f)]
         public float JumpCooldown = 0.5f;
 
+
+        [Header("Crouching")]
+        [Range(0.1f, 0.9f)]
+        public float CrouchRelativeHeight = 0.5f;
+        [Range(0.1f, 0.9f)]
+        public float CrouchRelativeViewHeight = 0.5f;
+        public float CrouchSpeed = 2;
+        [Range(0, 1)]
+        public float CrouchAIPerceptionSightModifier = 0.5f;
 
         [Header("Interpolation/Extrapolation")]
         [Range(0, 1)]

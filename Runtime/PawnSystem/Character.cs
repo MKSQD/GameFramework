@@ -24,10 +24,13 @@ namespace GameFramework {
             internal set;
         }
 
+        protected bool IsInputEnabled => !isClient || !(Controller is PlayerController) || ClientGame.CharacterInputEnabled;
+
         public override void SetupPlayerInputComponent(PawnInput input) {
             input.BindAxis2("Gameplay/Look", OnLook);
             input.BindAxis2("Gameplay/Move", OnMove);
-            input.BindAxis("Gameplay/Sneak", OnSneak);
+            input.BindAxis("Gameplay/Walk", OnWalk);
+            input.BindStartedAction("Gameplay/ToggleCrouch", OnToggleCrouch);
             input.BindStartedAction("Gameplay/Jump", OnJump);
         }
 
@@ -47,7 +50,7 @@ namespace GameFramework {
             Movement = GetComponent<ICharacterMovement>();
             Assert.IsNotNull(Movement);
 
-            Movement.DeathByLanding += () => Health.Kill(new DamageInfo(255));
+            Movement.DeathByLanding += () => Health.Kill(new DamageInfo(255, DamageType.Physical, null));
         }
 
         protected override void HandlePossessionImpl(Pawn previousPawn) {
@@ -63,37 +66,36 @@ namespace GameFramework {
         }
 
         void OnLook(Vector2 value) {
-#if UNITY_EDITOR || CLIENT
-            if (isClient && Controller is PlayerController && !ClientGame.CharacterInputEnabled)
+            if (!IsInputEnabled)
                 return;
-#endif
 
-            Movement.SetLook(value);
+            Movement.AddLook(value);
         }
 
         void OnMove(Vector2 value) {
-#if UNITY_EDITOR || CLIENT
-            if (isClient && Controller is PlayerController && !ClientGame.CharacterInputEnabled)
+            if (!IsInputEnabled)
                 return;
-#endif
 
             Movement.SetMove(value);
         }
 
-        void OnSneak(float value) {
-#if UNITY_EDITOR || CLIENT
-            if (isClient && Controller is PlayerController && !ClientGame.CharacterInputEnabled)
+        void OnWalk(float value) {
+            if (!IsInputEnabled)
                 return;
-#endif
 
-            Movement.SetSneaking(value > 0.5f);
+            Movement.SetIsWalking(value > 0.5f);
+        }
+
+        void OnToggleCrouch() {
+            if (!IsInputEnabled)
+                return;
+
+            Movement.SetIsCrouching(!Movement.IsCrouching);
         }
 
         void OnJump() {
-#if UNITY_EDITOR || CLIENT
-            if (isClient && Controller is PlayerController && !ClientGame.CharacterInputEnabled)
+            if (!IsInputEnabled)
                 return;
-#endif
 
             Movement.Jump();
         }

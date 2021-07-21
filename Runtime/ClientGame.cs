@@ -46,11 +46,11 @@ namespace GameFramework {
             var networkInterface = new LiteNetClientNetworkInterface();
             Client = new CubeClient(ctx.World, networkInterface);
 
-            Client.networkInterface.ConnectionRequestAccepted += OnConnectionRequestAccepted;
-            Client.networkInterface.Disconnected += OnDisconnected;
+            Client.NetworkInterface.ConnectionRequestAccepted += OnConnectionRequestAccepted;
+            Client.NetworkInterface.Disconnected += OnDisconnected;
 
-            Client.reactor.AddHandler((byte)MessageId.LoadScene, OnLoadScene);
-            Client.reactor.AddHandler((byte)MessageId.PossessPawn, OnPossessPawn);
+            Client.Reactor.AddHandler((byte)MessageId.LoadScene, OnLoadScene);
+            Client.Reactor.AddHandler((byte)MessageId.PossessPawn, OnPossessPawn);
         }
 
         public virtual void Update() {
@@ -65,7 +65,7 @@ namespace GameFramework {
 
                     var pawn = pawnsOnReplica[pawnIdxToPossess];
 
-                    var pc = World.playerControllers[0];
+                    var pc = World.PlayerControllers[0];
                     if (pawn.Controller != pc) {
                         pc.Possess(pawn);
                         Debug.Log("[Client] <b>Possessed Pawn</b> <i>" + pawn + "</i> idx=" + pawnIdxToPossess, pawn);
@@ -89,7 +89,7 @@ namespace GameFramework {
             Debug.Log("[Client] Connection request to server accepted");
 
             var newPC = CreatePlayerController();
-            World.playerControllers.Add(newPC);
+            World.PlayerControllers.Add(newPC);
         }
 
         void OnDisconnected(string reason) {
@@ -153,7 +153,7 @@ namespace GameFramework {
             bs.Write((byte)MessageId.LoadSceneDone);
             bs.Write(currentLoadedSceneGeneration);
 
-            Client.networkInterface.Send(bs, PacketReliability.ReliableUnordered);
+            Client.NetworkInterface.Send(bs, PacketReliability.ReliableUnordered);
         }
 
         void OnPossessPawn(BitStream bs) {

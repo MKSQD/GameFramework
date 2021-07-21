@@ -33,6 +33,7 @@ namespace GameFramework {
 
         public bool IsDead => Health <= 0;
 
+        [ReadOnly]
         public int Health;
         public byte MaxHealth = 100;
 
@@ -41,12 +42,12 @@ namespace GameFramework {
 #if UNITY_EDITOR
         [ContextMenu("Kill")]
         void KillInEditor() {
-            Kill(new DamageInfo(255, Vector3.zero, Vector3.zero));
+            Kill(new DamageInfo(255, DamageType.Physical, null));
         }
 
         [ContextMenu("Damage 10")]
         void DamageInEditor() {
-            ApplyDamage(new DamageInfo(10, Vector3.zero, Vector3.zero));
+            ApplyDamage(new DamageInfo(10, DamageType.Physical, null));
         }
 #endif
 

@@ -57,7 +57,7 @@ namespace GameFramework {
             server.NetworkInterface.ApproveConnection += OnApproveConnection;
             server.NetworkInterface.NewConnectionEstablished += OnNewIncomingConnection;
             server.NetworkInterface.DisconnectNotification += OnDisconnectNotification;
-            server.Reactor.AddMessageHandler((byte)MessageId.LoadSceneDone, OnLoadSceneDone);
+            server.Reactor.AddHandler((byte)MessageId.LoadSceneDone, OnLoadSceneDone);
         }
 
         public virtual IGameMode CreateGameModeForScene(string sceneName) {
@@ -74,6 +74,9 @@ namespace GameFramework {
         /// </summary>
         /// <param name="sceneName"></param>
         public void LoadScene(string sceneName) {
+            if (IsLoadingScene)
+                throw new Exception("Cant start loading, current loading");
+
             // Cleanup
             if (gameMode != null) {
                 gameMode.StartToLeaveMap();
@@ -85,11 +88,6 @@ namespace GameFramework {
             loadSceneName = sceneName;
 
             server.ReplicaManager.Reset();
-            if (sceneHandle.IsValid()) {
-                Addressables.UnloadSceneAsync(sceneHandle);
-            }
-
-
 
             // Instruct clients
             var bs = new BitStream();
@@ -108,22 +106,42 @@ namespace GameFramework {
                 replicaView.IsLoadingLevel = true;
             }
 
-            // Load new map
-            Debug.Log($"[Server] Loading level {sceneName}");
+            // Unload old scene
+            if (sceneHandle.IsValid()) {
+                var op = Addressables.UnloadSceneAsync(sceneHandle);
+                op.Completed += ctx => { OnOldSceneUnloaded(); };
+            } else {
 #if UNITY_EDITOR
-            if (SceneManager.GetSceneByName(sceneName).isLoaded) {
-                SceneManager.UnloadScene(sceneName);
-            }
+                var loadedScene = SceneManager.GetSceneByName(sceneName);
+                if (loadedScene.isLoaded) {
+                    //var op = SceneManager.UnloadSceneAsync(loadedScene.name);
+                    //op.completed += ctx => { OnOldSceneUnloaded(); };
+
+                    OnSceneLoaded();
+                } else {
+                    OnOldSceneUnloaded();
+                }
+#else
+                OnOldSceneUnloaded();
 #endif
-            sceneHandle = Addressables.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
-            sceneHandle.Completed += ctx => {
-                IsLoadingScene = false;
+            }
+        }
 
-                gameMode = CreateGameModeForScene(sceneName);
-                Assert.IsNotNull(gameMode);
+        void OnOldSceneUnloaded() {
+            // Load new map
+            Debug.Log($"[Server] Loading level {loadSceneName}");
 
-                Debug.Log($"[Server] New GameMode <i>{gameMode}</i>");
-            };
+            sceneHandle = Addressables.LoadSceneAsync(loadSceneName, LoadSceneMode.Additive);
+            sceneHandle.Completed += ctx => { OnSceneLoaded(); };
+        }
+
+        void OnSceneLoaded() {
+            IsLoadingScene = false;
+
+            gameMode = CreateGameModeForScene(loadSceneName);
+            Assert.IsNotNull(gameMode);
+
+            Debug.Log($"[Server] New GameMode <i>{gameMode}</i>");
         }
 
         void OnNewIncomingConnection(Connection connection) {
@@ -136,11 +154,11 @@ namespace GameFramework {
                 bs2.Write(loadSceneName);
                 bs2.Write(loadSceneGeneration);
 
-                server.NetworkInterface.SendBitStream(bs2, PacketReliability.ReliableSequenced, connection);
+                server.NetworkInterface.Send(bs2, PacketReliability.ReliableSequenced, connection);
             }
 
             var newPC = CreatePlayerController(connection);
-            world.playerControllers.Add(newPC);
+            world.PlayerControllers.Add(newPC);
 
             var replicaView = CreateReplicaView(connection);
             server.ReplicaManager.AddReplicaView(replicaView);
@@ -160,7 +178,7 @@ namespace GameFramework {
             server.ReplicaManager.RemoveReplicaView(connection);
 
             var pc = world.GetPlayerController(connection);
-            world.playerControllers.Remove(pc);
+            world.PlayerControllers.Remove(pc);
 
             foreach (var replica in server.ReplicaManager.Replicas) {
                 if (replica.Owner == connection) {

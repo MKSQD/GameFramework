@@ -81,7 +81,7 @@ namespace GameFramework {
                     break;
 
                 case MatchState.InProgress:
-                    foreach (var pc in server.world.playerControllers) {
+                    foreach (var pc in server.world.PlayerControllers) {
                         if (pc.Pawn == null && !respawnQueue.Any(pair => pair.Item2 == pc.Connection)) {
                             respawnQueue.Enqueue((Time.time + 5, pc.Connection));
                         }
@@ -125,7 +125,7 @@ namespace GameFramework {
         }
 
         protected virtual void HandleMatchHasStarted() {
-            foreach (var pc in server.world.playerControllers) {
+            foreach (var pc in server.world.PlayerControllers) {
                 SpawnPlayer(pc);
             }
         }
