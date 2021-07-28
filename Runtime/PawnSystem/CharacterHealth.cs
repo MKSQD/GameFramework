@@ -45,9 +45,9 @@ namespace GameFramework {
             Kill(new DamageInfo(255, DamageType.Physical, null));
         }
 
-        [ContextMenu("Damage 10")]
+        [ContextMenu("Damage")]
         void DamageInEditor() {
-            ApplyDamage(new DamageInfo(10, DamageType.Physical, null));
+            ApplyDamage(new DamageInfo(1, DamageType.Physical, null));
         }
 #endif
 
@@ -82,7 +82,7 @@ namespace GameFramework {
             } else {
                 OnDamage?.Invoke(info);
                 if (isServer) {
-                    RpcOwnerHurt();
+                    RpcOwnerHurt(info);
                 }
             }
         }
@@ -96,7 +96,7 @@ namespace GameFramework {
             var newHealth = bs.ReadByte();
             if (newHealth != Health) {
                 if (newHealth < Health) {
-                    OnDamage?.Invoke(null);
+                    //OnDamage?.Invoke(null);
                     if (isOwner) {
                         EventHub<HurtEvent>.Emit(new HurtEvent(this));
                     }
@@ -134,11 +134,12 @@ namespace GameFramework {
         }
 
         [ReplicaRpc(RpcTarget.Owner)]
-        void RpcOwnerHurt() {
+        void RpcOwnerHurt(DamageInfo info) {
             if (isServer)
                 return;
 
-            OnDamage?.Invoke(null);
+            Health -= info.Amount;
+            OnDamage?.Invoke(info);
         }
     }
 }

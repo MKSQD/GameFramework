@@ -8,18 +8,12 @@ namespace GameFramework {
     [AddComponentMenu("GameFramework/CharacterMovement")]
     [RequireComponent(typeof(CharacterController))]
     public class CharacterMovement : ReplicaBehaviour, ICharacterMovement, ICharacterStatProvider {
-        struct MoveInput {
-            public float X, Y;
-            public bool Jump;
-        }
-
         public event Action Jumped;
         public event Action Landed;
         public event Action DeathByLanding;
 
         public CharacterMovementSettings settings;
         public CharacterMovementSettings Settings => settings;
-
 
         public Vector3 Velocity => characterController.velocity;
         public Vector3 LocalVelocity => transform.InverseTransformDirection(Velocity);
@@ -67,7 +61,8 @@ namespace GameFramework {
 
         float lastGroundedTime;
         float nextJumpTime;
-        MoveInput moveInput;
+        Vector2 inputMove;
+        bool inputJump;
         Vector3 lastMovement;
         float y;
         float yaw;
@@ -108,8 +103,7 @@ namespace GameFramework {
         }
 
         public void SetMove(Vector2 value) {
-            moveInput.X = value.x;
-            moveInput.Y = value.y;
+            inputMove = value;
         }
 
         public void AddLook(Vector2 value) {
@@ -145,7 +139,7 @@ namespace GameFramework {
             if (!IsGrounded)
                 return;
 
-            moveInput.Jump = true;
+            inputJump = true;
         }
 
         public void Disable() {
@@ -235,7 +229,7 @@ namespace GameFramework {
             character.view.localRotation = Quaternion.AngleAxis(viewPitch, Vector3.left);
             transform.localRotation = Quaternion.AngleAxis(yaw, Vector3.up);
 
-            var actualMovement = new Vector3(moveInput.X, 0, moveInput.Y);
+            var actualMovement = new Vector3(inputMove.x, 0, inputMove.y);
             actualMovement.Normalize();
 
             if (IsOnLadder) {
@@ -320,7 +314,7 @@ namespace GameFramework {
 
             // Jump
             var wasRecentlyGrounded = lastGroundedTime >= Time.time - settings.JumpGroundedGraceTime;
-            var beginJump = moveInput.Jump && Time.time >= nextJumpTime && wasRecentlyGrounded;
+            var beginJump = inputJump && Time.time >= nextJumpTime && wasRecentlyGrounded;
             if (beginJump) {
                 nextJumpTime = Time.time + settings.JumpCooldown;
                 y = settings.JumpForce;
@@ -336,9 +330,8 @@ namespace GameFramework {
             characterController.Move(transform.rotation * actualMovement * Time.deltaTime + Vector3.up * y * Time.deltaTime);
 
             // Consume input
-            moveInput.X = 0;
-            moveInput.Y = 0;
-            moveInput.Jump = false;
+            inputMove = Vector2.zero;
+            inputJump = false;
         }
 
         Collider[] groundColliders;
