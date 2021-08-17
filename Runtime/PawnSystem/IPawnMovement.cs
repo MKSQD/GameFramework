@@ -1,8 +1,7 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace GameFramework {
     public interface IPawnMovement {
-        void OnEnterLadder();
-        void OnExitLadder();
+        void Teleport(Vector3 position, Quaternion rotation);
     }
 }

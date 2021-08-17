@@ -30,6 +30,10 @@ namespace GameFramework {
             if (GameClient != null)
                 return;
 
+#if !UNITY_EDITOR
+            Application.targetFrameRate = 120;
+#endif
+
             var clientWorldGO = new GameObject("Client World");
             var clientWorld = clientWorldGO.AddComponent<World>();
 
@@ -45,6 +49,10 @@ namespace GameFramework {
         public void StartServer() {
             if (GameServer != null)
                 return;
+
+#if !UNITY_EDITOR
+            Application.targetFrameRate = 30;
+#endif
 
             var serverWorldGO = new GameObject("Server World");
             var serverWorld = serverWorldGO.AddComponent<World>();

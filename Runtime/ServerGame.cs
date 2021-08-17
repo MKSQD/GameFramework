@@ -114,10 +114,8 @@ namespace GameFramework {
 #if UNITY_EDITOR
                 var loadedScene = SceneManager.GetSceneByName(sceneName);
                 if (loadedScene.isLoaded) {
-                    //var op = SceneManager.UnloadSceneAsync(loadedScene.name);
-                    //op.completed += ctx => { OnOldSceneUnloaded(); };
-
-                    OnSceneLoaded();
+                    var op = SceneManager.UnloadSceneAsync(loadedScene.name);
+                    op.completed += ctx => { OnOldSceneUnloaded(); };
                 } else {
                     OnOldSceneUnloaded();
                 }

@@ -145,16 +145,16 @@ namespace GameFramework {
             var prefabAddress = GetPlayerPrefabAddress(pc);
             var go = server.server.ReplicaManager.InstantiateReplicaAsync(prefabAddress);
             go.Completed += ctx => {
-                var character = ctx.Result.GetComponent<Character>();
+                var newPawn = ctx.Result.GetComponent<Pawn>();
 
                 var spawnPose = GetPlayerSpawnPosition();
-                character.Movement.Teleport(spawnPose.position, spawnPose.rotation);
 
-                Players.Add(character);
+                var movement = ctx.Result.GetComponent<IPawnMovement>();
+                movement.Teleport(spawnPose.position, spawnPose.rotation);
 
-                HandlePlayerSpawned(character);
-
-                pc.Possess(character);
+                Players.Add(newPawn);
+                HandlePlayerSpawned(newPawn);
+                pc.Possess(newPawn);
             };
         }
 

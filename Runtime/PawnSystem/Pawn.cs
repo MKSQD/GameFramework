@@ -33,24 +33,20 @@ namespace GameFramework {
             }
         }
 
-        public virtual bool CanBePossessedBy(PawnController controller) {
-            return true;
-        }
+        public virtual bool CanBePossessedBy(PawnController controller) => true;
 
         public abstract void SetupPlayerInputComponent(PawnInput input);
 
         protected abstract void HandlePossessionImpl(Pawn previousPawn);
         protected abstract void HandleUnpossessionImpl();
 
-        protected virtual void Awake() {
-        }
+        protected virtual void Awake() { }
 
         protected virtual void Update() {
             Controller?.Update();
         }
 
-        protected virtual void OnEnable() {
-        }
+        protected virtual void OnEnable() { }
 
         protected virtual void OnDisable() {
             Controller?.Unpossess();
