@@ -1,6 +1,4 @@
-﻿using UnityEngine;
-
-namespace GameFramework {
+﻿namespace GameFramework {
     public interface IGameMode {
         void Update();
 

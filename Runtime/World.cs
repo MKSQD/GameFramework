@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace GameFramework {
+    /*
     public class World : MonoBehaviour, IWorld {
         public GameObject GameState;
         public List<PlayerController> PlayerControllers = new List<PlayerController>();
@@ -16,4 +17,5 @@ namespace GameFramework {
             return null;
         }
     }
+    */
 }

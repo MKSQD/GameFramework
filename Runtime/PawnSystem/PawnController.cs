@@ -14,6 +14,9 @@ namespace GameFramework {
             if (newPawn.isServer && !newPawn.CanBePossessedBy(this))
                 return false;
 
+            if (Pawn == newPawn)
+                return true;
+
             var previousPawn = Pawn;
 
             Unpossess();

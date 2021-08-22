@@ -2,6 +2,7 @@ using Cube.Networking;
 using Cube.Replication;
 using Cube.Transport;
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.Assertions;
@@ -13,8 +14,7 @@ using BitStream = Cube.Transport.BitStream;
 
 namespace GameFramework {
     [Serializable]
-    public class ConnectionEvent : UnityEvent<Connection> {
-    }
+    public class ConnectionEvent : UnityEvent<Connection> { }
 
     public struct ServerGameContext {
         public World World;
@@ -23,41 +23,48 @@ namespace GameFramework {
         public SimulatedLagSettings LagSettings;
     }
 
-    public class ServerGame {
-        public CubeServer server {
-            get;
-            internal set;
-        }
-        public IGameMode gameMode {
-            get;
-            internal set;
-        }
-        public World world {
-            get;
-            internal set;
-        }
+    public class ServerGame : MonoBehaviour, IWorld {
+        public event Action LoadSceneDone;
 
-        AsyncOperationHandle<SceneInstance> sceneHandle;
+        public static ServerGame Main;
+
+        public CubeServer Server {
+            get;
+            internal set;
+        }
+        public IGameMode GameMode {
+            get;
+            internal set;
+        }
+        [ReadOnly]
+        public GameObject GameState;
+        public List<PlayerController> PlayerControllers = new List<PlayerController>();
+
         public bool IsLoadingScene {
             get;
             internal set;
         }
+
+        public ushort Port = 60000;
+        public ServerReplicaManagerSettings ReplicaManagerSettings;
+        public SimulatedLagSettings LagSettings;
+
+        AsyncOperationHandle<SceneInstance> sceneHandle;
         string loadSceneName;
         byte loadSceneGeneration;
         byte numLoadScenePlayerAcks;
 
-        public ServerGame(ServerGameContext ctx) {
-            Assert.IsNotNull(ctx.World);
-            world = ctx.World;
-
+        protected virtual void Awake() {
             //var networkInterface = new LidgrenServerNetworkInterface(ctx.Settings.Port, ctx.LagSettings);
-            var networkInterface = new LiteNetServerNetworkInterface(ctx.Port);
-            server = new CubeServer(ctx.World, networkInterface, ctx.ReplicaManagerSettings);
+            var networkInterface = new LiteNetServerNetworkInterface(Port);
+            Server = new CubeServer(transform, networkInterface, ReplicaManagerSettings);
 
-            server.NetworkInterface.ApproveConnection += OnApproveConnection;
-            server.NetworkInterface.NewConnectionEstablished += OnNewIncomingConnection;
-            server.NetworkInterface.DisconnectNotification += OnDisconnectNotification;
-            server.Reactor.AddHandler((byte)MessageId.LoadSceneDone, OnLoadSceneDone);
+            Server.NetworkInterface.ApproveConnection += OnApproveConnection;
+            Server.NetworkInterface.NewConnectionEstablished += OnNewIncomingConnection;
+            Server.NetworkInterface.DisconnectNotification += OnDisconnectNotification;
+            Server.Reactor.AddHandler((byte)MessageId.LoadSceneDone, OnLoadSceneDone);
+
+            Main = this;
         }
 
         public virtual IGameMode CreateGameModeForScene(string sceneName) {
@@ -78,8 +85,8 @@ namespace GameFramework {
                 throw new Exception("Cant start loading, current loading");
 
             // Cleanup
-            if (gameMode != null) {
-                gameMode.StartToLeaveMap();
+            if (GameMode != null) {
+                GameMode.StartToLeaveMap();
             }
 
             IsLoadingScene = true;
@@ -87,7 +94,7 @@ namespace GameFramework {
             numLoadScenePlayerAcks = 0;
             loadSceneName = sceneName;
 
-            server.ReplicaManager.Reset();
+            Server.ReplicaManager.Reset();
 
             // Instruct clients
             var bs = new BitStream();
@@ -95,11 +102,11 @@ namespace GameFramework {
             bs.Write(sceneName);
             bs.Write(loadSceneGeneration);
 
-            server.NetworkInterface.BroadcastBitStream(bs, PacketReliability.ReliableSequenced);
+            Server.NetworkInterface.BroadcastBitStream(bs, PacketReliability.ReliableSequenced);
 
             // Disable ReplicaViews during level load
-            foreach (var connection in server.connections) {
-                var replicaView = server.ReplicaManager.GetReplicaView(connection);
+            foreach (var connection in Server.connections) {
+                var replicaView = Server.ReplicaManager.GetReplicaView(connection);
                 if (replicaView == null)
                     continue;
 
@@ -109,24 +116,23 @@ namespace GameFramework {
             // Unload old scene
             if (sceneHandle.IsValid()) {
                 var op = Addressables.UnloadSceneAsync(sceneHandle);
-                op.Completed += ctx => { OnOldSceneUnloaded(); };
+                op.Completed += ctx => { LoadSceneImpl(); };
             } else {
 #if UNITY_EDITOR
                 var loadedScene = SceneManager.GetSceneByName(sceneName);
                 if (loadedScene.isLoaded) {
                     var op = SceneManager.UnloadSceneAsync(loadedScene.name);
-                    op.completed += ctx => { OnOldSceneUnloaded(); };
+                    op.completed += ctx => { LoadSceneImpl(); };
                 } else {
-                    OnOldSceneUnloaded();
+                    LoadSceneImpl();
                 }
 #else
-                OnOldSceneUnloaded();
+                LoadSceneImpl();
 #endif
             }
         }
 
-        void OnOldSceneUnloaded() {
-            // Load new map
+        void LoadSceneImpl() {
             Debug.Log($"[Server] Loading level {loadSceneName}");
 
             sceneHandle = Addressables.LoadSceneAsync(loadSceneName, LoadSceneMode.Additive);
@@ -134,12 +140,15 @@ namespace GameFramework {
         }
 
         void OnSceneLoaded() {
+            Debug.Log("[Server] <b>Level loaded</b>");
+
             IsLoadingScene = false;
+            LoadSceneDone?.Invoke();
 
-            gameMode = CreateGameModeForScene(loadSceneName);
-            Assert.IsNotNull(gameMode);
+            GameMode = CreateGameModeForScene(loadSceneName);
+            Assert.IsNotNull(GameMode);
 
-            Debug.Log($"[Server] New GameMode <i>{gameMode}</i>");
+            Debug.Log($"[Server] New GameMode <i>{GameMode}</i>");
         }
 
         void OnNewIncomingConnection(Connection connection) {
@@ -152,17 +161,17 @@ namespace GameFramework {
                 bs2.Write(loadSceneName);
                 bs2.Write(loadSceneGeneration);
 
-                server.NetworkInterface.Send(bs2, PacketReliability.ReliableSequenced, connection);
+                Server.NetworkInterface.Send(bs2, PacketReliability.ReliableSequenced, connection);
             }
 
             var newPC = CreatePlayerController(connection);
-            world.PlayerControllers.Add(newPC);
+            PlayerControllers.Add(newPC);
 
             var replicaView = CreateReplicaView(connection);
-            server.ReplicaManager.AddReplicaView(replicaView);
+            Server.ReplicaManager.AddReplicaView(replicaView);
 
-            if (gameMode != null) { // null if there's no ongoing match
-                gameMode.HandleNewPlayer(newPC);
+            if (GameMode != null) { // null if there's no ongoing match
+                GameMode.HandleNewPlayer(newPC);
             }
         }
 
@@ -170,35 +179,45 @@ namespace GameFramework {
             return new PlayerController(connection);
         }
 
+        public PlayerController GetPlayerControllerForConnection(Connection connection) {
+            foreach (var pc in PlayerControllers) {
+                if (pc.Connection == connection)
+                    return pc;
+            }
+            return null;
+        }
+
         protected virtual void OnDisconnectNotification(Connection connection) {
             Debug.Log("[Server] Lost connection: " + connection);
 
-            server.ReplicaManager.RemoveReplicaView(connection);
+            Server.ReplicaManager.RemoveReplicaView(connection);
 
-            var pc = world.GetPlayerController(connection);
-            world.PlayerControllers.Remove(pc);
+            var pc = GetPlayerControllerForConnection(connection);
+            PlayerControllers.Remove(pc);
 
-            foreach (var replica in server.ReplicaManager.Replicas) {
+            foreach (var replica in Server.ReplicaManager.Replicas) {
                 if (replica.Owner == connection) {
                     replica.Destroy();
                 }
             }
         }
 
-        public virtual void Update() {
-            server.Update();
-            if (gameMode != null) {
-                gameMode.Update();
+        protected virtual void Update() {
+            Server.Update();
+            if (GameMode != null) {
+                GameMode.Update();
             }
         }
 
-        public virtual void Shutdown() {
-            server.Shutdown();
+        protected virtual void OnApplicationQuit() {
+            Debug.Log("--- Shutdown ---");
+
+            Server.Shutdown();
         }
 
         protected virtual ReplicaView CreateReplicaView(Connection connection) {
             var view = new GameObject("ReplicaView " + connection);
-            view.transform.parent = server.World.transform;
+            view.transform.parent = transform;
 
             var rw = view.AddComponent<ReplicaView>();
             rw.Connection = connection;
@@ -216,10 +235,10 @@ namespace GameFramework {
             ++numLoadScenePlayerAcks;
 
             //
-            var replicaView = server.ReplicaManager.GetReplicaView(connection);
+            var replicaView = Server.ReplicaManager.GetReplicaView(connection);
             if (replicaView != null) {
                 replicaView.IsLoadingLevel = false;
-                server.ReplicaManager.ForceReplicaViewRefresh(replicaView);
+                Server.ReplicaManager.ForceReplicaViewRefresh(replicaView);
             }
         }
     }

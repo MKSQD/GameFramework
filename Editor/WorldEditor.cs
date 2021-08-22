@@ -1,6 +1,7 @@
 ﻿using UnityEditor;
 
 namespace GameFramework {
+    /*
 #if UNITY_EDITOR
     [CustomEditor(typeof(World))]
     public class WorldEditor : Editor {
@@ -13,4 +14,5 @@ namespace GameFramework {
         }
     }
 #endif
+*/
 }

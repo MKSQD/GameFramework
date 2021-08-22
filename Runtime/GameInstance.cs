@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.Assertions;
 
 namespace GameFramework {
+    /*
     public class GameInstance : MonoBehaviour {
         static GameInstance main;
         public static GameInstance Main {
@@ -99,4 +100,5 @@ namespace GameFramework {
         protected virtual void OnClientRunning() { }
         protected virtual void OnServerRunning() { }
     }
+    */
 }
