@@ -4,7 +4,7 @@ using UnityEngine;
 namespace GameFramework {
     [AddComponentMenu("GameFramework/PlayerSpawn")]
     public class PlayerSpawn : MonoBehaviour {
-        static public List<PlayerSpawn> all = new List<PlayerSpawn>();
+        public static List<PlayerSpawn> All = new List<PlayerSpawn>();
 
         public Vector3 GetRandomizedPosition() {
             var offset = new Vector3(Random.Range(-1f, 1f), 0, Random.Range(-1f, 1f));
@@ -14,11 +14,11 @@ namespace GameFramework {
         }
 
         void OnEnable() {
-            all.Add(this);
+            All.Add(this);
         }
 
         void OnDisable() {
-            all.Remove(this);
+            All.Remove(this);
         }
     }
 }

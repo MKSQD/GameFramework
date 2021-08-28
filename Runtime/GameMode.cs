@@ -145,7 +145,7 @@ namespace GameFramework {
             go.Completed += ctx => {
                 var newPawn = ctx.Result.GetComponent<Pawn>();
 
-                var spawnPose = GetPlayerSpawnPosition();
+                var spawnPose = GetPlayerSpawnPosition(pc);
 
                 var movement = ctx.Result.GetComponent<IPawnMovement>();
                 movement.Teleport(spawnPose.position, spawnPose.rotation);
@@ -160,12 +160,11 @@ namespace GameFramework {
             throw new NotImplementedException();
         }
 
-        protected virtual Pose GetPlayerSpawnPosition() {
-            if (PlayerSpawn.all.Count == 0)
+        protected virtual Pose GetPlayerSpawnPosition(PlayerController pc) {
+            if (PlayerSpawn.All.Count == 0)
                 return Pose.identity;
 
-            var spawn = PlayerSpawn.all[UnityEngine.Random.Range(0, PlayerSpawn.all.Count)];
-
+            var spawn = PlayerSpawn.All[UnityEngine.Random.Range(0, PlayerSpawn.All.Count)];
             var spawnPosition = spawn.GetRandomizedPosition();
             return new Pose(spawnPosition, spawn.transform.rotation);
         }
