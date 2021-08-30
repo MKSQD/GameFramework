@@ -28,7 +28,7 @@ namespace GameFramework {
             Pawn = newPawn;
 
             newPawn.HandlePossession(this, previousPawn);
-            OnPossess(newPawn);
+            OnPossessed(newPawn);
             return true;
         }
 
@@ -38,7 +38,7 @@ namespace GameFramework {
 
             try {
                 Pawn.HandleUnpossession();
-                OnUnpossess();
+                OnUnpossessed();
             } finally {
                 Pawn = null;
             }
@@ -46,7 +46,7 @@ namespace GameFramework {
 
         public abstract void Update();
 
-        protected abstract void OnPossess(Pawn pawn);
-        protected abstract void OnUnpossess();
+        protected abstract void OnPossessed(Pawn pawn);
+        protected abstract void OnUnpossessed();
     }
 }

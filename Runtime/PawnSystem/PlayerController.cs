@@ -33,7 +33,7 @@ namespace GameFramework {
             return "PlayerController(" + s + ")";
         }
 
-        protected override void OnPossess(Pawn pawn) {
+        protected override void OnPossessed(Pawn pawn) {
             if (pawn.isServer) {
                 pawn.Replica.AssignOwnership(Connection);
                 replicaView = pawn.server.ReplicaManager.GetReplicaView(Connection);
@@ -46,7 +46,7 @@ namespace GameFramework {
             }
         }
 
-        protected override void OnUnpossess() {
+        protected override void OnUnpossessed() {
             if (Pawn.isServer) {
                 Pawn.Replica.TakeOwnership();
             }
