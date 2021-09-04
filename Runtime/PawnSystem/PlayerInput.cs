@@ -5,7 +5,7 @@ using UnityEngine.Assertions;
 using UnityEngine.InputSystem;
 
 namespace GameFramework {
-    public sealed class PlayerInput : PawnInput {
+    public sealed class PlayerInput : IPawnInput {
         readonly InputActionAsset inputActionMap;
         readonly List<(InputAction Action, AxisHandler Handler)> axisActions = new List<(InputAction, AxisHandler)>();
         readonly List<(InputAction Action, Axis2Handler Handler)> axis2Actions = new List<(InputAction, Axis2Handler)>();

@@ -5,7 +5,7 @@ namespace GameFramework {
     public delegate void Axis2Handler(Vector2 value);
     public delegate void ActionHandler();
 
-    public interface PawnInput {
+    public interface IPawnInput {
         void BindStartedAction(string actionName, ActionHandler handler);
         void BindCanceledAction(string actionName, ActionHandler handler);
         void BindAxis(string axisName, AxisHandler handler);
