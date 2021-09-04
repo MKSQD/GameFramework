@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System;
+using UnityEditor;
 
 namespace GameFramework {
     [AttributeUsage(AttributeTargets.Field, Inherited = true)]
@@ -8,10 +9,10 @@ namespace GameFramework {
 #if UNITY_EDITOR
     [UnityEditor.CustomPropertyDrawer(typeof(ReadOnlyAttribute))]
     public class ReadOnlyAttributeDrawer : UnityEditor.PropertyDrawer {
-        public override void OnGUI(Rect rect, UnityEditor.SerializedProperty prop, GUIContent label) {
+        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
             bool wasEnabled = GUI.enabled;
             GUI.enabled = false;
-            UnityEditor.EditorGUI.PropertyField(rect, prop);
+            EditorGUI.PropertyField(position, property, label);
             GUI.enabled = wasEnabled;
         }
     }
