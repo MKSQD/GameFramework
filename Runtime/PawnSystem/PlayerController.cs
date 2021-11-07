@@ -52,6 +52,7 @@ namespace GameFramework {
             }
             if (Pawn.isClient) {
                 Pawn.InputMap.Disable();
+                Pawn.InputMap = null;
             }
         }
 

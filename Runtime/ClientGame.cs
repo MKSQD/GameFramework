@@ -29,14 +29,14 @@ namespace GameFramework {
         [ReadOnly]
         public GameObject GameState;
 
-        public static bool CharacterInputEnabled = true;
-
         AsyncOperationHandle<SceneInstance> sceneHandle;
         byte currentLoadedSceneGeneration;
 
         PlayerController localPlayerController;
         ReplicaId currentReplicaToPossess = ReplicaId.Invalid;
         byte pawnIdxToPossess;
+
+        public virtual bool PawnInputEnabled => true;
 
 
         protected virtual void Awake() {

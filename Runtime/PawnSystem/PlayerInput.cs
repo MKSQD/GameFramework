@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.InputSystem;
+using static UnityEngine.InputSystem.InputAction;
 
 namespace GameFramework {
     public sealed class PlayerInput : IPawnInput {
@@ -16,25 +17,35 @@ namespace GameFramework {
         }
 
         public void BindStartedAction(string actionName, ActionHandler handler) {
-            var inputAction = inputActionMap.FindAction(actionName, true);
-            inputAction.started += ctx => {
+            Action<CallbackContext> wrapper = ctx => {
+                if (!ClientGame.Main.PawnInputEnabled)
+                    return;
+
                 try {
                     handler();
                 } catch (Exception e) {
                     Debug.LogException(e);
                 }
             };
+
+            var inputAction = inputActionMap.FindAction(actionName, true);
+            inputAction.started += wrapper;
         }
 
         public void BindCanceledAction(string actionName, ActionHandler handler) {
-            var inputAction = inputActionMap.FindAction(actionName, true);
-            inputAction.canceled += ctx => {
+            Action<CallbackContext> wrapper = ctx => {
+                if (!ClientGame.Main.PawnInputEnabled)
+                    return;
+
                 try {
                     handler();
                 } catch (Exception e) {
                     Debug.LogException(e);
                 }
             };
+
+            var inputAction = inputActionMap.FindAction(actionName, true);
+            inputAction.canceled += wrapper;
         }
 
         public void BindAxis(string axisName, AxisHandler handler) {
@@ -48,6 +59,9 @@ namespace GameFramework {
         }
 
         public void Update() {
+            if (!ClientGame.Main.PawnInputEnabled)
+                return;
+
             foreach (var pair in axisActions) {
                 var value = pair.Action.ReadValue<float>();
                 pair.Handler(value);
