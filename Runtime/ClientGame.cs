@@ -124,7 +124,7 @@ namespace GameFramework {
         IEnumerator LoadScene(string sceneName) {
             Debug.Log($"[Client] <b>Loading level</b> '<i>{sceneName}</i>'");
 
-            EventHub<StartedLoading>.Emit(new StartedLoading());
+            EventHub<StartedLoading>.EmitEmpty();
 
             // Cleanup
             currentReplicaToPossess = ReplicaId.Invalid;
@@ -139,11 +139,11 @@ namespace GameFramework {
             sceneHandle = Addressables.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
             sceneHandle.Completed += ctx => {
                 SendLoadSceneDone();
-                EventHub<EndedLoading>.Emit(new EndedLoading());
+                EventHub<EndedLoading>.EmitEmpty();
             };
 #else
             SendLoadSceneDone();
-            EventHub<EndedLoading>.Emit(new EndedLoading());
+            EventHub<EndedLoading>.EmitEmpty();
 #endif
         }
 
