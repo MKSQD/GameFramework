@@ -6,11 +6,11 @@ namespace GameFramework {
     public class PlayerController : PawnController {
         public PlayerInput Input {
             get;
-            internal set;
+            private set;
         }
         public Connection Connection {
             get;
-            internal set;
+            private set;
         }
 
         ReplicaView replicaView;
@@ -51,6 +51,8 @@ namespace GameFramework {
                 Pawn.Replica.TakeOwnership();
             }
             if (Pawn.isClient) {
+                Input.Dispose();
+
                 Pawn.InputMap.Disable();
                 Pawn.InputMap = null;
             }

@@ -30,11 +30,11 @@ namespace GameFramework {
 
         public CubeServer Server {
             get;
-            internal set;
+            private set;
         }
         public IGameMode GameMode {
             get;
-            internal set;
+            private set;
         }
         [ReadOnly]
         public GameObject GameState;

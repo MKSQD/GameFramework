@@ -4,7 +4,7 @@ namespace GameFramework {
     public abstract class PawnController {
         public Pawn Pawn {
             get;
-            internal set;
+            private set;
         }
 
         public bool Possess(Pawn newPawn) {

@@ -4,14 +4,19 @@ using Cube.Replication;
 using Cube.Transport;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
-using UnityEngine.Assertions;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 using BitStream = Cube.Transport.BitStream;
 
 namespace GameFramework {
-    public class StartedLoading : IEvent { }
+    public class StartedLoading : IEvent {
+        public string SceneName;
+
+        public StartedLoading(string sceneName) {
+            SceneName = sceneName;
+        }
+    }
     public class EndedLoading : IEvent { }
 
     public struct ClientGameContext {
@@ -63,7 +68,7 @@ namespace GameFramework {
             if (currentReplicaToPossess == ReplicaId.Invalid)
                 return;
 
-            var replica = Client.replicaManager.GetReplica(currentReplicaToPossess);
+            var replica = Client.ReplicaManager.GetReplica(currentReplicaToPossess);
             if (replica == null)
                 return;
 
@@ -103,7 +108,7 @@ namespace GameFramework {
             localPlayerController = null;
             currentReplicaToPossess = ReplicaId.Invalid;
 
-            Client.replicaManager.Reset();
+            Client.ReplicaManager.Reset();
 
             if (sceneHandle.IsValid()) {
                 Addressables.UnloadSceneAsync(sceneHandle);
@@ -124,12 +129,12 @@ namespace GameFramework {
         IEnumerator LoadScene(string sceneName) {
             Debug.Log($"[Client] <b>Loading level</b> '<i>{sceneName}</i>'");
 
-            EventHub<StartedLoading>.EmitEmpty();
+            EventHub<StartedLoading>.Emit(new StartedLoading(sceneName));
 
             // Cleanup
             currentReplicaToPossess = ReplicaId.Invalid;
 
-            Client.replicaManager.Reset();
+            Client.ReplicaManager.Reset();
 
             if (sceneHandle.IsValid())
                 yield return Addressables.UnloadSceneAsync(sceneHandle);
@@ -138,10 +143,15 @@ namespace GameFramework {
 #if !UNITY_EDITOR
             sceneHandle = Addressables.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
             sceneHandle.Completed += ctx => {
+                Client.ReplicaManager.ProcessSceneReplicasInScene(ctx.Result.Scene);
+
                 SendLoadSceneDone();
                 EventHub<EndedLoading>.EmitEmpty();
             };
 #else
+            var scene = SceneManager.GetSceneByName(sceneName);
+            Client.ReplicaManager.ProcessSceneReplicasInScene(scene);
+
             SendLoadSceneDone();
             EventHub<EndedLoading>.EmitEmpty();
 #endif
