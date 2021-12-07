@@ -7,7 +7,7 @@ using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
-using BitStream = Cube.Transport.BitStream;
+
 
 namespace GameFramework {
     public class StartedLoading : IEvent {
@@ -45,7 +45,6 @@ namespace GameFramework {
 
 
         protected virtual void Awake() {
-            //var networkInterface = new LidgrenClientNetworkInterface(ctx.LagSettings);
             var networkInterface = new LiteNetClientNetworkInterface();
 
             Client = new CubeClient(this, networkInterface);
@@ -115,7 +114,7 @@ namespace GameFramework {
             }
         }
 
-        void OnLoadScene(BitStream bs) {
+        void OnLoadScene(BitReader bs) {
             var sceneName = bs.ReadString();
             var generation = bs.ReadByte();
 
@@ -158,14 +157,14 @@ namespace GameFramework {
         }
 
         void SendLoadSceneDone() {
-            var bs = new BitStream();
+            var bs = new BitWriter();
             bs.Write((byte)MessageId.LoadSceneDone);
             bs.Write(currentLoadedSceneGeneration);
 
             Client.NetworkInterface.Send(bs, PacketReliability.ReliableUnordered);
         }
 
-        void OnPossessPawn(BitStream bs) {
+        void OnPossessPawn(BitReader bs) {
             var replicaId = bs.ReadReplicaId();
             var pawnIdx = bs.ReadByte();
 

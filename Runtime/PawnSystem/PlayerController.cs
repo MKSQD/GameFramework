@@ -71,7 +71,7 @@ namespace GameFramework {
 
             Assert.IsTrue(pawnIdx != byte.MaxValue);
 
-            var bs = BitStreamPool.Create();
+            var bs = new BitWriter();
             bs.Write((byte)MessageId.PossessPawn);
             bs.Write(Pawn.Replica.Id);
             bs.Write(pawnIdx);

@@ -10,7 +10,7 @@ using UnityEngine.Events;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
-using BitStream = Cube.Transport.BitStream;
+
 
 namespace GameFramework {
     [Serializable]
@@ -71,7 +71,7 @@ namespace GameFramework {
             return new GameMode(this);
         }
 
-        protected virtual ApprovalResult OnApproveConnection(BitStream bs) {
+        protected virtual ApprovalResult OnApproveConnection(BitReader bs) {
             return new ApprovalResult() { Approved = true };
         }
 
@@ -97,7 +97,7 @@ namespace GameFramework {
             Server.ReplicaManager.Reset();
 
             // Instruct clients
-            var bs = new BitStream();
+            var bs = new BitWriter();
             bs.Write((byte)MessageId.LoadScene);
             bs.Write(sceneName);
             bs.Write(loadSceneGeneration);
@@ -156,7 +156,7 @@ namespace GameFramework {
 
             // Send load scene packet if we loaded one previously
             if (loadSceneName != null) {
-                var bs2 = new BitStream();
+                var bs2 = new BitWriter();
                 bs2.Write((byte)MessageId.LoadScene);
                 bs2.Write(loadSceneName);
                 bs2.Write(loadSceneGeneration);
@@ -225,7 +225,7 @@ namespace GameFramework {
             return rw;
         }
 
-        void OnLoadSceneDone(Connection connection, BitStream bs) {
+        void OnLoadSceneDone(Connection connection, BitReader bs) {
             var generation = bs.ReadByte();
             if (generation != loadSceneGeneration)
                 return;
