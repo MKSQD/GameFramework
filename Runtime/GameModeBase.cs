@@ -14,7 +14,7 @@ namespace GameFramework {
 
         public abstract void StartToLeaveMap();
 
-        public abstract void HandleNewPlayer(PlayerController pc);
+        public abstract void HandleNewPlayer(ServerPlayerController pc);
 
         protected virtual string GetGameStateKey() => null;
 

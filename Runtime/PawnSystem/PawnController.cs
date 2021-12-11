@@ -1,15 +1,11 @@
-﻿using System;
+﻿using UnityEngine.Assertions;
 
 namespace GameFramework {
     public abstract class PawnController {
-        public Pawn Pawn {
-            get;
-            private set;
-        }
+        public Pawn Pawn { get; private set; }
 
         public bool Possess(Pawn newPawn) {
-            if (newPawn == null)
-                throw new ArgumentNullException("newPawn");
+            Assert.IsNotNull(newPawn);
 
             if (newPawn.isServer && !newPawn.CanBePossessedBy(this))
                 return false;
@@ -21,9 +17,7 @@ namespace GameFramework {
 
             Unpossess();
 
-            if (newPawn.Controller != null) {
-                newPawn.Controller.Unpossess();
-            }
+            newPawn.Controller?.Unpossess();
 
             Pawn = newPawn;
 

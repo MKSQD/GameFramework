@@ -37,12 +37,9 @@ namespace GameFramework {
         AsyncOperationHandle<SceneInstance> sceneHandle;
         byte currentLoadedSceneGeneration;
 
-        PlayerController localPlayerController;
-        ReplicaId currentReplicaToPossess = ReplicaId.Invalid;
-        byte pawnIdxToPossess;
+        ClientPlayerController localPlayerController;
 
         public virtual bool PawnInputEnabled => true;
-
 
         protected virtual void Awake() {
             var networkInterface = new LiteNetClientNetworkInterface();
@@ -53,36 +50,22 @@ namespace GameFramework {
             Client.NetworkInterface.Disconnected += OnDisconnected;
 
             Client.Reactor.AddHandler((byte)MessageId.LoadScene, OnLoadScene);
-            Client.Reactor.AddHandler((byte)MessageId.PossessPawn, OnPossessPawn);
+            Client.Reactor.AddHandler((byte)MessageId.PossessPawn, bs => localPlayerController.OnPossessPawn(bs));
+            Client.Reactor.AddHandler((byte)MessageId.MoveCorrect, bs => localPlayerController.OnMoveCorrect(bs));
 
             Main = this;
         }
 
+        double nextNetworkTick;
+
         protected virtual void Update() {
             Client.Update();
-            PossessReplica();
-        }
+            localPlayerController?.Update();
 
-        void PossessReplica() {
-            if (currentReplicaToPossess == ReplicaId.Invalid)
-                return;
+            if (Time.timeAsDouble >= nextNetworkTick) {
+                nextNetworkTick = Time.timeAsDouble + 1f / 30;
 
-            var replica = Client.ReplicaManager.GetReplica(currentReplicaToPossess);
-            if (replica == null)
-                return;
-
-            var pawnsOnReplica = replica.GetComponentsInChildren<Pawn>();
-            if (pawnIdxToPossess >= pawnsOnReplica.Length) {
-                Debug.LogWarning("Invalid Pawn prossession idx");
-                return;
-            }
-
-            var pawn = pawnsOnReplica[pawnIdxToPossess];
-            if (localPlayerController.Possess(pawn)) {
-                Debug.Log($"[Client] <b>Possessed Pawn</b> <i>{pawn}</i> idx={pawnIdxToPossess}", pawn);
-
-                currentReplicaToPossess = ReplicaId.Invalid;
-                // Note: If we ever loose the Pawn we will NOT repossess it! This should be OK since we never timeout owned Replicas
+                Client.Tick();
             }
         }
 
@@ -90,14 +73,10 @@ namespace GameFramework {
             Client.Shutdown();
         }
 
-        protected virtual PlayerController CreatePlayerController() {
-            return new PlayerController(Connection.Invalid);
-        }
-
         void OnConnectionRequestAccepted() {
             Debug.Log("[Client] Connection request to server accepted");
 
-            localPlayerController = CreatePlayerController();
+            localPlayerController = new ClientPlayerController();
         }
 
         void OnDisconnected(string reason) {
@@ -105,7 +84,6 @@ namespace GameFramework {
 
             // Cleanup
             localPlayerController = null;
-            currentReplicaToPossess = ReplicaId.Invalid;
 
             Client.ReplicaManager.Reset();
 
@@ -129,9 +107,6 @@ namespace GameFramework {
             Debug.Log($"[Client] <b>Loading level</b> '<i>{sceneName}</i>'");
 
             EventHub<StartedLoading>.Emit(new StartedLoading(sceneName));
-
-            // Cleanup
-            currentReplicaToPossess = ReplicaId.Invalid;
 
             Client.ReplicaManager.Reset();
 
@@ -161,15 +136,7 @@ namespace GameFramework {
             bs.Write((byte)MessageId.LoadSceneDone);
             bs.Write(currentLoadedSceneGeneration);
 
-            Client.NetworkInterface.Send(bs, PacketReliability.ReliableUnordered);
-        }
-
-        void OnPossessPawn(BitReader bs) {
-            var replicaId = bs.ReadReplicaId();
-            var pawnIdx = bs.ReadByte();
-
-            currentReplicaToPossess = replicaId;
-            pawnIdxToPossess = pawnIdx;
+            Client.NetworkInterface.Send(bs, PacketReliability.ReliableUnordered, MessageChannel.SceneLoad);
         }
     }
 }

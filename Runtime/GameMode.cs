@@ -105,7 +105,7 @@ namespace GameFramework {
             }
         }
 
-        public override void HandleNewPlayer(PlayerController pc) {
+        public override void HandleNewPlayer(ServerPlayerController pc) {
             if (HasMatchStarted) {
                 SpawnPlayer(pc);
             }
@@ -137,22 +137,24 @@ namespace GameFramework {
         protected virtual void HandlePlayerSpawned(Pawn player) {
         }
 
-        protected virtual void SpawnPlayer(PlayerController pc) {
-            Debug.Log("[Server] <b>Spawning player</b> <i>" + pc.Connection + "</i>");
+        protected virtual void SpawnPlayer(ServerPlayerController pc) {
+            Debug.Log($"[Server] <b>Spawning player</b> <i>{pc.Connection}</i>");
 
             var prefabAddress = GetPlayerPrefabAddress(pc);
             var go = server.Server.ReplicaManager.InstantiateReplicaAsync(prefabAddress);
             go.Completed += ctx => {
-                var newPawn = ctx.Result.GetComponent<Pawn>();
-
                 var spawnPose = GetPlayerSpawnPosition(pc);
 
-                var movement = ctx.Result.GetComponent<IPawnMovement>();
-                movement.Teleport(spawnPose.position, spawnPose.rotation);
+                var newPawn = ctx.Result.GetComponent<Pawn>();
+                newPawn.Teleport(spawnPose.position, spawnPose.rotation);
 
                 players.Add(newPawn);
                 HandlePlayerSpawned(newPawn);
-                pc.Possess(newPawn);
+
+                var result = pc.Possess(newPawn);
+                if (!result) {
+                    Debug.LogError("[Server] AH FUCK, POSSESSION FAILED");
+                }
             };
         }
 

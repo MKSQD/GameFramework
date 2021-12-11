@@ -7,6 +7,8 @@
         LoadScene,
 
         PossessPawn,
+        Move,
+        MoveCorrect,
 
         FirstUserId
     }

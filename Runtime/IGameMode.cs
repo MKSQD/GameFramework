@@ -2,7 +2,7 @@
     public interface IGameMode {
         void Update();
 
-        void HandleNewPlayer(PlayerController pc);
+        void HandleNewPlayer(ServerPlayerController pc);
         void StartToLeaveMap();
     }
 }

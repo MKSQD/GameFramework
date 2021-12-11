@@ -7,16 +7,17 @@ using static UnityEngine.InputSystem.InputAction;
 
 namespace GameFramework {
     public sealed class PlayerInput : IPawnInput, IDisposable {
-        readonly InputActionAsset inputActionMap;
-        readonly List<(InputAction Action, AxisHandler Handler)> axisActions = new List<(InputAction, AxisHandler)>();
-        readonly List<(InputAction Action, Axis2Handler Handler)> axis2Actions = new List<(InputAction, Axis2Handler)>();
+        readonly InputActionAsset _inputActionMap;
+        readonly List<(InputAction Action, AxisHandler Handler)> _axisActions = new List<(InputAction, AxisHandler)>();
+        readonly List<(InputAction Action, Axis2Handler Handler)> _axis2Actions = new List<(InputAction, Axis2Handler)>();
 
-        List<(InputAction, Action<CallbackContext>)> removeStarted = new();
-        List<(InputAction, Action<CallbackContext>)> removeCanceled = new();
+        List<(InputAction, Action<CallbackContext>)> _removeStarted = new();
+        List<(InputAction, Action<CallbackContext>)> _removeCanceled = new();
 
         public PlayerInput(InputActionAsset inputActionMap) {
             Assert.IsNotNull(inputActionMap);
-            this.inputActionMap = inputActionMap;
+
+            _inputActionMap = inputActionMap;
         }
 
         public void BindStartedAction(string actionName, ActionHandler handler) {
@@ -31,10 +32,10 @@ namespace GameFramework {
                 }
             };
 
-            var inputAction = inputActionMap.FindAction(actionName, true);
+            var inputAction = _inputActionMap.FindAction(actionName, true);
             inputAction.started += wrapper;
 
-            removeStarted.Add((inputAction, wrapper));
+            _removeStarted.Add((inputAction, wrapper));
         }
 
         public void BindCanceledAction(string actionName, ActionHandler handler) {
@@ -49,42 +50,42 @@ namespace GameFramework {
                 }
             };
 
-            var inputAction = inputActionMap.FindAction(actionName, true);
+            var inputAction = _inputActionMap.FindAction(actionName, true);
             inputAction.canceled += wrapper;
 
-            removeCanceled.Add((inputAction, wrapper));
+            _removeCanceled.Add((inputAction, wrapper));
         }
 
         public void BindAxis(string axisName, AxisHandler handler) {
-            var inputAction = inputActionMap.FindAction(axisName, true);
-            axisActions.Add((inputAction, handler));
+            var inputAction = _inputActionMap.FindAction(axisName, true);
+            _axisActions.Add((inputAction, handler));
         }
 
         public void BindAxis2(string axisName, Axis2Handler handler) {
-            var inputAction = inputActionMap.FindAction(axisName, true);
-            axis2Actions.Add((inputAction, handler));
+            var inputAction = _inputActionMap.FindAction(axisName, true);
+            _axis2Actions.Add((inputAction, handler));
         }
 
         public void Update() {
             if (!ClientGame.Main.PawnInputEnabled)
                 return;
 
-            foreach (var pair in axisActions) {
+            foreach (var pair in _axisActions) {
                 var value = pair.Action.ReadValue<float>();
                 pair.Handler(value);
             }
-            foreach (var pair in axis2Actions) {
+            foreach (var pair in _axis2Actions) {
                 var value = pair.Action.ReadValue<Vector2>();
                 pair.Handler(value);
             }
         }
 
         public void Dispose() {
-            foreach (var pair in removeStarted) {
+            foreach (var pair in _removeStarted) {
                 pair.Item1.started -= pair.Item2;
             }
 
-            foreach (var pair in removeCanceled) {
+            foreach (var pair in _removeCanceled) {
                 pair.Item1.canceled -= pair.Item2;
             }
         }
