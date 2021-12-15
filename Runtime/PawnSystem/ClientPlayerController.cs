@@ -2,14 +2,33 @@ using System.Collections.Generic;
 using Cube.Replication;
 using Cube.Transport;
 using UnityEngine;
-using UnityEngine.Assertions;
 
 namespace GameFramework {
+    public interface IMove : ISerializable {
+        void SerializeResult(BitWriter bs);
+        void DeserializeResult(BitReader bs);
+    }
+
+    public class MoveWrapper : ISerializable {
+        public float Timestamp;
+        public IMove Move;
+
+        public void Serialize(BitWriter bs) {
+            bs.WriteFloat(Timestamp);
+            Move.Serialize(bs);
+        }
+
+        public void Deserialize(BitReader bs) {
+            Timestamp = bs.ReadFloat();
+            Move.Deserialize(bs);
+        }
+    }
+
     public class ClientPlayerController : PlayerController {
         ReplicaId _currentReplicaToPossess = ReplicaId.Invalid;
         byte _pawnIdxToPossess;
 
-        Queue<IMove> moveQueue = new();
+        Queue<MoveWrapper> moveQueue = new();
 
         double nextMoveSendTime;
         public override void Update() {
@@ -18,24 +37,20 @@ namespace GameFramework {
             if (Pawn == null)
                 return;
 
-            while (moveQueue.Count > 0)
+            while (moveQueue.Count > 10)
                 moveQueue.Dequeue();
 
-            // if (moveQueue.Count < 10) {
             Input.Update();
 
             var newMove = Pawn.GetCurrentMove();
-            Assert.IsTrue(newMove.GetTime() > 0.001f, "most certainly an error");
+            var newMoveWrapper = new MoveWrapper() {
+                Move = newMove,
+                Timestamp = Time.time
+            };
+            moveQueue.Enqueue(newMoveWrapper);
 
             Pawn.ResetCurrentMove();
-
-            moveQueue.Enqueue(newMove);
-
             Pawn.ExecuteMove(newMove, Time.deltaTime);
-            //}
-
-            // if (moveQueue.Count >= 10)
-            //    Debug.Log("Stalled movement");
 
             if (Time.timeAsDouble >= nextMoveSendTime) {
                 nextMoveSendTime = Time.timeAsDouble + (1f / 30);
@@ -48,7 +63,7 @@ namespace GameFramework {
                 return;
 
             var bs = new BitWriter(32);
-            bs.Write((byte)MessageId.Move);
+            bs.WriteByte((byte)MessageId.Move);
 
             bs.WriteIntInRange(moveQueue.Count, 1, 20);
             foreach (var move in moveQueue) {
@@ -60,14 +75,20 @@ namespace GameFramework {
 
         public void OnMoveCorrect(BitReader bs) {
             var acceptedTime = bs.ReadFloat();
-            Pawn.ExecuteMoveResult(bs);
+
+            {
+                var move = Pawn.CreateMove();
+                move.DeserializeResult(bs);
+
+                Pawn.ResetToState(move);
+            }
 
             // Throw away old moves
             int num = 0;
 
             while (moveQueue.Count > 0) {
                 var move = moveQueue.Peek();
-                if (move.GetTime() > acceptedTime)
+                if (move.Timestamp > acceptedTime)
                     break;
 
                 moveQueue.Dequeue();
@@ -76,9 +97,9 @@ namespace GameFramework {
 
             // Replay moves
             foreach (var move in moveQueue) {
-                var t2 = move.GetTime() - acceptedTime;
-                Pawn.ExecuteMove(move, t2);
-                acceptedTime = move.GetTime();
+                var t2 = move.Timestamp - acceptedTime;
+                Pawn.ExecuteMove(move.Move, t2);
+                acceptedTime = move.Timestamp;
             }
         }
 

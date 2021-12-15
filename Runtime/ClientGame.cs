@@ -132,9 +132,9 @@ namespace GameFramework {
         }
 
         void SendLoadSceneDone() {
-            var bs = new BitWriter();
-            bs.Write((byte)MessageId.LoadSceneDone);
-            bs.Write(currentLoadedSceneGeneration);
+            var bs = new BitWriter(1);
+            bs.WriteByte((byte)MessageId.LoadSceneDone);
+            bs.WriteByte(currentLoadedSceneGeneration);
 
             Client.NetworkInterface.Send(bs, PacketReliability.ReliableUnordered, MessageChannel.SceneLoad);
         }

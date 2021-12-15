@@ -24,21 +24,26 @@ namespace GameFramework {
         public void OnMove(Connection connection, BitReader bs) {
             var num = bs.ReadIntInRange(1, 20);
 
+            MoveWrapper moveWrapper = null;
             for (int i = 0; i < num; ++i) {
-                var newMove = Pawn.ReadMove(bs);
-                if (newMove.GetTime() < baseTime)
+                moveWrapper = new MoveWrapper() {
+                    Move = Pawn.CreateMove()
+                };
+                moveWrapper.Deserialize(bs);
+                if (moveWrapper.Timestamp < baseTime)
                     return;
 
-                var t = newMove.GetTime() - baseTime;
-                Pawn.ExecuteMove(newMove, t);
+                var t = moveWrapper.Timestamp - baseTime;
+                Pawn.ExecuteMove(moveWrapper.Move, t);
 
-                baseTime = newMove.GetTime();
+                baseTime = moveWrapper.Timestamp;
             }
 
             var bs2 = new BitWriter();
-            bs2.Write((byte)MessageId.MoveCorrect);
-            bs2.Write(baseTime);
-            Pawn.WriteMoveResult(bs2);
+            bs2.WriteByte((byte)MessageId.MoveCorrect);
+            bs2.WriteFloat(baseTime);
+
+            moveWrapper.Move.SerializeResult(bs2);
 
             ServerGame.Main.Server.NetworkInterface.Send(bs2, PacketReliability.Unreliable, connection);
         }
@@ -66,9 +71,9 @@ namespace GameFramework {
             Assert.IsTrue(pawnIdx != byte.MaxValue);
 
             var bs = new BitWriter();
-            bs.Write((byte)MessageId.PossessPawn);
-            bs.Write(Pawn.Replica.Id);
-            bs.Write(pawnIdx);
+            bs.WriteByte((byte)MessageId.PossessPawn);
+            bs.WriteReplicaId(Pawn.Replica);
+            bs.WriteByte(pawnIdx);
 
             Pawn.server.NetworkInterface.Send(bs, PacketReliability.ReliableSequenced, Connection, MessageChannel.SceneLoad);
         }

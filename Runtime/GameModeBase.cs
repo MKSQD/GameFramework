@@ -32,7 +32,7 @@ namespace GameFramework {
                     Debug.LogError("GameState Prefab needs Replica Component!");
                     return;
                 }
-                if ((replica.settingsOrDefault.priorityFlags & ReplicaPriorityFlag.IgnorePosition) == 0) {
+                if ((replica.SettingsOrDefault.priorityFlags & ReplicaPriorityFlag.IgnorePosition) == 0) {
                     Debug.LogWarning("GameState Replica settings should have IgnorePosition flag set!");
                 }
 

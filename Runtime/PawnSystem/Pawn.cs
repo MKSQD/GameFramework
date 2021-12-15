@@ -4,16 +4,11 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace GameFramework {
-    public interface IMove : ISerializable {
-        float GetTime();
-    }
-
     public interface IPawnMove {
         IMove GetCurrentMove();
         void ResetCurrentMove();
-        IMove ReadMove(BitReader bs);
-        void WriteMoveResult(BitWriter bs);
-        void ExecuteMoveResult(BitReader bs);
+        IMove CreateMove();
+        void ResetToState(IMove move);
         void ExecuteMove(IMove move, float t);
 
         void Teleport(Vector3 targetPosition, Quaternion targetRotation);
@@ -50,9 +45,8 @@ namespace GameFramework {
         public abstract void SetupPlayerInputComponent(IPawnInput input);
         public abstract IMove GetCurrentMove();
         public abstract void ResetCurrentMove();
-        public abstract IMove ReadMove(BitReader bs);
-        public abstract void WriteMoveResult(BitWriter bs);
-        public abstract void ExecuteMoveResult(BitReader bs);
+        public abstract IMove CreateMove();
+        public abstract void ResetToState(IMove move);
         public abstract void ExecuteMove(IMove move, float t);
         public abstract void Teleport(Vector3 targetPosition, Quaternion targetRotation);
 

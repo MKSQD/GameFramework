@@ -78,9 +78,9 @@ namespace GameFramework {
 
             // Instruct clients
             var bs = new BitWriter();
-            bs.Write((byte)MessageId.LoadScene);
-            bs.Write(sceneName);
-            bs.Write(loadSceneGeneration);
+            bs.WriteByte((byte)MessageId.LoadScene);
+            bs.WriteString(sceneName);
+            bs.WriteByte(loadSceneGeneration);
 
             Server.NetworkInterface.BroadcastBitStream(bs, PacketReliability.ReliableSequenced);
 
@@ -141,9 +141,9 @@ namespace GameFramework {
             // Send load scene packet if we loaded one previously
             if (loadSceneName != null) {
                 var bs2 = new BitWriter();
-                bs2.Write((byte)MessageId.LoadScene);
-                bs2.Write(loadSceneName);
-                bs2.Write(loadSceneGeneration);
+                bs2.WriteByte((byte)MessageId.LoadScene);
+                bs2.WriteString(loadSceneName);
+                bs2.WriteByte(loadSceneGeneration);
 
                 Server.NetworkInterface.Send(bs2, PacketReliability.ReliableSequenced, connection, MessageChannel.SceneLoad);
             }
