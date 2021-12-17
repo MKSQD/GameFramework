@@ -1,5 +1,5 @@
 using System.Collections;
-using Cube.Networking;
+using Cube;
 using Cube.Replication;
 using Cube.Transport;
 using UnityEngine;
@@ -19,18 +19,10 @@ namespace GameFramework {
     }
     public class EndedLoading : IEvent { }
 
-    public struct ClientGameContext {
-        public World World;
-        public SimulatedLagSettings LagSettings;
-    }
-
     public class ClientGame : MonoBehaviour, IWorld {
         public static ClientGame Main;
 
-        public CubeClient Client {
-            get;
-            internal set;
-        }
+        public CubeClient Client { get; private set; }
         [ReadOnly]
         public GameObject GameState;
 
@@ -42,7 +34,9 @@ namespace GameFramework {
         public virtual bool PawnInputEnabled => true;
 
         protected virtual void Awake() {
-            var networkInterface = new LiteNetClientNetworkInterface();
+            var transport = GetComponent<ITransport>();
+
+            var networkInterface = transport.CreateClient();
 
             Client = new CubeClient(this, networkInterface);
 

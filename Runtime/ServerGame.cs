@@ -1,4 +1,4 @@
-using Cube.Networking;
+using Cube;
 using Cube.Replication;
 using Cube.Transport;
 using System;
@@ -35,7 +35,11 @@ namespace GameFramework {
         byte numLoadScenePlayerAcks;
 
         protected virtual void Awake() {
-            var networkInterface = new LiteNetServerNetworkInterface(Port);
+            var transport = GetComponent<ITransport>();
+
+            var networkInterface = transport.CreateServer();
+            networkInterface.Start(Port);
+
             Server = new CubeServer(transform, networkInterface, ReplicaManagerSettings);
 
             Server.NetworkInterface.ApproveConnection += OnApproveConnection;
