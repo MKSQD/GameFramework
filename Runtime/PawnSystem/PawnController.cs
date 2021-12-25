@@ -38,7 +38,8 @@ namespace GameFramework {
             }
         }
 
-        public abstract void Update();
+        public virtual void Update() { }
+        public virtual void Tick() { }
 
         protected abstract void OnPossessed(Pawn pawn);
         protected abstract void OnUnpossessed();

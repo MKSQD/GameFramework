@@ -1,5 +1,4 @@
 ﻿using Cube.Replication;
-using Cube.Transport;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -9,7 +8,7 @@ namespace GameFramework {
         void ResetCurrentMove();
         IMove CreateMove();
         void ResetToState(IMove move);
-        void ExecuteMove(IMove move, float t);
+        void ExecuteMove(IMove move);
 
         void Teleport(Vector3 targetPosition, Quaternion targetRotation);
     }
@@ -47,7 +46,7 @@ namespace GameFramework {
         public abstract void ResetCurrentMove();
         public abstract IMove CreateMove();
         public abstract void ResetToState(IMove move);
-        public abstract void ExecuteMove(IMove move, float t);
+        public abstract void ExecuteMove(IMove move);
         public abstract void Teleport(Vector3 targetPosition, Quaternion targetRotation);
 
         protected abstract void HandlePossessionImpl(Pawn previousPawn);

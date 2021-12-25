@@ -50,16 +50,17 @@ namespace GameFramework {
             Main = this;
         }
 
-        double nextNetworkTick;
+        double _nextNetworkTick;
 
         protected virtual void Update() {
             Client.Update();
             localPlayerController?.Update();
 
-            if (Time.timeAsDouble >= nextNetworkTick) {
-                nextNetworkTick = Time.timeAsDouble + 1f / 30;
+            if (Time.timeAsDouble >= _nextNetworkTick) {
+                _nextNetworkTick = Time.timeAsDouble + Constants.TickRate;
 
                 Client.Tick();
+                localPlayerController?.Tick();
             }
         }
 

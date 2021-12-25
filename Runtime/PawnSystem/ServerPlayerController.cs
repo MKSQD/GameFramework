@@ -20,32 +20,33 @@ namespace GameFramework {
             }
         }
 
-        float baseTime;
+        float _lastMoveFirstTimestamp;
         public void OnMove(Connection connection, BitReader bs) {
             var num = bs.ReadIntInRange(1, 20);
+            var firstTimestamp = bs.ReadFloat();
+            if (firstTimestamp < _lastMoveFirstTimestamp)
+                return;
 
-            MoveWrapper moveWrapper = null;
+            _lastMoveFirstTimestamp = firstTimestamp;
+
+            IMove lastMove = null;
             for (int i = 0; i < num; ++i) {
-                moveWrapper = new MoveWrapper() {
-                    Move = Pawn.CreateMove()
-                };
-                moveWrapper.Deserialize(bs);
-                if (moveWrapper.Timestamp < baseTime)
-                    return;
+                lastMove = Pawn.CreateMove();
+                lastMove.Deserialize(bs);
 
-                var t = moveWrapper.Timestamp - baseTime;
-                Pawn.ExecuteMove(moveWrapper.Move, t);
+                Pawn.ExecuteMove(lastMove);
 
-                baseTime = moveWrapper.Timestamp;
+                _lastMoveFirstTimestamp += Constants.TickRate;
             }
 
-            var bs2 = new BitWriter();
-            bs2.WriteByte((byte)MessageId.MoveCorrect);
-            bs2.WriteFloat(baseTime);
+            {
+                var bs2 = new BitWriter();
+                bs2.WriteByte((byte)MessageId.MoveCorrect);
+                bs2.WriteFloat(_lastMoveFirstTimestamp);
+                lastMove.SerializeResult(bs2);
 
-            moveWrapper.Move.SerializeResult(bs2);
-
-            ServerGame.Main.Server.NetworkInterface.Send(bs2, PacketReliability.Unreliable, connection);
+                ServerGame.Main.Server.NetworkInterface.Send(bs2, PacketReliability.Unreliable, connection);
+            }
         }
 
         protected override void OnPossessed(Pawn pawn) {

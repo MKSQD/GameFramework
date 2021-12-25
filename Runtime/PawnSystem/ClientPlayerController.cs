@@ -4,41 +4,21 @@ using Cube.Transport;
 using UnityEngine;
 
 namespace GameFramework {
-    public interface IMove : ISerializable {
-        void SerializeResult(BitWriter bs);
-        void DeserializeResult(BitReader bs);
-    }
-
-    public class MoveWrapper : ISerializable {
-        public float Timestamp;
-        public IMove Move;
-
-        public void Serialize(BitWriter bs) {
-            bs.WriteFloat(Timestamp);
-            Move.Serialize(bs);
-        }
-
-        public void Deserialize(BitReader bs) {
-            Timestamp = bs.ReadFloat();
-            Move.Deserialize(bs);
-        }
-    }
-
     public class ClientPlayerController : PlayerController {
         ReplicaId _currentReplicaToPossess = ReplicaId.Invalid;
         byte _pawnIdxToPossess;
 
-        Queue<MoveWrapper> moveQueue = new();
+        Queue<MoveWrapper> _moveQueue = new();
 
-        double nextMoveSendTime;
-        public override void Update() {
+        public override void Tick() {
             PossessReplica();
 
             if (Pawn == null)
                 return;
 
-            while (moveQueue.Count > 10)
-                moveQueue.Dequeue();
+            while (_moveQueue.Count > 10) {
+                _moveQueue.Dequeue();
+            }
 
             Input.Update();
 
@@ -47,27 +27,25 @@ namespace GameFramework {
                 Move = newMove,
                 Timestamp = Time.time
             };
-            moveQueue.Enqueue(newMoveWrapper);
+            _moveQueue.Enqueue(newMoveWrapper);
 
             Pawn.ResetCurrentMove();
-            Pawn.ExecuteMove(newMove, Time.deltaTime);
+            Pawn.ExecuteMove(newMove);
 
-            if (Time.timeAsDouble >= nextMoveSendTime) {
-                nextMoveSendTime = Time.timeAsDouble + (1f / 30);
-                SendMove();
-            }
+            SendMove();
         }
 
         void SendMove() {
-            if (Pawn == null || moveQueue.Count == 0)
+            if (Pawn == null || _moveQueue.Count == 0)
                 return;
 
             var bs = new BitWriter(32);
             bs.WriteByte((byte)MessageId.Move);
 
-            bs.WriteIntInRange(moveQueue.Count, 1, 20);
-            foreach (var move in moveQueue) {
-                move.Serialize(bs);
+            bs.WriteIntInRange(_moveQueue.Count, 1, 20);
+            bs.WriteFloat(_moveQueue.Peek().Timestamp);
+            foreach (var move in _moveQueue) {
+                move.Move.Serialize(bs);
             }
 
             ClientGame.Main.Client.NetworkInterface.Send(bs, PacketReliability.Unreliable, MessageChannel.Move);
@@ -86,19 +64,18 @@ namespace GameFramework {
             // Throw away old moves
             int num = 0;
 
-            while (moveQueue.Count > 0) {
-                var move = moveQueue.Peek();
+            while (_moveQueue.Count > 0) {
+                var move = _moveQueue.Peek();
                 if (move.Timestamp > acceptedTime)
                     break;
 
-                moveQueue.Dequeue();
+                _moveQueue.Dequeue();
                 ++num;
             }
 
             // Replay moves
-            foreach (var move in moveQueue) {
-                var t2 = move.Timestamp - acceptedTime;
-                Pawn.ExecuteMove(move.Move, t2);
+            foreach (var move in _moveQueue) {
+                Pawn.ExecuteMove(move.Move);
                 acceptedTime = move.Timestamp;
             }
         }
@@ -116,7 +93,7 @@ namespace GameFramework {
 
         protected override void OnUnpossessed() {
             Input.Dispose();
-            moveQueue.Clear();
+            _moveQueue.Clear();
 
             Pawn.InputMap.Disable();
         }
@@ -144,8 +121,16 @@ namespace GameFramework {
             }
         }
 
-        public override string ToString() {
-            return "ClientPlayerController";
-        }
+        public override string ToString() => "ClientPlayerController";
+    }
+
+    public interface IMove : ISerializable {
+        void SerializeResult(BitWriter bs);
+        void DeserializeResult(BitReader bs);
+    }
+
+    public class MoveWrapper {
+        public float Timestamp;
+        public IMove Move;
     }
 }

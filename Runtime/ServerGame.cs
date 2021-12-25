@@ -10,10 +10,9 @@ using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 
-
 namespace GameFramework {
     public class ServerGame : MonoBehaviour, IWorld {
-        public event Action LoadSceneDone;
+        public event Action SceneLoaded;
 
         public static ServerGame Main;
 
@@ -25,19 +24,22 @@ namespace GameFramework {
 
         public bool IsLoadingScene { get; private set; }
 
+        public int NumMaxClients = 30;
         public ushort Port = 60000;
         public ServerReplicaManagerSettings ReplicaManagerSettings;
         public SimulatedLagSettings LagSettings;
 
-        AsyncOperationHandle<SceneInstance> sceneHandle;
-        string loadSceneName;
-        byte loadSceneGeneration;
-        byte numLoadScenePlayerAcks;
+        AsyncOperationHandle<SceneInstance> _sceneHandle;
+        string _loadSceneName;
+        byte _loadSceneGeneration;
+        byte _numLoadScenePlayerAcks;
+
+        double _nextNetworkTick;
 
         protected virtual void Awake() {
             var transport = GetComponent<ITransport>();
 
-            var networkInterface = transport.CreateServer();
+            var networkInterface = transport.CreateServer(NumMaxClients, LagSettings);
             networkInterface.Start(Port);
 
             Server = new CubeServer(transform, networkInterface, ReplicaManagerSettings);
@@ -74,9 +76,9 @@ namespace GameFramework {
             }
 
             IsLoadingScene = true;
-            ++loadSceneGeneration;
-            numLoadScenePlayerAcks = 0;
-            loadSceneName = sceneName;
+            ++_loadSceneGeneration;
+            _numLoadScenePlayerAcks = 0;
+            _loadSceneName = sceneName;
 
             Server.ReplicaManager.Reset();
 
@@ -84,7 +86,7 @@ namespace GameFramework {
             var bs = new BitWriter();
             bs.WriteByte((byte)MessageId.LoadScene);
             bs.WriteString(sceneName);
-            bs.WriteByte(loadSceneGeneration);
+            bs.WriteByte(_loadSceneGeneration);
 
             Server.NetworkInterface.BroadcastBitStream(bs, PacketReliability.ReliableSequenced);
 
@@ -98,8 +100,8 @@ namespace GameFramework {
             }
 
             // Unload old scene
-            if (sceneHandle.IsValid()) {
-                var op = Addressables.UnloadSceneAsync(sceneHandle);
+            if (_sceneHandle.IsValid()) {
+                var op = Addressables.UnloadSceneAsync(_sceneHandle);
                 op.Completed += ctx => { LoadSceneImpl(); };
             } else {
 #if UNITY_EDITOR
@@ -117,19 +119,19 @@ namespace GameFramework {
         }
 
         void LoadSceneImpl() {
-            Debug.Log($"[Server] Loading level {loadSceneName}");
+            Debug.Log($"[Server] Loading level {_loadSceneName}");
 
-            sceneHandle = Addressables.LoadSceneAsync(loadSceneName, LoadSceneMode.Additive);
-            sceneHandle.Completed += ctx => { OnSceneLoaded(); };
+            _sceneHandle = Addressables.LoadSceneAsync(_loadSceneName, LoadSceneMode.Additive);
+            _sceneHandle.Completed += ctx => { OnSceneLoaded(); };
         }
 
         void OnSceneLoaded() {
             Debug.Log("[Server] <b>Level loaded</b>");
 
             IsLoadingScene = false;
-            LoadSceneDone?.Invoke();
+            SceneLoaded?.Invoke();
 
-            GameMode = CreateGameModeForScene(loadSceneName);
+            GameMode = CreateGameModeForScene(_loadSceneName);
             Assert.IsNotNull(GameMode);
 
             Debug.Log($"[Server] New GameMode <i>{GameMode}</i>");
@@ -143,11 +145,11 @@ namespace GameFramework {
             Debug.Log($"[Server] <b>New connection</b> <i>{connection}</i>");
 
             // Send load scene packet if we loaded one previously
-            if (loadSceneName != null) {
+            if (_loadSceneName != null) {
                 var bs2 = new BitWriter();
                 bs2.WriteByte((byte)MessageId.LoadScene);
-                bs2.WriteString(loadSceneName);
-                bs2.WriteByte(loadSceneGeneration);
+                bs2.WriteString(_loadSceneName);
+                bs2.WriteByte(_loadSceneGeneration);
 
                 Server.NetworkInterface.Send(bs2, PacketReliability.ReliableSequenced, connection, MessageChannel.SceneLoad);
             }
@@ -187,7 +189,6 @@ namespace GameFramework {
             }
         }
 
-        double nextNetworkTick;
         protected virtual void Update() {
             Server.Update();
             if (GameMode != null) {
@@ -198,10 +199,13 @@ namespace GameFramework {
                 pc.Update();
             }
 
-            if (Time.timeAsDouble >= nextNetworkTick) {
-                nextNetworkTick = Time.timeAsDouble + 1f / 30;
+            if (Time.timeAsDouble >= _nextNetworkTick) {
+                _nextNetworkTick = Time.timeAsDouble + Constants.TickRate;
 
                 Server.Tick();
+                foreach (var pc in PlayerControllers) {
+                    pc.Tick();
+                }
             }
         }
 
@@ -221,12 +225,12 @@ namespace GameFramework {
 
         void OnLoadSceneDone(Connection connection, BitReader bs) {
             var generation = bs.ReadByte();
-            if (generation != loadSceneGeneration)
+            if (generation != _loadSceneGeneration)
                 return;
 
             Debug.Log($"[Server] On load scene done: <i>{connection}</i> (generation={generation})");
 
-            ++numLoadScenePlayerAcks;
+            ++_numLoadScenePlayerAcks;
 
             //
             var replicaView = Server.ReplicaManager.GetReplicaView(connection);
