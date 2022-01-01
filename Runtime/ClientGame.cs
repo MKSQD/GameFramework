@@ -122,7 +122,7 @@ namespace GameFramework {
             Client.ReplicaManager.ProcessSceneReplicasInScene(scene);
 
             SendLoadSceneDone();
-            EventHub<EndedLoading>.EmitEmpty();
+            EventHub<EndedLoading>.EmitDefault();
 #endif
         }
 
