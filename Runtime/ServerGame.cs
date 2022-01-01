@@ -87,29 +87,27 @@ namespace GameFramework {
             // Disable ReplicaViews during level load
             foreach (var connection in Server.connections) {
                 var replicaView = Server.ReplicaManager.GetReplicaView(connection);
-                if (replicaView == null)
-                    continue;
-
-                replicaView.IsLoadingLevel = true;
+                if (replicaView != null) {
+                    replicaView.IsLoadingLevel = true;
+                }
             }
 
             // Unload old scene
             if (_sceneHandle.IsValid()) {
                 var op = Addressables.UnloadSceneAsync(_sceneHandle);
                 op.Completed += ctx => { LoadSceneImpl(); };
-            } else {
-#if UNITY_EDITOR
-                var loadedScene = SceneManager.GetSceneByName(sceneName);
-                if (loadedScene.isLoaded) {
-                    var op = SceneManager.UnloadSceneAsync(loadedScene.name);
-                    op.completed += ctx => { LoadSceneImpl(); };
-                } else {
-                    LoadSceneImpl();
-                }
-#else
-                LoadSceneImpl();
-#endif
+                return;
             }
+
+#if UNITY_EDITOR
+            var loadedScene = SceneManager.GetSceneByName(sceneName);
+            if (loadedScene.isLoaded) {
+                OnSceneLoaded();
+                return;
+            }
+#endif
+
+            LoadSceneImpl();
         }
 
         void BroadcastLoadScene(string sceneName, byte gen) {
