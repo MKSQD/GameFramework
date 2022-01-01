@@ -6,13 +6,16 @@ using UnityEngine.InputSystem;
 using static UnityEngine.InputSystem.InputAction;
 
 namespace GameFramework {
-    public sealed class PlayerInput : IPawnInput, IDisposable {
-        readonly InputActionAsset _inputActionMap;
-        readonly List<(InputAction Action, AxisHandler Handler)> _axisActions = new List<(InputAction, AxisHandler)>();
-        readonly List<(InputAction Action, Axis2Handler Handler)> _axis2Actions = new List<(InputAction, Axis2Handler)>();
+    public delegate void AxisHandler(float value);
+    public delegate void Axis2Handler(Vector2 value);
+    public delegate void ActionHandler();
 
-        List<(InputAction, Action<CallbackContext>)> _removeStarted = new();
-        List<(InputAction, Action<CallbackContext>)> _removeCanceled = new();
+    public sealed class PlayerInput : IDisposable {
+        readonly InputActionAsset _inputActionMap;
+        readonly List<(InputAction Action, AxisHandler Handler)> _axisActions = new();
+        readonly List<(InputAction Action, Axis2Handler Handler)> _axis2Actions = new();
+        readonly List<(InputAction, Action<CallbackContext>)> _removeStarted = new();
+        readonly List<(InputAction, Action<CallbackContext>)> _removeCanceled = new();
 
         public PlayerInput(InputActionAsset inputActionMap) {
             Assert.IsNotNull(inputActionMap);

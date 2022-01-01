@@ -22,17 +22,17 @@ namespace GameFramework {
         public PawnController Controller { get; private set; }
         public bool HasController => Controller != null;
 
-        public event PawnEvent OnPossession, OnUnpossession;
+        public event PawnEvent Possessed, Unpossessed;
 
-        public void HandlePossession(PawnController controller, Pawn previousPawn) {
+        public void NotifyPossessed(PawnController controller, Pawn previousPawn) {
             Controller = controller;
             HandlePossessionImpl(previousPawn);
-            OnPossession?.Invoke(this);
+            Possessed?.Invoke(this);
         }
 
-        public void HandleUnpossession() {
+        public void NotifyUnpossessed() {
             try {
-                OnUnpossession?.Invoke(this);
+                Unpossessed?.Invoke(this);
                 HandleUnpossessionImpl();
             } finally {
                 Controller = null;
@@ -41,7 +41,7 @@ namespace GameFramework {
 
         public virtual bool CanBePossessedBy(PawnController controller) => true;
 
-        public abstract void SetupPlayerInputComponent(IPawnInput input);
+        public abstract void SetupPlayerInputComponent(PlayerInput input);
         public abstract IMove GetCurrentMove();
         public abstract void ResetCurrentMove();
         public abstract IMove CreateMove();

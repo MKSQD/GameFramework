@@ -1,13 +1,12 @@
 using Cube.Replication;
 using Cube.Transport;
-using UnityEngine;
 using UnityEngine.Assertions;
 
 namespace GameFramework {
-    public class ServerPlayerController : PlayerController {
+    public class ServerPlayerController : PawnController {
         public Connection Connection => _replicaView.Connection;
 
-        ReplicaView _replicaView;
+        readonly ReplicaView _replicaView;
 
         public ServerPlayerController(ReplicaView view) {
             _replicaView = view;
@@ -18,6 +17,9 @@ namespace GameFramework {
                 _replicaView.transform.position = Pawn.transform.position;
                 _replicaView.transform.rotation = Pawn.transform.rotation;
             }
+        }
+
+        public override void Tick() {
         }
 
         float _lastMoveFirstTimestamp;
@@ -81,7 +83,7 @@ namespace GameFramework {
 
         public override string ToString() {
             var s = Connection != Connection.Invalid ? Connection.ToString() : "Invalid";
-            return "ServerPlayerController(" + s + ")";
+            return $"ServerPlayerController({s})";
         }
     }
 }

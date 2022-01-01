@@ -21,7 +21,7 @@ namespace GameFramework {
 
             Pawn = newPawn;
 
-            newPawn.HandlePossession(this, previousPawn);
+            newPawn.NotifyPossessed(this, previousPawn);
             OnPossessed(newPawn);
             return true;
         }
@@ -31,15 +31,15 @@ namespace GameFramework {
                 return;
 
             try {
-                Pawn.HandleUnpossession();
+                Pawn.NotifyUnpossessed();
                 OnUnpossessed();
             } finally {
                 Pawn = null;
             }
         }
 
-        public virtual void Update() { }
-        public virtual void Tick() { }
+        public abstract void Update();
+        public abstract void Tick();
 
         protected abstract void OnPossessed(Pawn pawn);
         protected abstract void OnUnpossessed();

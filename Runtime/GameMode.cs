@@ -158,11 +158,11 @@ namespace GameFramework {
             };
         }
 
-        protected virtual object GetPlayerPrefabAddress(PlayerController pc) {
+        protected virtual object GetPlayerPrefabAddress(ServerPlayerController pc) {
             throw new NotImplementedException();
         }
 
-        protected virtual Pose GetPlayerSpawnPosition(PlayerController pc) {
+        protected virtual Pose GetPlayerSpawnPosition(ServerPlayerController pc) {
             if (PlayerSpawn.All.Count == 0)
                 return Pose.identity;
 

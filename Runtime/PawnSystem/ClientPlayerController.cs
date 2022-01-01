@@ -4,11 +4,20 @@ using Cube.Transport;
 using UnityEngine;
 
 namespace GameFramework {
-    public class ClientPlayerController : PlayerController {
+    public class ClientPlayerController : PawnController {
+        public PlayerInput Input { get; protected set; }
+
         ReplicaId _currentReplicaToPossess = ReplicaId.Invalid;
         byte _pawnIdxToPossess;
 
         Queue<MoveWrapper> _moveQueue = new();
+
+        public override void Update() {
+            if (Pawn == null)
+                return;
+
+            Input.Update();
+        }
 
         public override void Tick() {
             PossessReplica();
@@ -19,8 +28,6 @@ namespace GameFramework {
             while (_moveQueue.Count > 10) {
                 _moveQueue.Dequeue();
             }
-
-            Input.Update();
 
             var newMove = Pawn.GetCurrentMove();
             var newMoveWrapper = new MoveWrapper() {
