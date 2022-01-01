@@ -82,13 +82,7 @@ namespace GameFramework {
 
             Server.ReplicaManager.Reset();
 
-            // Instruct clients
-            var bs = new BitWriter();
-            bs.WriteByte((byte)MessageId.LoadScene);
-            bs.WriteString(sceneName);
-            bs.WriteByte(_loadSceneGeneration);
-
-            Server.NetworkInterface.BroadcastBitStream(bs, PacketReliability.ReliableSequenced);
+            BroadcastLoadScene(sceneName, _loadSceneGeneration);
 
             // Disable ReplicaViews during level load
             foreach (var connection in Server.connections) {
@@ -116,6 +110,15 @@ namespace GameFramework {
                 LoadSceneImpl();
 #endif
             }
+        }
+
+        void BroadcastLoadScene(string sceneName, byte gen) {
+            var bs = new BitWriter();
+            bs.WriteByte((byte)MessageId.LoadScene);
+            bs.WriteString(sceneName);
+            bs.WriteByte(gen);
+
+            Server.NetworkInterface.BroadcastBitStream(bs, PacketReliability.ReliableSequenced, MessageChannel.SceneLoad);
         }
 
         void LoadSceneImpl() {

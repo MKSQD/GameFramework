@@ -99,7 +99,7 @@ namespace GameFramework {
         }
 
         IEnumerator LoadScene(string sceneName) {
-            Debug.Log($"[Client] <b>Loading level</b> '<i>{sceneName}</i>'");
+            Debug.Log($"[Client] <b>Loading level</b> <i>{sceneName}</i>");
 
             EventHub<StartedLoading>.Emit(new StartedLoading(sceneName));
 
