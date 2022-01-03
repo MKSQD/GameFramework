@@ -128,7 +128,7 @@ namespace GameFramework {
         }
 
         void OnSceneLoaded() {
-            Debug.Log("[Server] <b>Level loaded</b>");
+            Debug.Log("[Server] <b>Scene loaded</b>");
 
             IsLoadingScene = false;
             SceneLoaded?.Invoke();
@@ -203,11 +203,14 @@ namespace GameFramework {
 
             if (Time.timeAsDouble >= _nextNetworkTick) {
                 _nextNetworkTick = Time.timeAsDouble + Constants.TickRate;
+                Tick();
+            }
+        }
 
-                Server.Tick();
-                foreach (var pc in PlayerControllers) {
-                    pc.Tick();
-                }
+        protected virtual void Tick() {
+            Server.Tick();
+            foreach (var pc in PlayerControllers) {
+                pc.Tick();
             }
         }
 
