@@ -102,6 +102,7 @@ namespace GameFramework {
 #if UNITY_EDITOR
             var loadedScene = SceneManager.GetSceneByName(sceneName);
             if (loadedScene.isLoaded) {
+                Server.ReplicaManager.ProcessSceneReplicasInScene(loadedScene);
                 OnSceneLoaded();
                 return;
             }
