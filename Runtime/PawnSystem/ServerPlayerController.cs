@@ -34,7 +34,7 @@ namespace GameFramework {
             IMove lastMove = null;
             for (int i = 0; i < num; ++i) {
                 lastMove = Pawn.CreateMove();
-                lastMove.Deserialize(bs);
+                lastMove.DeserializeInput(bs);
 
                 Pawn.ExecuteMove(lastMove);
 

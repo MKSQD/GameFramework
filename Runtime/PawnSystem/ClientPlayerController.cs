@@ -52,7 +52,7 @@ namespace GameFramework {
             bs.WriteIntInRange(_moveQueue.Count, 1, 20);
             bs.WriteFloat(_moveQueue.Peek().Timestamp);
             foreach (var move in _moveQueue) {
-                move.Move.Serialize(bs);
+                move.Move.SerializeInput(bs);
             }
 
             ClientGame.Main.Client.NetworkInterface.Send(bs, PacketReliability.Unreliable, MessageChannel.Move);
@@ -131,8 +131,11 @@ namespace GameFramework {
         public override string ToString() => "ClientPlayerController";
     }
 
-    public interface IMove : ISerializable {
-        void SerializeResult(BitWriter bs);
+    public interface IMove {
+        void SerializeInput(IBitWriter bs);
+        void DeserializeInput(BitReader bs);
+
+        void SerializeResult(IBitWriter bs);
         void DeserializeResult(BitReader bs);
     }
 
