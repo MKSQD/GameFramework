@@ -26,7 +26,7 @@ namespace GameFramework {
         [ReadOnly]
         public GameObject GameState;
 
-        AsyncOperationHandle<SceneInstance> sceneHandle;
+        AsyncOperationHandle<SceneInstance> _sceneHandle;
         byte currentLoadedSceneGeneration;
 
         ClientPlayerController localPlayerController;
@@ -82,8 +82,8 @@ namespace GameFramework {
 
             Client.ReplicaManager.Reset();
 
-            if (sceneHandle.IsValid()) {
-                Addressables.UnloadSceneAsync(sceneHandle);
+            if (_sceneHandle.IsValid()) {
+                Addressables.UnloadSceneAsync(_sceneHandle);
             }
         }
 
@@ -99,30 +99,31 @@ namespace GameFramework {
         }
 
         IEnumerator LoadScene(string sceneName) {
-            Debug.Log($"[Client] <b>Loading level</b> <i>{sceneName}</i>");
+            Debug.Log($"[Client] <b>Loading scene</b> <i>{sceneName}</i>");
 
             EventHub<StartedLoading>.Emit(new StartedLoading(sceneName));
 
             Client.ReplicaManager.Reset();
 
-            if (sceneHandle.IsValid())
-                yield return Addressables.UnloadSceneAsync(sceneHandle);
+            if (_sceneHandle.IsValid())
+                yield return Addressables.UnloadSceneAsync(_sceneHandle);
 
             // New map
-#if !UNITY_EDITOR
-            sceneHandle = Addressables.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
-            sceneHandle.Completed += ctx => {
-                Client.ReplicaManager.ProcessSceneReplicasInScene(ctx.Result.Scene);
-
-                SendLoadSceneDone();
-                EventHub<EndedLoading>.EmitEmpty();
-            };
-#else
+#if UNITY_EDITOR
+            // Assume server loaded map already
             var scene = SceneManager.GetSceneByName(sceneName);
             Client.ReplicaManager.ProcessSceneReplicasInScene(scene);
 
             SendLoadSceneDone();
             EventHub<EndedLoading>.EmitDefault();
+#else
+            _sceneHandle = Addressables.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+            _sceneHandle.Completed += ctx => {
+                Client.ReplicaManager.ProcessSceneReplicasInScene(ctx.Result.Scene);
+
+                SendLoadSceneDone();
+                EventHub<EndedLoading>.EmitDefault();
+            };
 #endif
         }
 
