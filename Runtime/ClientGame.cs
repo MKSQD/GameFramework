@@ -101,7 +101,7 @@ namespace GameFramework {
         IEnumerator LoadScene(string sceneName) {
             Debug.Log($"[Client] <b>Loading scene</b> <i>{sceneName}</i>");
 
-            EventHub<StartedLoading>.Emit(new StartedLoading(sceneName));
+            EventHub<StartedLoading>.Emit(new(sceneName));
 
             Client.ReplicaManager.Reset();
 
