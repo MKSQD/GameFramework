@@ -3,18 +3,30 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace GameFramework {
-    public interface IPawnMove {
-        IMove GetCurrentMove();
-        void ResetCurrentMove();
+    public interface IAuthorativePawnMovement {
+        /// <summary>
+        /// ConsumeMove creates a new move initialized with the current input values.
+        /// Note that some input values should be reset here.
+        /// </summary>
+        IMove ConsumeMove();
+        /// <summary>
+        /// CreateMove creates a new, empty move.
+        /// </summary>
         IMove CreateMove();
+        /// <summary>
+        /// ResetToState resets the instance to the *result* values of move.
+        /// </summary>
         void ResetToState(IMove move);
+        /// <summary>
+        /// ExecuteMove simulates move relative to the current state *and* writes the results to move.
+        /// </summary>
         void ExecuteMove(IMove move);
 
         void Teleport(Vector3 targetPosition, Quaternion targetRotation);
     }
 
     [SelectionBase]
-    public abstract class Pawn : ReplicaBehaviour, IPawnMove {
+    public abstract class Pawn : ReplicaBehaviour, IAuthorativePawnMovement {
         public delegate void PawnEvent(Pawn pawn);
 
         public InputActionAsset InputMap;
@@ -42,8 +54,7 @@ namespace GameFramework {
         public virtual bool CanBePossessedBy(PawnController controller) => true;
 
         public abstract void SetupPlayerInputComponent(PlayerInput input);
-        public abstract IMove GetCurrentMove();
-        public abstract void ResetCurrentMove();
+        public abstract IMove ConsumeMove();
         public abstract IMove CreateMove();
         public abstract void ResetToState(IMove move);
         public abstract void ExecuteMove(IMove move);

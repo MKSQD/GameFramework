@@ -29,14 +29,14 @@ namespace GameFramework {
                 _moveQueue.Dequeue();
             }
 
-            var newMove = Pawn.GetCurrentMove();
+            var newMove = Pawn.ConsumeMove();
+
             var newMoveWrapper = new MoveWrapper() {
                 Move = newMove,
                 Timestamp = Time.time
             };
             _moveQueue.Enqueue(newMoveWrapper);
 
-            Pawn.ResetCurrentMove();
             Pawn.ExecuteMove(newMove);
 
             SendMove();
