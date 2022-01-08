@@ -48,6 +48,16 @@ namespace GameFramework {
             Client.Reactor.AddHandler((byte)MessageId.MoveCorrect, bs => localPlayerController.OnMoveCorrect(bs));
 
             Main = this;
+
+#if UNITY_EDITOR
+            for (var i = 0; i < SceneManager.sceneCount; ++i) {
+                var scene = SceneManager.GetSceneAt(i);
+                if (!scene.isLoaded)
+                    continue;
+
+                Client.ReplicaManager.ProcessSceneReplicasInScene(scene);
+            }
+#endif
         }
 
         double _nextNetworkTick;
