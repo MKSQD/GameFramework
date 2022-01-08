@@ -11,12 +11,11 @@ using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 
 namespace GameFramework {
-    public class ServerGame : MonoBehaviour, IWorld {
+    public class ServerGame : CubeServer {
         public event Action SceneLoaded;
 
         public static ServerGame Main;
 
-        public CubeServer Server { get; private set; }
         public IGameMode GameMode { get; private set; }
         [ReadOnly]
         public GameObject GameState;
@@ -24,31 +23,25 @@ namespace GameFramework {
 
         public bool IsLoadingScene { get; private set; }
 
-        public int NumMaxClients = 30;
-        public ushort Port = 60000;
-        public ServerReplicaManagerSettings ReplicaManagerSettings;
-        public SimulatedLagSettings LagSettings;
+
+
+
 
         AsyncOperationHandle<SceneInstance> _sceneHandle;
         string _loadSceneName;
         byte _loadSceneGeneration;
         byte _numLoadScenePlayerAcks;
 
-        double _nextNetworkTick;
 
-        protected virtual void Awake() {
-            var transport = GetComponent<ITransport>();
 
-            var networkInterface = transport.CreateServer(NumMaxClients, LagSettings);
-            networkInterface.Start(Port);
+        protected override void Awake() {
+            base.Awake();
 
-            Server = new CubeServer(transform, networkInterface, ReplicaManagerSettings);
-
-            Server.NetworkInterface.ApproveConnection += OnApproveConnection;
-            Server.NetworkInterface.NewConnectionEstablished += OnNewIncomingConnection;
-            Server.NetworkInterface.DisconnectNotification += OnDisconnectNotification;
-            Server.Reactor.AddHandler((byte)MessageId.LoadSceneDone, OnLoadSceneDone);
-            Server.Reactor.AddHandler((byte)MessageId.Move, OnMove);
+            NetworkInterface.ApproveConnection += OnApproveConnection;
+            NetworkInterface.NewConnectionEstablished += OnNewIncomingConnection;
+            NetworkInterface.DisconnectNotification += OnDisconnectNotification;
+            Reactor.AddHandler((byte)MessageId.LoadSceneDone, OnLoadSceneDone);
+            Reactor.AddHandler((byte)MessageId.Move, OnMove);
 
             Main = this;
         }
@@ -80,13 +73,13 @@ namespace GameFramework {
             _numLoadScenePlayerAcks = 0;
             _loadSceneName = sceneName;
 
-            Server.ReplicaManager.Reset();
+            ReplicaManager.Reset();
 
             BroadcastLoadScene(sceneName, _loadSceneGeneration);
 
             // Disable ReplicaViews during level load
-            foreach (var connection in Server.connections) {
-                var replicaView = Server.ReplicaManager.GetReplicaView(connection);
+            foreach (var connection in connections) {
+                var replicaView = ReplicaManager.GetReplicaView(connection);
                 if (replicaView != null) {
                     replicaView.IsLoadingLevel = true;
                 }
@@ -102,7 +95,7 @@ namespace GameFramework {
 #if UNITY_EDITOR
             var loadedScene = SceneManager.GetSceneByName(sceneName);
             if (loadedScene.isLoaded) {
-                Server.ReplicaManager.ProcessSceneReplicasInScene(loadedScene);
+                ReplicaManager.ProcessSceneReplicasInScene(loadedScene);
                 OnSceneLoaded();
                 return;
             }
@@ -117,7 +110,7 @@ namespace GameFramework {
             bs.WriteString(sceneName);
             bs.WriteByte(gen);
 
-            Server.NetworkInterface.BroadcastBitStream(bs, PacketReliability.ReliableSequenced, MessageChannel.SceneLoad);
+            NetworkInterface.BroadcastBitStream(bs, PacketReliability.ReliableSequenced, MessageChannel.SceneLoad);
         }
 
         void LoadSceneImpl() {
@@ -153,7 +146,7 @@ namespace GameFramework {
                 bs2.WriteString(_loadSceneName);
                 bs2.WriteByte(_loadSceneGeneration);
 
-                Server.NetworkInterface.Send(bs2, PacketReliability.ReliableSequenced, connection, MessageChannel.SceneLoad);
+                NetworkInterface.Send(bs2, PacketReliability.ReliableSequenced, connection, MessageChannel.SceneLoad);
             }
 
             var replicaView = CreateReplicaView(connection);
@@ -161,7 +154,7 @@ namespace GameFramework {
             var newPC = CreatePlayerController(replicaView);
             PlayerControllers.Add(newPC);
 
-            Server.ReplicaManager.AddReplicaView(replicaView);
+            ReplicaManager.AddReplicaView(replicaView);
 
             if (GameMode != null) { // null if there's no ongoing match
                 GameMode.HandleNewPlayer(newPC);
@@ -179,20 +172,21 @@ namespace GameFramework {
         protected virtual void OnDisconnectNotification(Connection connection) {
             Debug.Log("[Server] Lost connection: " + connection);
 
-            Server.ReplicaManager.RemoveReplicaView(connection);
+            ReplicaManager.RemoveReplicaView(connection);
 
             var pc = GetPlayerControllerForConnection(connection);
             PlayerControllers.Remove(pc);
 
-            foreach (var replica in Server.ReplicaManager.Replicas) {
+            foreach (var replica in ReplicaManager.Replicas) {
                 if (replica.Owner == connection) {
                     replica.Destroy();
                 }
             }
         }
 
-        protected virtual void Update() {
-            Server.Update();
+        protected override void Update() {
+            base.Update();
+
             if (GameMode != null) {
                 GameMode.Update();
             }
@@ -200,22 +194,13 @@ namespace GameFramework {
             foreach (var pc in PlayerControllers) {
                 pc.Update();
             }
-
-            if (Time.timeAsDouble >= _nextNetworkTick) {
-                _nextNetworkTick = Time.timeAsDouble + Constants.TickRate;
-                Tick();
-            }
         }
 
-        protected virtual void Tick() {
-            Server.Tick();
+        protected override void Tick() {
+            base.Tick();
             foreach (var pc in PlayerControllers) {
                 pc.Tick();
             }
-        }
-
-        protected virtual void OnApplicationQuit() {
-            Server.Shutdown();
         }
 
         protected virtual ReplicaView CreateReplicaView(Connection connection) {
@@ -238,10 +223,10 @@ namespace GameFramework {
             ++_numLoadScenePlayerAcks;
 
             //
-            var replicaView = Server.ReplicaManager.GetReplicaView(connection);
+            var replicaView = ReplicaManager.GetReplicaView(connection);
             if (replicaView != null) {
                 replicaView.IsLoadingLevel = false;
-                Server.ReplicaManager.ForceReplicaViewRefresh(replicaView);
+                ReplicaManager.ForceReplicaViewRefresh(replicaView);
             }
         }
 

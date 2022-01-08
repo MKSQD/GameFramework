@@ -112,11 +112,11 @@ namespace GameFramework {
         }
 
         protected virtual bool ReadyToStartMatch() {
-            return server.Server.connections.Count > 0 && !server.IsLoadingScene;
+            return server.connections.Count > 0 && !server.IsLoadingScene;
         }
 
         protected virtual bool ReadyToEndMatch() {
-            return server.Server.connections.Count == 0 && !server.IsLoadingScene;
+            return server.connections.Count == 0 && !server.IsLoadingScene;
         }
 
         protected virtual void HandleMatchIsWaitingToStart() {
@@ -141,7 +141,7 @@ namespace GameFramework {
             Debug.Log($"[Server] <b>Spawning player</b> <i>{pc.Connection}</i>");
 
             var prefabAddress = GetPlayerPrefabAddress(pc);
-            var go = server.Server.ReplicaManager.InstantiateReplicaAsync(prefabAddress);
+            var go = server.ReplicaManager.InstantiateReplicaAsync(prefabAddress);
             go.Completed += ctx => {
                 var spawnPose = GetPlayerSpawnPosition(pc);
 

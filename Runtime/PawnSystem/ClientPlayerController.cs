@@ -55,7 +55,7 @@ namespace GameFramework {
                 move.Move.SerializeInput(bs);
             }
 
-            ClientGame.Main.Client.NetworkInterface.Send(bs, PacketReliability.Unreliable, MessageChannel.Move);
+            ClientGame.Main.NetworkInterface.Send(bs, PacketReliability.Unreliable, MessageChannel.Move);
         }
 
         public void OnMoveCorrect(BitReader bs) {
@@ -109,7 +109,7 @@ namespace GameFramework {
             if (_currentReplicaToPossess == ReplicaId.Invalid)
                 return;
 
-            var replica = ClientGame.Main.Client.ReplicaManager.GetReplica(_currentReplicaToPossess);
+            var replica = ClientGame.Main.ReplicaManager.GetReplica(_currentReplicaToPossess);
             if (replica == null)
                 return;
 

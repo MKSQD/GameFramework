@@ -23,7 +23,7 @@ namespace GameFramework {
             if (key == null)
                 return;
 
-            var gameStateHandle = server.Server.ReplicaManager.InstantiateReplicaAsync(key);
+            var gameStateHandle = server.ReplicaManager.InstantiateReplicaAsync(key);
             gameStateHandle.Completed += ctx => {
                 var gameStateGO = ctx.Result;
 

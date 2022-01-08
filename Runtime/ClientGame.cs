@@ -19,33 +19,28 @@ namespace GameFramework {
     }
     public class EndedLoading : IEvent { }
 
-    public class ClientGame : MonoBehaviour, IWorld {
+    public class ClientGame : CubeClient {
         public static ClientGame Main;
 
-        public CubeClient Client { get; private set; }
         [ReadOnly]
         public GameObject GameState;
 
         AsyncOperationHandle<SceneInstance> _sceneHandle;
-        byte currentLoadedSceneGeneration;
+        byte _currentLoadedSceneGeneration;
 
-        ClientPlayerController localPlayerController;
+        ClientPlayerController _localPlayerController;
 
         public virtual bool PawnInputEnabled => true;
 
-        protected virtual void Awake() {
-            var transport = GetComponent<ITransport>();
+        protected override void Awake() {
+            base.Awake();
 
-            var networkInterface = transport.CreateClient();
+            NetworkInterface.ConnectionRequestAccepted += OnConnectionRequestAccepted;
+            NetworkInterface.Disconnected += OnDisconnected;
 
-            Client = new CubeClient(this, networkInterface);
-
-            Client.NetworkInterface.ConnectionRequestAccepted += OnConnectionRequestAccepted;
-            Client.NetworkInterface.Disconnected += OnDisconnected;
-
-            Client.Reactor.AddHandler((byte)MessageId.LoadScene, OnLoadScene);
-            Client.Reactor.AddHandler((byte)MessageId.PossessPawn, bs => localPlayerController.OnPossessPawn(bs));
-            Client.Reactor.AddHandler((byte)MessageId.MoveCorrect, bs => localPlayerController.OnMoveCorrect(bs));
+            Reactor.AddHandler((byte)MessageId.LoadScene, OnLoadScene);
+            Reactor.AddHandler((byte)MessageId.PossessPawn, bs => _localPlayerController.OnPossessPawn(bs));
+            Reactor.AddHandler((byte)MessageId.MoveCorrect, bs => _localPlayerController.OnMoveCorrect(bs));
 
             Main = this;
 
@@ -55,42 +50,36 @@ namespace GameFramework {
                 if (!scene.isLoaded)
                     continue;
 
-                Client.ReplicaManager.ProcessSceneReplicasInScene(scene);
+                ReplicaManager.ProcessSceneReplicasInScene(scene);
             }
 #endif
         }
 
-        double _nextNetworkTick;
+        protected override void Update() {
+            base.Update();
 
-        protected virtual void Update() {
-            Client.Update();
-            localPlayerController?.Update();
-
-            if (Time.timeAsDouble >= _nextNetworkTick) {
-                _nextNetworkTick = Time.timeAsDouble + Constants.TickRate;
-
-                Client.Tick();
-                localPlayerController?.Tick();
-            }
+            _localPlayerController?.Update();
         }
 
-        protected virtual void OnApplicationQuit() {
-            Client.Shutdown();
+        protected override void Tick() {
+            base.Tick();
+
+            _localPlayerController?.Tick();
         }
 
         void OnConnectionRequestAccepted() {
             Debug.Log("[Client] Connection request to server accepted");
 
-            localPlayerController = new ClientPlayerController();
+            _localPlayerController = new ClientPlayerController();
         }
 
         void OnDisconnected(string reason) {
             Debug.Log($"[Client] <b>Disconnected</b> ({reason})");
 
             // Cleanup
-            localPlayerController = null;
+            _localPlayerController = null;
 
-            Client.ReplicaManager.Reset();
+            ReplicaManager.Reset();
 
             if (_sceneHandle.IsValid()) {
                 Addressables.UnloadSceneAsync(_sceneHandle);
@@ -101,8 +90,8 @@ namespace GameFramework {
             var sceneName = bs.ReadString();
             var generation = bs.ReadByte();
 
-            if (currentLoadedSceneGeneration != generation) {
-                currentLoadedSceneGeneration = generation;
+            if (_currentLoadedSceneGeneration != generation) {
+                _currentLoadedSceneGeneration = generation;
 
                 StartCoroutine(LoadScene(sceneName));
             }
@@ -113,7 +102,7 @@ namespace GameFramework {
 
             EventHub<StartedLoading>.Emit(new(sceneName));
 
-            Client.ReplicaManager.Reset();
+            ReplicaManager.Reset();
 
             if (_sceneHandle.IsValid())
                 yield return Addressables.UnloadSceneAsync(_sceneHandle);
@@ -122,14 +111,14 @@ namespace GameFramework {
 #if UNITY_EDITOR
             // Assume server loaded map already
             var scene = SceneManager.GetSceneByName(sceneName);
-            Client.ReplicaManager.ProcessSceneReplicasInScene(scene);
+            ReplicaManager.ProcessSceneReplicasInScene(scene);
 
             SendLoadSceneDone();
             EventHub<EndedLoading>.EmitDefault();
 #else
             _sceneHandle = Addressables.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
             _sceneHandle.Completed += ctx => {
-                Client.ReplicaManager.ProcessSceneReplicasInScene(ctx.Result.Scene);
+                ReplicaManager.ProcessSceneReplicasInScene(ctx.Result.Scene);
 
                 SendLoadSceneDone();
                 EventHub<EndedLoading>.EmitDefault();
@@ -140,9 +129,9 @@ namespace GameFramework {
         void SendLoadSceneDone() {
             var bs = new BitWriter(1);
             bs.WriteByte((byte)MessageId.LoadSceneDone);
-            bs.WriteByte(currentLoadedSceneGeneration);
+            bs.WriteByte(_currentLoadedSceneGeneration);
 
-            Client.NetworkInterface.Send(bs, PacketReliability.ReliableUnordered, MessageChannel.SceneLoad);
+            NetworkInterface.Send(bs, PacketReliability.ReliableUnordered, MessageChannel.SceneLoad);
         }
     }
 }

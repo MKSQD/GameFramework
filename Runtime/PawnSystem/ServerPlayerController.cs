@@ -1,3 +1,4 @@
+using Cube;
 using Cube.Replication;
 using Cube.Transport;
 using UnityEngine.Assertions;
@@ -47,7 +48,7 @@ namespace GameFramework {
                 bs2.WriteFloat(_lastMoveFirstTimestamp);
                 lastMove.SerializeResult(bs2);
 
-                ServerGame.Main.Server.NetworkInterface.Send(bs2, PacketReliability.Unreliable, connection);
+                ServerGame.Main.NetworkInterface.Send(bs2, PacketReliability.Unreliable, connection);
             }
         }
 
