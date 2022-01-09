@@ -69,15 +69,12 @@ namespace GameFramework {
             }
 
             // Throw away old moves
-            int num = 0;
-
             while (_moveQueue.Count > 0) {
                 var move = _moveQueue.Peek();
                 if (move.Timestamp > acceptedTime)
                     break;
 
                 _moveQueue.Dequeue();
-                ++num;
             }
 
             // Replay moves
