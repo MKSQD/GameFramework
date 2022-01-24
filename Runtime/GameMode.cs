@@ -14,14 +14,10 @@ namespace GameFramework {
             LeavingMap
         }
 
-        public MatchState CurrentMatchState {
-            get;
-            internal set;
-        }
-
         public bool HasMatchStarted => CurrentMatchState == MatchState.InProgress;
         public bool HasMatchEnded => CurrentMatchState == MatchState.WaitingPostMatch;
 
+        public MatchState CurrentMatchState { get; private set; }
         public ReadOnlyCollection<Pawn> Players => players.AsReadOnly();
         protected readonly List<Pawn> players = new List<Pawn>();
 
@@ -112,11 +108,11 @@ namespace GameFramework {
         }
 
         protected virtual bool ReadyToStartMatch() {
-            return server.connections.Count > 0 && !server.IsLoadingScene;
+            return server.Connections.Count > 0 && !server.IsLoadingScene;
         }
 
         protected virtual bool ReadyToEndMatch() {
-            return server.connections.Count == 0 && !server.IsLoadingScene;
+            return server.Connections.Count == 0 && !server.IsLoadingScene;
         }
 
         protected virtual void HandleMatchIsWaitingToStart() {

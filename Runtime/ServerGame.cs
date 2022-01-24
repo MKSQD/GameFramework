@@ -78,7 +78,7 @@ namespace GameFramework {
             BroadcastLoadScene(sceneName, _loadSceneGeneration);
 
             // Disable ReplicaViews during level load
-            foreach (var connection in connections) {
+            foreach (var connection in Connections) {
                 var replicaView = ReplicaManager.GetReplicaView(connection);
                 if (replicaView != null) {
                     replicaView.IsLoadingLevel = true;
@@ -95,8 +95,8 @@ namespace GameFramework {
 #if UNITY_EDITOR
             var loadedScene = SceneManager.GetSceneByName(sceneName);
             if (loadedScene.isLoaded) {
-                ReplicaManager.ProcessSceneReplicasInScene(loadedScene);
-                OnSceneLoaded();
+                var op = SceneManager.UnloadSceneAsync(loadedScene);
+                op.completed += ctx => { LoadSceneImpl(); };
                 return;
             }
 #endif
