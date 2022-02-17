@@ -25,7 +25,7 @@ namespace GameFramework {
             if (Pawn == null)
                 return;
 
-            while (_moveQueue.Count > 10) {
+            while (_moveQueue.Count >= 10) {
                 _moveQueue.Dequeue();
             }
 
@@ -49,7 +49,7 @@ namespace GameFramework {
             var bs = new BitWriter(32);
             bs.WriteByte((byte)MessageId.Move);
 
-            bs.WriteIntInRange(_moveQueue.Count, 1, 20);
+            bs.WriteIntInRange(_moveQueue.Count, 1, 10);
             bs.WriteFloat(_moveQueue.Peek().Timestamp);
             foreach (var move in _moveQueue) {
                 move.Move.SerializeInput(bs);

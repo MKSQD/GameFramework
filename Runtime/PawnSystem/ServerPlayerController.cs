@@ -25,18 +25,16 @@ namespace GameFramework {
 
         float _lastMoveFirstTimestamp;
         public void OnMove(Connection connection, BitReader bs) {
-            var num = bs.ReadIntInRange(1, 20);
+            var num = bs.ReadIntInRange(1, 10);
             var firstTimestamp = bs.ReadFloat();
             if (firstTimestamp < _lastMoveFirstTimestamp)
                 return;
 
             _lastMoveFirstTimestamp = firstTimestamp;
 
-            IMove lastMove = null;
+            IMove lastMove = Pawn.CreateMove();
             for (int i = 0; i < num; ++i) {
-                lastMove = Pawn.CreateMove();
                 lastMove.DeserializeInput(bs);
-
                 Pawn.ExecuteMove(lastMove);
 
                 _lastMoveFirstTimestamp += Constants.TickRate;
