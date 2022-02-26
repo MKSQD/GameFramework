@@ -1,6 +1,8 @@
+using System.IO;
 using Cube;
 using Cube.Replication;
 using Cube.Transport;
+using UnityEngine;
 using UnityEngine.Assertions;
 
 namespace GameFramework {
@@ -23,31 +25,35 @@ namespace GameFramework {
         public override void Tick() {
         }
 
-        float _lastMoveFirstTimestamp;
+        uint _lastAcceptedFrame;
         public void OnMove(Connection connection, BitReader bs) {
-            var num = bs.ReadIntInRange(1, 10);
-            var firstTimestamp = bs.ReadFloat();
-            if (firstTimestamp < _lastMoveFirstTimestamp)
+            var acceptedFrame = bs.ReadUInt();
+            if (acceptedFrame < _lastAcceptedFrame)
                 return;
 
-            _lastMoveFirstTimestamp = firstTimestamp;
+            var num = bs.ReadIntInRange(1, 60);
 
-            IMove lastMove = Pawn.CreateMove();
+            var lastMove = Pawn.CreateMove();
             for (int i = 0; i < num; ++i) {
-                lastMove.DeserializeInput(bs);
+                lastMove.Deserialize(bs);
                 Pawn.ExecuteMove(lastMove);
 
-                _lastMoveFirstTimestamp += Constants.TickRate;
+                ++acceptedFrame;
             }
 
             {
+                var state = Pawn.CreateState();
+                Pawn.GetState(ref state);
+
                 var bs2 = new BitWriter();
                 bs2.WriteByte((byte)MessageId.MoveCorrect);
-                bs2.WriteFloat(_lastMoveFirstTimestamp);
-                lastMove.SerializeResult(bs2);
+                bs2.WriteUInt(acceptedFrame);
+                state.Serialize(bs2);
 
                 ServerGame.Main.NetworkInterface.Send(bs2, PacketReliability.Unreliable, connection);
             }
+
+            _lastAcceptedFrame = acceptedFrame;
         }
 
         protected override void OnPossessed(Pawn pawn) {

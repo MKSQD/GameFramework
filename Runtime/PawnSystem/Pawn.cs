@@ -1,4 +1,5 @@
 ﻿using Cube.Replication;
+using Cube.Transport;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -8,19 +9,27 @@ namespace GameFramework {
         /// ConsumeMove creates a new move initialized with the current input values.
         /// Note that some input values should be reset here.
         /// </summary>
-        IMove ConsumeMove();
+        IBitSerializable ConsumeMove();
         /// <summary>
         /// CreateMove creates a new, empty move.
         /// </summary>
-        IMove CreateMove();
+        IBitSerializable CreateMove();
         /// <summary>
-        /// ResetToState resets the instance to the *result* values of move.
+        /// ExecuteMove simulates move relative to the current state.
         /// </summary>
-        void ResetToState(IMove move);
+        void ExecuteMove(IBitSerializable move);
+
+        IBitSerializable CreateState();
+        void GetState(ref IBitSerializable state);
         /// <summary>
-        /// ExecuteMove simulates move relative to the current state *and* writes the results to move.
+        /// For client display.
         /// </summary>
-        void ExecuteMove(IMove move);
+        void InterpState(IBitSerializable oldState, IBitSerializable newState, float a);
+        /// <summary>
+        /// ResetToState resets the instance to the RESULT values of move.
+        /// </summary>
+        void ResetToState(IBitSerializable move);
+
 
         void Teleport(Vector3 targetPosition, Quaternion targetRotation);
     }
@@ -54,17 +63,22 @@ namespace GameFramework {
         public virtual bool CanBePossessedBy(PawnController controller) => true;
 
         public abstract void SetupPlayerInputComponent(PlayerInput input);
-        public abstract IMove ConsumeMove();
-        public abstract IMove CreateMove();
-        public abstract void ResetToState(IMove move);
-        public abstract void ExecuteMove(IMove move);
+
+        public abstract IBitSerializable ConsumeMove();
+        public abstract IBitSerializable CreateMove();
+        public abstract void ExecuteMove(IBitSerializable move);
+
+        public abstract IBitSerializable CreateState();
+        public abstract void GetState(ref IBitSerializable state);
+        public virtual void InterpState(IBitSerializable oldState, IBitSerializable newState, float a) { }
+        public abstract void ResetToState(IBitSerializable state);
+
         public abstract void Teleport(Vector3 targetPosition, Quaternion targetRotation);
 
         protected abstract void HandlePossessionImpl(Pawn previousPawn);
         protected abstract void HandleUnpossessionImpl();
 
         protected virtual void OnEnable() { }
-
         protected virtual void OnDisable() => Controller?.Unpossess();
     }
 }
