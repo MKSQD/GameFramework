@@ -66,9 +66,10 @@ namespace GameFramework {
                 Pawn.GetState(ref _currentLocalState);
             }
 
-
-            var a = _frameAcc / Constants.FrameRate;
-            Pawn.InterpState(_lastLocalState, _currentLocalState, a);
+            if (_lastLocalState != null) {
+                var a = _frameAcc / Constants.FrameRate;
+                Pawn.InterpState(_lastLocalState, _currentLocalState, a);
+            }
         }
 
         public override void Tick() {
