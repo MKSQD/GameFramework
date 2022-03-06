@@ -3,10 +3,10 @@ using UnityEngine;
 
 namespace GameFramework {
     public abstract class GameModeBase : IGameMode {
-        public ServerGame server;
+        public ServerGame Server;
 
         public GameModeBase(ServerGame server) {
-            this.server = server;
+            Server = server;
             InstantiateGameState();
         }
 
@@ -23,7 +23,7 @@ namespace GameFramework {
             if (key == null)
                 return;
 
-            var gameStateHandle = server.ReplicaManager.InstantiateReplicaAsync(key);
+            var gameStateHandle = Server.ReplicaManager.InstantiateReplicaAsync(key);
             gameStateHandle.Completed += ctx => {
                 var gameStateGO = ctx.Result;
 

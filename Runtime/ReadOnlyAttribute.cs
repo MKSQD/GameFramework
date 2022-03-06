@@ -1,6 +1,6 @@
-﻿using UnityEngine;
-using System;
+﻿using System;
 using UnityEditor;
+using UnityEngine;
 
 namespace GameFramework {
     [AttributeUsage(AttributeTargets.Field, Inherited = true)]

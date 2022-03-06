@@ -60,6 +60,8 @@ namespace GameFramework {
         /// </summary>
         /// <param name="sceneName"></param>
         public void LoadScene(string sceneName) {
+            Assert.IsTrue(sceneName.Length > 0);
+
             if (IsLoadingScene)
                 throw new Exception("Cant start loading, current loading");
 

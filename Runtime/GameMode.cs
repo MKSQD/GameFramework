@@ -18,10 +18,10 @@ namespace GameFramework {
         public bool HasMatchEnded => CurrentMatchState == MatchState.WaitingPostMatch;
 
         public MatchState CurrentMatchState { get; private set; }
-        public ReadOnlyCollection<Pawn> Players => players.AsReadOnly();
-        protected readonly List<Pawn> players = new List<Pawn>();
+        public ReadOnlyCollection<Pawn> Players => _players.AsReadOnly();
+        protected readonly List<Pawn> _players = new List<Pawn>();
 
-        Queue<(float, Connection)> respawnQueue = new Queue<(float, Connection)>();
+        Queue<(float, Connection)> _respawnQueue = new Queue<(float, Connection)>();
 
         public GameMode(ServerGame server) : base(server) {
             CurrentMatchState = MatchState.WaitingToStart;
@@ -75,19 +75,19 @@ namespace GameFramework {
                     break;
 
                 case MatchState.InProgress:
-                    foreach (var pc in server.PlayerControllers) {
-                        if (pc.Pawn == null && !respawnQueue.Any(pair => pair.Item2 == pc.Connection)) {
-                            respawnQueue.Enqueue((Time.time + 5, pc.Connection));
+                    foreach (var pc in Server.PlayerControllers) {
+                        if (pc.Pawn == null && !_respawnQueue.Any(pair => pair.Item2 == pc.Connection)) {
+                            _respawnQueue.Enqueue((Time.time + 5, pc.Connection));
                         }
                     }
 
-                    if (respawnQueue.Count > 0) {
-                        var timeControllerPair = respawnQueue.Peek();
+                    if (_respawnQueue.Count > 0) {
+                        var timeControllerPair = _respawnQueue.Peek();
                         var respawnPlayer = Time.time >= timeControllerPair.Item1;
                         if (respawnPlayer) {
-                            respawnQueue.Dequeue();
+                            _respawnQueue.Dequeue();
 
-                            var pc = server.GetPlayerControllerForConnection(timeControllerPair.Item2);
+                            var pc = Server.GetPlayerControllerForConnection(timeControllerPair.Item2);
                             if (pc != null && pc.Pawn == null) { // Queued player for respawn but he's already alive
                                 SpawnPlayer(pc);
                             }
@@ -108,18 +108,18 @@ namespace GameFramework {
         }
 
         protected virtual bool ReadyToStartMatch() {
-            return server.Connections.Count > 0 && !server.IsLoadingScene;
+            return Server.Connections.Count > 0 && !Server.IsLoadingScene;
         }
 
         protected virtual bool ReadyToEndMatch() {
-            return server.Connections.Count == 0 && !server.IsLoadingScene;
+            return Server.Connections.Count == 0 && !Server.IsLoadingScene;
         }
 
         protected virtual void HandleMatchIsWaitingToStart() {
         }
 
         protected virtual void HandleMatchHasStarted() {
-            foreach (var pc in server.PlayerControllers) {
+            foreach (var pc in Server.PlayerControllers) {
                 SpawnPlayer(pc);
             }
         }
@@ -137,14 +137,14 @@ namespace GameFramework {
             Debug.Log($"[Server] <b>Spawning player</b> <i>{pc.Connection}</i>");
 
             var prefabAddress = GetPlayerPrefabAddress(pc);
-            var go = server.ReplicaManager.InstantiateReplicaAsync(prefabAddress);
+            var go = Server.ReplicaManager.InstantiateReplicaAsync(prefabAddress);
             go.Completed += ctx => {
                 var spawnPose = GetPlayerSpawnPosition(pc);
 
                 var newPawn = ctx.Result.GetComponent<Pawn>();
                 newPawn.Teleport(spawnPose.position, spawnPose.rotation);
 
-                players.Add(newPawn);
+                _players.Add(newPawn);
                 HandlePlayerSpawned(newPawn);
 
                 var result = pc.Possess(newPawn);
