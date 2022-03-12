@@ -10,9 +10,11 @@ namespace GameFramework {
         public Connection Connection => _replicaView.Connection;
 
         readonly ReplicaView _replicaView;
+        readonly ServerGame _server;
 
-        public ServerPlayerController(ReplicaView view) {
+        public ServerPlayerController(ReplicaView view, ServerGame server) {
             _replicaView = view;
+            _server = server;
         }
 
         public override void Update() {
@@ -50,7 +52,7 @@ namespace GameFramework {
                 bs2.WriteUInt(acceptedFrame);
                 state.Serialize(bs2);
 
-                ServerGame.Main.NetworkInterface.Send(bs2, PacketReliability.Unreliable, connection);
+                _server.NetworkInterface.Send(bs2, PacketReliability.Unreliable, connection);
             }
 
             _lastAcceptedFrame = acceptedFrame;

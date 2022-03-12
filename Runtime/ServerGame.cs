@@ -14,8 +14,6 @@ namespace GameFramework {
     public class ServerGame : CubeServer {
         public event Action SceneLoaded;
 
-        public static ServerGame Main;
-
         public IGameMode GameMode { get; private set; }
         [ReadOnly]
         public GameObject GameState;
@@ -42,8 +40,6 @@ namespace GameFramework {
             NetworkInterface.DisconnectNotification += OnDisconnectNotification;
             Reactor.AddHandler((byte)MessageId.LoadSceneDone, OnLoadSceneDone);
             Reactor.AddHandler((byte)MessageId.Move, OnMove);
-
-            Main = this;
         }
 
         public virtual IGameMode CreateGameModeForScene(string sceneName) {
@@ -52,6 +48,10 @@ namespace GameFramework {
 
         protected virtual ApprovalResult OnApproveConnection(BitReader bs) {
             return new ApprovalResult() { Approved = true };
+        }
+
+        public void ReloadCurrentScene() {
+            LoadScene(_loadSceneName);
         }
 
         /// <summary>
@@ -129,13 +129,14 @@ namespace GameFramework {
             SceneLoaded?.Invoke();
 
             GameMode = CreateGameModeForScene(_loadSceneName);
-            Assert.IsNotNull(GameMode);
+            if (GameMode == null)
+                throw new Exception("Failed to create GameMode for scene " + _loadSceneName);
 
             Debug.Log($"[Server] New GameMode <i>{GameMode}</i>");
         }
 
         protected virtual ServerPlayerController CreatePlayerController(ReplicaView view) {
-            return new ServerPlayerController(view);
+            return new ServerPlayerController(view, this);
         }
 
         void OnNewIncomingConnection(Connection connection) {

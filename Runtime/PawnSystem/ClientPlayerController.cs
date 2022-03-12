@@ -30,7 +30,6 @@ namespace GameFramework {
             if (Pawn == null)
                 return;
 
-            Input.Update();
             UpdateCurrentMove();
         }
 
@@ -43,9 +42,11 @@ namespace GameFramework {
             while (_frameAcc >= Constants.FrameRate) {
                 _frameAcc -= Constants.FrameRate;
 
+                Input.Update();
+
                 if (((_currentBufferIdx + 1) % MoveBufferSize) == _acceptedBufferIdx) {
                     Debug.Log("Move buffer exhausted");
-                    continue; // Move buffer exhausted
+                    continue;
                 }
 
                 var move = Pawn.ConsumeMove();

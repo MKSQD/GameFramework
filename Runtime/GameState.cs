@@ -6,9 +6,11 @@ namespace GameFramework {
     public class GameState : ReplicaBehaviour {
         protected virtual void Start() {
             if (isServer) {
-                ServerGame.Main.GameState = gameObject;
+                var serverGame = (ServerGame)server;
+                serverGame.GameState = gameObject;
             } else {
-                ClientGame.Main.GameState = gameObject;
+                var clientGame = (ClientGame)client;
+                clientGame.GameState = gameObject;
             }
         }
     }
