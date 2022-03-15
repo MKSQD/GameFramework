@@ -11,18 +11,22 @@ namespace GameFramework {
         ReplicaId _currentReplicaToPossess = ReplicaId.Invalid;
         byte _pawnIdxToPossess;
 
-        static readonly int MoveBufferSize = 60;
-        List<IBitSerializable> _moves = new(MoveBufferSize);
+        static readonly int CommandBufferSize = 60;
+        List<IBitSerializable> _commands = new(CommandBufferSize);
         IBitSerializable _lastAcceptedState;
-        int _currentBufferIdx = 0;
-        int _acceptedBufferIdx = 0;
+        int _currentCommandIdx = 0;
+        int _acceptedCommandIdx = 0;
         uint _acceptedFrame = 0;
 
         float _frameAcc;
 
-        public ClientPlayerController() {
-            for (int i = 0; i < MoveBufferSize; ++i) {
-                _moves.Add(null);
+        ClientGame _client;
+
+        public ClientPlayerController(ClientGame client) {
+            _client = client;
+
+            for (int i = 0; i < CommandBufferSize; ++i) {
+                _commands.Add(null);
             }
         }
 
@@ -30,12 +34,12 @@ namespace GameFramework {
             if (Pawn == null)
                 return;
 
-            UpdateCurrentMove();
+            UpdateCommands();
         }
 
         IBitSerializable _lastLocalState, _currentLocalState;
 
-        void UpdateCurrentMove() {
+        void UpdateCommands() {
             bool didMove = false;
 
             _frameAcc += Time.deltaTime;
@@ -44,22 +48,22 @@ namespace GameFramework {
 
                 Input.Update();
 
-                if (((_currentBufferIdx + 1) % MoveBufferSize) == _acceptedBufferIdx) {
+                if (((_currentCommandIdx + 1) % CommandBufferSize) == _acceptedCommandIdx) {
                     Debug.Log("Move buffer exhausted");
                     continue;
                 }
 
-                var move = Pawn.ConsumeMove();
-                _moves[_currentBufferIdx] = move;
-                _currentBufferIdx = (_currentBufferIdx + 1) % MoveBufferSize;
+                var command = Pawn.ConsumeCommand();
+                _commands[_currentCommandIdx] = command;
+                _currentCommandIdx = (_currentCommandIdx + 1) % CommandBufferSize;
 
                 didMove = true;
             }
 
             if (didMove && _lastAcceptedState != null) {
                 Pawn.ResetToState(_lastAcceptedState);
-                for (int i = _acceptedBufferIdx; i != _currentBufferIdx; i = (i + 1) % MoveBufferSize) {
-                    Pawn.ExecuteMove(_moves[i]);
+                for (int i = _acceptedCommandIdx; i != _currentCommandIdx; i = (i + 1) % CommandBufferSize) {
+                    Pawn.ExecuteCommand(_commands[i]);
                 }
 
                 _lastLocalState = _currentLocalState;
@@ -75,27 +79,27 @@ namespace GameFramework {
 
         public override void Tick() {
             PossessReplica();
-            SendMoves();
+            SendCommands();
         }
 
-        void SendMoves() {
-            var numMoves = _currentBufferIdx >= _acceptedBufferIdx ? (_currentBufferIdx - _acceptedBufferIdx) : (MoveBufferSize + _currentBufferIdx - _acceptedBufferIdx);
+        void SendCommands() {
+            var numMoves = _currentCommandIdx >= _acceptedCommandIdx ? (_currentCommandIdx - _acceptedCommandIdx) : (CommandBufferSize + _currentCommandIdx - _acceptedCommandIdx);
             if (Pawn == null || numMoves == 0)
                 return;
 
             var bs = new BitWriter(64);
-            bs.WriteByte((byte)MessageId.Move);
+            bs.WriteByte((byte)MessageId.Commands);
 
             bs.WriteUInt(_acceptedFrame);
             bs.WriteIntInRange(numMoves, 1, 60);
-            for (int i = _acceptedBufferIdx; i != _currentBufferIdx; i = (i + 1) % MoveBufferSize) {
-                _moves[i].Serialize(bs);
+            for (int i = _acceptedCommandIdx; i != _currentCommandIdx; i = (i + 1) % CommandBufferSize) {
+                _commands[i].Serialize(bs);
             }
 
-            ClientGame.Main.NetworkInterface.Send(bs, PacketReliability.Unreliable, MessageChannel.Move);
+            _client.NetworkInterface.Send(bs, PacketReliability.Unreliable, MessageChannel.Move);
         }
 
-        public void OnMoveCorrect(BitReader bs) {
+        public void OnCommandsAccepted(BitReader bs) {
             var acceptedFrame = bs.ReadUInt();
             if (acceptedFrame < _acceptedFrame) {
                 Debug.Log("Received old move correct");
@@ -107,7 +111,7 @@ namespace GameFramework {
 
             // Throw away old moves
             while (_acceptedFrame < acceptedFrame) {
-                _acceptedBufferIdx = (_acceptedBufferIdx + 1) % MoveBufferSize;
+                _acceptedCommandIdx = (_acceptedCommandIdx + 1) % CommandBufferSize;
                 ++_acceptedFrame;
             }
         }
@@ -119,7 +123,7 @@ namespace GameFramework {
 
         protected override void OnPossessed(Pawn pawn) {
             Input = new PlayerInput(pawn.InputMap);
-            pawn.SetupPlayerInputComponent(Input);
+            pawn.SetupPlayerInput(Input);
             pawn.InputMap.Enable();
         }
 
@@ -133,7 +137,7 @@ namespace GameFramework {
             if (_currentReplicaToPossess == ReplicaId.Invalid)
                 return;
 
-            var replica = ClientGame.Main.ReplicaManager.GetReplica(_currentReplicaToPossess);
+            var replica = _client.ReplicaManager.GetReplica(_currentReplicaToPossess);
             if (replica == null)
                 return;
 

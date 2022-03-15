@@ -1,8 +1,5 @@
-using System.IO;
-using Cube;
 using Cube.Replication;
 using Cube.Transport;
-using UnityEngine;
 using UnityEngine.Assertions;
 
 namespace GameFramework {
@@ -28,17 +25,17 @@ namespace GameFramework {
         }
 
         uint _lastAcceptedFrame;
-        public void OnMove(Connection connection, BitReader bs) {
+        public void OnCommands(Connection connection, BitReader bs) {
             var acceptedFrame = bs.ReadUInt();
             if (acceptedFrame < _lastAcceptedFrame)
                 return;
 
             var num = bs.ReadIntInRange(1, 60);
 
-            var lastMove = Pawn.CreateMove();
+            var lastMove = Pawn.CreateCommand();
             for (int i = 0; i < num; ++i) {
                 lastMove.Deserialize(bs);
-                Pawn.ExecuteMove(lastMove);
+                Pawn.ExecuteCommand(lastMove);
 
                 ++acceptedFrame;
             }
@@ -48,7 +45,7 @@ namespace GameFramework {
                 Pawn.GetState(ref state);
 
                 var bs2 = new BitWriter();
-                bs2.WriteByte((byte)MessageId.MoveCorrect);
+                bs2.WriteByte((byte)MessageId.CommandsAccepted);
                 bs2.WriteUInt(acceptedFrame);
                 state.Serialize(bs2);
 

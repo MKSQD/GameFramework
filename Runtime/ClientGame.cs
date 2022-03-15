@@ -10,14 +10,13 @@ using UnityEngine.SceneManagement;
 
 
 namespace GameFramework {
-    public class StartedLoading : IEvent {
+    public struct StartedLoading : IEvent {
         public string SceneName;
-
         public StartedLoading(string sceneName) {
             SceneName = sceneName;
         }
     }
-    public class EndedLoading : IEvent { }
+    public struct EndedLoadingEvent : IEvent { }
 
     public class ClientGame : CubeClient {
         public static ClientGame Main;
@@ -40,7 +39,7 @@ namespace GameFramework {
 
             Reactor.AddHandler((byte)MessageId.LoadScene, OnLoadScene);
             Reactor.AddHandler((byte)MessageId.PossessPawn, bs => _localPlayerController.OnPossessPawn(bs));
-            Reactor.AddHandler((byte)MessageId.MoveCorrect, bs => _localPlayerController.OnMoveCorrect(bs));
+            Reactor.AddHandler((byte)MessageId.CommandsAccepted, bs => _localPlayerController.OnCommandsAccepted(bs));
 
             Main = this;
         }
@@ -58,7 +57,7 @@ namespace GameFramework {
         void OnConnectionRequestAccepted() {
             Debug.Log("[Client] Connection request to server accepted");
 
-            _localPlayerController = new ClientPlayerController();
+            _localPlayerController = new ClientPlayerController(this);
         }
 
         void OnDisconnected(string reason) {
@@ -107,7 +106,7 @@ namespace GameFramework {
             ReplicaManager.ProcessSceneReplicasInScene(scene);
 
             SendLoadSceneDone();
-            EventHub<EndedLoading>.EmitDefault();
+            EventHub<EndedLoadingEvent>.EmitDefault();
         }
 
         void SendLoadSceneDone() {

@@ -39,7 +39,7 @@ namespace GameFramework {
             NetworkInterface.NewConnectionEstablished += OnNewIncomingConnection;
             NetworkInterface.DisconnectNotification += OnDisconnectNotification;
             Reactor.AddHandler((byte)MessageId.LoadSceneDone, OnLoadSceneDone);
-            Reactor.AddHandler((byte)MessageId.Move, OnMove);
+            Reactor.AddHandler((byte)MessageId.Commands, OnCommands);
         }
 
         public virtual IGameMode CreateGameModeForScene(string sceneName) {
@@ -233,12 +233,12 @@ namespace GameFramework {
             }
         }
 
-        void OnMove(Connection connection, BitReader bs) {
+        void OnCommands(Connection connection, BitReader bs) {
             var pc = GetPlayerControllerForConnection(connection);
             if (pc == null)
                 return;
 
-            pc.OnMove(connection, bs);
+            pc.OnCommands(connection, bs);
         }
     }
 }

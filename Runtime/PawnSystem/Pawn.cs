@@ -9,15 +9,15 @@ namespace GameFramework {
         /// ConsumeMove creates a new move initialized with the current input values.
         /// Note that some input values should be reset here.
         /// </summary>
-        IBitSerializable ConsumeMove();
+        IBitSerializable ConsumeCommand();
         /// <summary>
         /// CreateMove creates a new, empty move.
         /// </summary>
-        IBitSerializable CreateMove();
+        IBitSerializable CreateCommand();
         /// <summary>
         /// ExecuteMove simulates move relative to the current state.
         /// </summary>
-        void ExecuteMove(IBitSerializable move);
+        void ExecuteCommand(IBitSerializable move);
 
         IBitSerializable CreateState();
         void GetState(ref IBitSerializable state);
@@ -62,11 +62,11 @@ namespace GameFramework {
 
         public virtual bool CanBePossessedBy(PawnController controller) => true;
 
-        public abstract void SetupPlayerInputComponent(PlayerInput input);
+        public abstract void SetupPlayerInput(PlayerInput input);
 
-        public abstract IBitSerializable ConsumeMove();
-        public abstract IBitSerializable CreateMove();
-        public abstract void ExecuteMove(IBitSerializable move);
+        public abstract IBitSerializable ConsumeCommand();
+        public abstract IBitSerializable CreateCommand();
+        public abstract void ExecuteCommand(IBitSerializable move);
 
         public abstract IBitSerializable CreateState();
         public abstract void GetState(ref IBitSerializable state);
