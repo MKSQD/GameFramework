@@ -20,13 +20,13 @@ namespace GameFramework {
         public List<ServerPlayerController> PlayerControllers = new();
 
         public bool IsLoadingScene { get; private set; }
+        public string CurrentSceneName { get; private set; }
 
 
 
 
 
         AsyncOperationHandle<SceneInstance> _sceneHandle;
-        string _loadSceneName;
         byte _loadSceneGeneration;
         byte _numLoadScenePlayerAcks;
 
@@ -51,7 +51,7 @@ namespace GameFramework {
         }
 
         public void ReloadCurrentScene() {
-            LoadScene(_loadSceneName);
+            LoadScene(CurrentSceneName);
         }
 
         /// <summary>
@@ -73,7 +73,7 @@ namespace GameFramework {
             IsLoadingScene = true;
             ++_loadSceneGeneration;
             _numLoadScenePlayerAcks = 0;
-            _loadSceneName = sceneName;
+            CurrentSceneName = sceneName;
 
             ReplicaManager.Reset();
 
@@ -116,9 +116,9 @@ namespace GameFramework {
         }
 
         void LoadSceneImpl() {
-            Debug.Log($"[Server] Loading level {_loadSceneName}");
+            Debug.Log($"[Server] Loading level {CurrentSceneName}");
 
-            _sceneHandle = Addressables.LoadSceneAsync(_loadSceneName, LoadSceneMode.Additive);
+            _sceneHandle = Addressables.LoadSceneAsync(CurrentSceneName, LoadSceneMode.Additive);
             _sceneHandle.Completed += ctx => { OnSceneLoaded(); };
         }
 
@@ -128,9 +128,9 @@ namespace GameFramework {
             IsLoadingScene = false;
             SceneLoaded?.Invoke();
 
-            GameMode = CreateGameModeForScene(_loadSceneName);
+            GameMode = CreateGameModeForScene(CurrentSceneName);
             if (GameMode == null)
-                throw new Exception("Failed to create GameMode for scene " + _loadSceneName);
+                throw new Exception("Failed to create GameMode for scene " + CurrentSceneName);
 
             Debug.Log($"[Server] New GameMode <i>{GameMode}</i>");
         }
@@ -143,10 +143,10 @@ namespace GameFramework {
             Debug.Log($"[Server] <b>New connection</b> <i>{connection}</i>");
 
             // Send load scene packet if we loaded one previously
-            if (_loadSceneName != null) {
+            if (CurrentSceneName != null) {
                 var bs2 = new BitWriter();
                 bs2.WriteByte((byte)MessageId.LoadScene);
-                bs2.WriteString(_loadSceneName);
+                bs2.WriteString(CurrentSceneName);
                 bs2.WriteByte(_loadSceneGeneration);
 
                 NetworkInterface.Send(bs2, PacketReliability.ReliableSequenced, connection, MessageChannel.SceneLoad);
