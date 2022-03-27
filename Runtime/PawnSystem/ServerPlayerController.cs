@@ -26,33 +26,35 @@ namespace GameFramework {
 
         uint _lastAcceptedFrame;
         public void OnCommands(Connection connection, BitReader bs) {
-            var acceptedFrame = bs.ReadUInt();
-            if (acceptedFrame < _lastAcceptedFrame)
-                return;
+            ExecuteReceivedCommands(bs);
+            SendStateToClient(connection);
+        }
 
+        void ExecuteReceivedCommands(BitReader bs) {
+            var acceptedFrame = bs.ReadUInt();
             var num = bs.ReadIntInRange(1, 60);
 
             var lastMove = Pawn.CreateCommand();
-            for (int i = 0; i < num; ++i) {
+            for (int i = 0; i < num; ++i, ++acceptedFrame) {
                 lastMove.Deserialize(bs);
+                if (acceptedFrame <= _lastAcceptedFrame)
+                    continue; // Old command -> ignore
+
                 Pawn.ExecuteCommand(lastMove);
-
-                ++acceptedFrame;
+                _lastAcceptedFrame = acceptedFrame;
             }
+        }
 
-            {
-                var state = Pawn.CreateState();
-                Pawn.GetState(ref state);
+        void SendStateToClient(Connection connection) {
+            var state = Pawn.CreateState();
+            Pawn.GetState(ref state);
 
-                var bs2 = new BitWriter();
-                bs2.WriteByte((byte)MessageId.CommandsAccepted);
-                bs2.WriteUInt(acceptedFrame);
-                state.Serialize(bs2);
+            var bs2 = new BitWriter();
+            bs2.WriteByte((byte)MessageId.CommandsAccepted);
+            bs2.WriteUInt(_lastAcceptedFrame);
+            state.Serialize(bs2);
 
-                _server.NetworkInterface.Send(bs2, PacketReliability.Unreliable, connection);
-            }
-
-            _lastAcceptedFrame = acceptedFrame;
+            _server.NetworkInterface.Send(bs2, PacketReliability.Unreliable, connection);
         }
 
         protected override void OnPossessed(Pawn pawn) {
