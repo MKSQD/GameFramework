@@ -1,7 +1,11 @@
-﻿using UnityEngine.Assertions;
+﻿using System;
+using UnityEngine.Assertions;
 
 namespace GameFramework {
     public abstract class PawnController {
+        public Action<Pawn> Possessed;
+        public Action Unpossessed;
+
         public Pawn Pawn { get; private set; }
 
         public bool Possess(Pawn newPawn) {
@@ -23,6 +27,7 @@ namespace GameFramework {
 
             newPawn.NotifyPossessed(this, previousPawn);
             OnPossessed(newPawn);
+            Possessed?.Invoke(newPawn);
             return true;
         }
 
@@ -33,6 +38,7 @@ namespace GameFramework {
             try {
                 Pawn.NotifyUnpossessed();
                 OnUnpossessed();
+                Unpossessed?.Invoke();
             } finally {
                 Pawn = null;
             }

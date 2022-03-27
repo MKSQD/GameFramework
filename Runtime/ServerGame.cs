@@ -11,6 +11,13 @@ using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 
 namespace GameFramework {
+    public struct PlayerJoinedEvent : IEvent {
+        public readonly ServerPlayerController PlayerController;
+        public PlayerJoinedEvent(ServerPlayerController playerController) {
+            PlayerController = playerController;
+        }
+    }
+
     public class ServerGame : CubeServer {
         public event Action SceneLoaded;
 
@@ -50,9 +57,7 @@ namespace GameFramework {
             return new ApprovalResult() { Approved = true };
         }
 
-        public void ReloadCurrentScene() {
-            LoadScene(CurrentSceneName);
-        }
+        public void ReloadCurrentScene() => LoadScene(CurrentSceneName);
 
         /// <summary>
         /// Reset replication, instruct all clients to load the new scene, actually
@@ -162,6 +167,8 @@ namespace GameFramework {
             if (GameMode != null) { // null if there's no ongoing match
                 GameMode.HandleNewPlayer(newPC);
             }
+
+            EventHub<PlayerJoinedEvent>.Emit(new(newPC));
         }
 
         public ServerPlayerController GetPlayerControllerForConnection(Connection connection) {

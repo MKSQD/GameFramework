@@ -42,7 +42,7 @@ namespace GameFramework {
         void UpdateCommands() {
             bool didMove = false;
 
-            _frameAcc += Time.deltaTime;
+            _frameAcc += Time.unscaledDeltaTime;
             while (_frameAcc >= Constants.FrameRate) {
                 _frameAcc -= Constants.FrameRate;
 
