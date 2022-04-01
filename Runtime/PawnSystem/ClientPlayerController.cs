@@ -48,10 +48,8 @@ namespace GameFramework {
 
                 Input.Update();
 
-                if (((_currentCommandIdx + 1) % CommandBufferSize) == _acceptedCommandIdx) {
-                    Debug.Log("Move buffer exhausted");
+                if (((_currentCommandIdx + 1) % CommandBufferSize) == _acceptedCommandIdx)
                     continue;
-                }
 
                 var command = Pawn.ConsumeCommand();
                 _commands[_currentCommandIdx] = command;
