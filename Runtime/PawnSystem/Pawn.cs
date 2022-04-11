@@ -1,4 +1,5 @@
-﻿using Cube.Replication;
+﻿using System;
+using Cube.Replication;
 using Cube.Transport;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -34,27 +35,28 @@ namespace GameFramework {
         void Teleport(Vector3 targetPosition, Quaternion targetRotation);
     }
 
+    /// <summary>
+    /// Generic, client or AI controllable Thing.
+    /// </summary>
     [SelectionBase]
     public abstract class Pawn : ReplicaBehaviour, IAuthorativePawnMovement {
-        public delegate void PawnEvent(Pawn pawn);
-
         public InputActionAsset InputMap;
 
         public PawnController Controller { get; private set; }
         public bool HasController => Controller != null;
 
-        public event PawnEvent Possessed, Unpossessed;
+        public event Action Possessed, Unpossessed;
 
         public void NotifyPossessed(PawnController controller, Pawn previousPawn) {
             Controller = controller;
-            HandlePossessionImpl(previousPawn);
-            Possessed?.Invoke(this);
+            OnPossession(previousPawn);
+            Possessed?.Invoke();
         }
 
         public void NotifyUnpossessed() {
             try {
-                Unpossessed?.Invoke(this);
-                HandleUnpossessionImpl();
+                Unpossessed?.Invoke();
+                OnUnpossession();
             } finally {
                 Controller = null;
             }
@@ -62,6 +64,12 @@ namespace GameFramework {
 
         public virtual bool CanBePossessedBy(PawnController controller) => true;
 
+        /// <summary>
+        /// Called on the client when it possesses this Pawn.
+        /// Connects the InputSystem to actions on the Pawn.
+        /// Server-side AI doesn't use this string-based mapping
+        /// but is supposed to call methods on the Pawn directly.
+        /// </summary>
         public abstract void SetupPlayerInput(PlayerInput input);
 
         public abstract IBitSerializable ConsumeCommand();
@@ -75,10 +83,7 @@ namespace GameFramework {
 
         public abstract void Teleport(Vector3 targetPosition, Quaternion targetRotation);
 
-        protected abstract void HandlePossessionImpl(Pawn previousPawn);
-        protected abstract void HandleUnpossessionImpl();
-
-        protected virtual void OnEnable() { }
-        protected virtual void OnDisable() => Controller?.Unpossess();
+        protected virtual void OnPossession(Pawn previousPawn) { }
+        protected virtual void OnUnpossession() { }
     }
 }

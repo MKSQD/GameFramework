@@ -6,14 +6,14 @@ using UnityEngine.InputSystem;
 using static UnityEngine.InputSystem.InputAction;
 
 namespace GameFramework {
-    public delegate void AxisHandler(float value);
-    public delegate void Axis2Handler(Vector2 value);
-    public delegate void ActionHandler();
-
     public sealed class PlayerInput : IDisposable {
+        public delegate void AxisHandler(float value);
+        public delegate void Axis2Handler(Vector2 value);
+        public delegate void ActionHandler();
+
         readonly InputActionAsset _inputActionMap;
-        readonly List<(InputAction Action, AxisHandler Handler)> _axisActions = new();
-        readonly List<(InputAction Action, Axis2Handler Handler)> _axis2Actions = new();
+        readonly List<(InputAction Action, AxisHandler Handler)> _floatAxisActions = new();
+        readonly List<(InputAction Action, Axis2Handler Handler)> _vector2AxisActions = new();
         readonly List<(InputAction, Action<CallbackContext>)> _removeStarted = new();
         readonly List<(InputAction, Action<CallbackContext>)> _removeCanceled = new();
 
@@ -24,7 +24,7 @@ namespace GameFramework {
         }
 
         public void BindStartedAction(string actionName, ActionHandler handler) {
-            Action<CallbackContext> wrapper = ctx => {
+            Action<CallbackContext> wrapper = _ => {
                 if (!ClientGame.Main.PawnInputEnabled)
                     return;
 
@@ -42,7 +42,7 @@ namespace GameFramework {
         }
 
         public void BindCanceledAction(string actionName, ActionHandler handler) {
-            Action<CallbackContext> wrapper = ctx => {
+            Action<CallbackContext> wrapper = _ => {
                 if (!ClientGame.Main.PawnInputEnabled)
                     return;
 
@@ -59,25 +59,25 @@ namespace GameFramework {
             _removeCanceled.Add((inputAction, wrapper));
         }
 
-        public void BindAxis(string axisName, AxisHandler handler) {
+        public void BindFloatAxis(string axisName, AxisHandler handler) {
             var inputAction = _inputActionMap.FindAction(axisName, true);
-            _axisActions.Add((inputAction, handler));
+            _floatAxisActions.Add((inputAction, handler));
         }
 
-        public void BindAxis2(string axisName, Axis2Handler handler) {
+        public void BindVector2Axis(string axisName, Axis2Handler handler) {
             var inputAction = _inputActionMap.FindAction(axisName, true);
-            _axis2Actions.Add((inputAction, handler));
+            _vector2AxisActions.Add((inputAction, handler));
         }
 
         public void Update() {
             if (!ClientGame.Main.PawnInputEnabled)
                 return;
 
-            foreach (var pair in _axisActions) {
+            foreach (var pair in _floatAxisActions) {
                 var value = pair.Action.ReadValue<float>();
                 pair.Handler(value);
             }
-            foreach (var pair in _axis2Actions) {
+            foreach (var pair in _vector2AxisActions) {
                 var value = pair.Action.ReadValue<Vector2>();
                 pair.Handler(value);
             }

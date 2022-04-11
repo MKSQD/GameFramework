@@ -20,7 +20,7 @@ namespace GameFramework {
 
         float _frameAcc;
 
-        ClientGame _client;
+        readonly ClientGame _client;
 
         public ClientPlayerController(ClientGame client) {
             _client = client;
@@ -42,14 +42,14 @@ namespace GameFramework {
         void UpdateCommands() {
             bool didMove = false;
 
+            Input.Update();
+
             _frameAcc += Time.unscaledDeltaTime;
             while (_frameAcc >= Constants.FrameRate) {
                 _frameAcc -= Constants.FrameRate;
 
-                Input.Update();
-
                 if (((_currentCommandIdx + 1) % CommandBufferSize) == _acceptedCommandIdx)
-                    continue;
+                    continue; // Queued commands full, wait
 
                 var command = Pawn.ConsumeCommand();
                 _commands[_currentCommandIdx] = command;
@@ -119,6 +119,8 @@ namespace GameFramework {
             _pawnIdxToPossess = bs.ReadByte();
         }
 
+        public override string ToString() => "ClientPlayerController";
+
         protected override void OnPossessed(Pawn pawn) {
             Input = new PlayerInput(pawn.InputMap);
             pawn.SetupPlayerInput(Input);
@@ -127,7 +129,6 @@ namespace GameFramework {
 
         protected override void OnUnpossessed() {
             Input.Dispose();
-
             Pawn.InputMap.Disable();
         }
 
@@ -153,7 +154,5 @@ namespace GameFramework {
                 // Note: If we ever loose the Pawn we will NOT repossess it! This should be OK since we never timeout owned Replicas
             }
         }
-
-        public override string ToString() => "ClientPlayerController";
     }
 }
