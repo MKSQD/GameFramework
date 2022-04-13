@@ -94,7 +94,6 @@ namespace GameFramework {
 
         bool _jumpNotch;
         bool _wasGrounded;
-        Vector3 _lastPos;
         protected void Update() {
             if (IsGrounded != _wasGrounded) {
                 _wasGrounded = IsGrounded;
@@ -178,7 +177,11 @@ namespace GameFramework {
 
             // Gravity
             if (_jumpFrames == 0) {
-                _velocity.y += Settings.Gravity;
+                if (IsGrounded) {
+                    _velocity.y = Settings.Gravity;
+                } else {
+                    _velocity.y += Settings.Gravity;
+                }
             }
 
             // Jump
