@@ -64,7 +64,7 @@ namespace GameFramework {
             if (_mode == Mode.Interpolate) {
                 t = Time.timeAsDouble - 0.1;
             } else {
-                t = Time.timeAsDouble + 0.1; // FactionsClientGame.Main.NetworkInterface.Ping
+                t = Time.timeAsDouble + ClientGame.Main.NetworkInterface.Ping;
             }
 
             var result = new SampleResult();
