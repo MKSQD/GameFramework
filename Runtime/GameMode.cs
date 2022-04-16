@@ -19,13 +19,13 @@ namespace GameFramework {
 
         public MatchState CurrentMatchState { get; private set; }
         public ReadOnlyCollection<Pawn> Players => _players.AsReadOnly();
-        protected readonly List<Pawn> _players = new List<Pawn>();
+        protected readonly List<Pawn> _players = new();
 
-        Queue<(float, Connection)> _respawnQueue = new Queue<(float, Connection)>();
+        readonly Queue<(float, Connection)> _respawnQueue = new();
 
         public GameMode(ServerGame server) : base(server) {
             CurrentMatchState = MatchState.WaitingToStart;
-            HandleMatchIsWaitingToStart();
+            OnMatchIsWaitingToStart();
         }
 
         public void StartMatch() {
@@ -37,7 +37,7 @@ namespace GameFramework {
             Debug.Log("[Server] <b>Match starting...</b>");
 
             CurrentMatchState = MatchState.InProgress;
-            HandleMatchHasStarted();
+            OnMatchHasStarted();
         }
 
         public void EndMatch() {
@@ -47,7 +47,7 @@ namespace GameFramework {
             }
 
             CurrentMatchState = MatchState.WaitingPostMatch;
-            HandleMatchHasEnded();
+            OnMatchHasEnded();
 
             Debug.Log("[Server] <b>Match has ended</b>");
         }
@@ -63,7 +63,7 @@ namespace GameFramework {
             }
 
             CurrentMatchState = MatchState.LeavingMap;
-            HandleLeavingMap();
+            OnLeavingMap();
         }
 
         public override void Update() {
@@ -115,23 +115,19 @@ namespace GameFramework {
             return Server.Connections.Count == 0 && !Server.IsLoadingScene;
         }
 
-        protected virtual void HandleMatchIsWaitingToStart() {
-        }
+        protected virtual void OnMatchIsWaitingToStart() { }
 
-        protected virtual void HandleMatchHasStarted() {
+        protected virtual void OnMatchHasStarted() {
             foreach (var pc in Server.PlayerControllers) {
                 SpawnPlayer(pc);
             }
         }
 
-        protected virtual void HandleMatchHasEnded() {
-        }
+        protected virtual void OnMatchHasEnded() { }
 
-        protected virtual void HandleLeavingMap() {
-        }
+        protected virtual void OnLeavingMap() { }
 
-        protected virtual void HandlePlayerSpawned(Pawn player) {
-        }
+        protected virtual void OnPlayerSpawned(Pawn player) { }
 
         protected virtual void SpawnPlayer(ServerPlayerController pc) {
             Debug.Log($"[Server] <b>Spawning player</b> <i>{pc.Connection}</i>");
@@ -145,7 +141,7 @@ namespace GameFramework {
                 newPawn.Teleport(spawnPose.position, spawnPose.rotation);
 
                 _players.Add(newPawn);
-                HandlePlayerSpawned(newPawn);
+                OnPlayerSpawned(newPawn);
 
                 var result = pc.Possess(newPawn);
                 if (!result) {
