@@ -155,10 +155,10 @@ namespace GameFramework {
         }
 
         protected virtual Pose GetPlayerSpawnPosition(ServerPlayerController pc) {
-            if (PlayerSpawn.All.Count == 0)
+            if (PlayerSpawn.s_All.Count == 0)
                 return Pose.identity;
 
-            var spawn = PlayerSpawn.All[UnityEngine.Random.Range(0, PlayerSpawn.All.Count)];
+            var spawn = PlayerSpawn.s_All[UnityEngine.Random.Range(0, PlayerSpawn.s_All.Count)];
             var spawnPosition = spawn.GetRandomizedPosition();
             return new Pose(spawnPosition, spawn.transform.rotation);
         }

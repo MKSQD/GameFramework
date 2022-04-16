@@ -1,4 +1,5 @@
 ﻿using Cube.Transport;
+using UnityEditor;
 using UnityEngine;
 
 namespace GameFramework {
@@ -94,6 +95,18 @@ namespace GameFramework {
             if (View != null) {
                 Debug.DrawLine(View.transform.position, View.transform.position + View.transform.forward * 0.5f, Color.yellow);
             }
+        }
+
+        [MenuItem("GameObject/GameFramework/Character", false, 10)]
+        static void CreateCustomGameObject(MenuCommand menuCommand) {
+            var go = new GameObject("Character");
+            GameObjectUtility.SetParentAndAlign(go, menuCommand.context as GameObject);
+            Undo.RegisterCreatedObjectUndo(go, "Create " + go.name);
+            Selection.activeObject = go;
+            var cc = go.AddComponent<CharacterController>();
+            cc.center = Vector3.up;
+            go.AddComponent<CharacterControllerMotor>();
+            go.AddComponent<Character>();
         }
 #endif
     }

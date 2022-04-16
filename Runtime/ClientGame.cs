@@ -2,6 +2,7 @@ using System.Collections;
 using Cube;
 using Cube.Replication;
 using Cube.Transport;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
@@ -115,6 +116,15 @@ namespace GameFramework {
             bs.WriteByte(_currentLoadedSceneGeneration);
 
             NetworkInterface.Send(bs, PacketReliability.ReliableUnordered, MessageChannel.SceneLoad);
+        }
+
+        [MenuItem("GameObject/GameFramework/ClientGame", false, 10)]
+        static void CreateCustomGameObject(MenuCommand menuCommand) {
+            var go = new GameObject("Client Game");
+            GameObjectUtility.SetParentAndAlign(go, menuCommand.context as GameObject);
+            Undo.RegisterCreatedObjectUndo(go, "Create " + go.name);
+            Selection.activeObject = go;
+            go.AddComponent<ClientGame>();
         }
     }
 }

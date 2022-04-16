@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Cube;
 using Cube.Replication;
 using Cube.Transport;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.Assertions;
@@ -18,7 +19,7 @@ namespace GameFramework {
         }
     }
 
-    public class ServerGame : CubeServer {
+    public abstract class ServerGame : CubeServer {
         public event Action SceneLoaded;
 
         public IGameMode GameMode { get; private set; }
@@ -30,13 +31,8 @@ namespace GameFramework {
         public string CurrentSceneName { get; private set; }
 
 
-
-
-
         AsyncOperationHandle<SceneInstance> _sceneHandle;
         byte _loadSceneGeneration;
-        byte _numLoadScenePlayerAcks;
-
 
 
         protected override void Awake() {
@@ -49,9 +45,7 @@ namespace GameFramework {
             Reactor.AddHandler((byte)MessageId.Commands, OnCommands);
         }
 
-        public virtual IGameMode CreateGameModeForScene(string sceneName) {
-            return new GameMode(this);
-        }
+        public abstract IGameMode CreateGameModeForScene(string sceneName);
 
         protected virtual ApprovalResult OnApproveConnection(BitReader bs) {
             return new ApprovalResult() { Approved = true };
@@ -77,7 +71,6 @@ namespace GameFramework {
 
             IsLoadingScene = true;
             ++_loadSceneGeneration;
-            _numLoadScenePlayerAcks = 0;
             CurrentSceneName = sceneName;
 
             ReplicaManager.Reset();
@@ -228,9 +221,7 @@ namespace GameFramework {
             if (generation != _loadSceneGeneration)
                 return;
 
-            Debug.Log($"[Server] On load scene done: <i>{connection}</i> (generation={generation})");
-
-            ++_numLoadScenePlayerAcks;
+            Debug.Log($"[Server] Client <i>{connection}</i> done loading scene (generation={generation})");
 
             //
             var replicaView = ReplicaManager.GetReplicaView(connection);
@@ -246,6 +237,15 @@ namespace GameFramework {
                 return;
 
             pc.OnCommands(connection, bs);
+        }
+
+        [MenuItem("GameObject/GameFramework/ServerGame", false, 10)]
+        static void CreateCustomGameObject(MenuCommand menuCommand) {
+            var go = new GameObject("Server Game");
+            GameObjectUtility.SetParentAndAlign(go, menuCommand.context as GameObject);
+            Undo.RegisterCreatedObjectUndo(go, "Create " + go.name);
+            Selection.activeObject = go;
+            go.AddComponent<ServerGame>();
         }
     }
 }

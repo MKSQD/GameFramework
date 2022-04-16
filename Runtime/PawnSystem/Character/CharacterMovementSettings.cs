@@ -8,9 +8,9 @@ namespace GameFramework {
         [Header("Movement")]
         public LayerMask ClientGroundMask;
         public LayerMask ServerGroundMask;
-        public float Gravity = -9f;
-        public float WalkSpeed = 2;
-        public float RunSpeed = 5;
+        public float Gravity = -0.03f;
+        public float WalkSpeed = 0.1f;
+        public float RunSpeed = 1;
         public float BackwardSpeedModifier = 0.65f;
         public float SideSpeedModifier = 0.8f;
 
@@ -19,9 +19,9 @@ namespace GameFramework {
 
         [Header("Jumping")]
         [Range(0.01f, 5)]
-        public float JumpForce = 100;
+        public float JumpForce = 0.3f;
         [Range(1, 20)]
-        public byte JumpFrames = 10;
+        public byte JumpFrames = 8;
 
 
         [Header("Crouching")]
