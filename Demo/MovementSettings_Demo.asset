@@ -18,14 +18,14 @@ MonoBehaviour:
   ServerGroundMask:
     serializedVersion: 2
     m_Bits: 1
-  Gravity: -9
-  WalkSpeed: 2
-  RunSpeed: 5
+  Gravity: -0.03
+  WalkSpeed: 0.1
+  RunSpeed: 1
   BackwardSpeedModifier: 0.65
   SideSpeedModifier: 0.8
   GroundDetection: 1
-  JumpForce: 100
-  JumpFrames: 10
+  JumpForce: 0.3
+  JumpFrames: 7
   CrouchRelativeHeight: 0.5
   CrouchSpeed: 2
   InterpMode: 0

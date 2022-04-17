@@ -5,6 +5,7 @@ using Cube.Transport;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using UnityEngine.Assertions;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
@@ -98,6 +99,7 @@ namespace GameFramework {
 #if UNITY_EDITOR
             // Assume server loaded map already
             var scene = SceneManager.GetSceneByName(sceneName);
+            Assert.IsTrue(scene.IsValid());
 #else
             _sceneHandle = Addressables.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
             yield return _sceneHandle;
