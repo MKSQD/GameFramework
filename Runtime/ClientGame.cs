@@ -120,6 +120,7 @@ namespace GameFramework {
             NetworkInterface.Send(bs, PacketReliability.ReliableUnordered, MessageChannel.SceneLoad);
         }
 
+#if UNITY_EDITOR
         [MenuItem("GameObject/GameFramework/ClientGame", false, 10)]
         static void CreateCustomGameObject(MenuCommand menuCommand) {
             var go = new GameObject("Client Game");
@@ -128,5 +129,6 @@ namespace GameFramework {
             Selection.activeObject = go;
             go.AddComponent<ClientGame>();
         }
+#endif
     }
 }

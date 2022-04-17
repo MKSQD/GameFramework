@@ -239,6 +239,7 @@ namespace GameFramework {
             pc.OnCommands(connection, bs);
         }
 
+#if UNITY_EDITOR
         [MenuItem("GameObject/GameFramework/ServerGame", false, 10)]
         static void CreateCustomGameObject(MenuCommand menuCommand) {
             var go = new GameObject("Server Game");
@@ -247,5 +248,6 @@ namespace GameFramework {
             Selection.activeObject = go;
             go.AddComponent<ServerGame>();
         }
+#endif
     }
 }

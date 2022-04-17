@@ -14,14 +14,15 @@ namespace GameFramework {
             return transform.position + offset;
         }
 
-        void OnEnable() {
+        protected void OnEnable() {
             s_All.Add(this);
         }
 
-        void OnDisable() {
+        protected void OnDisable() {
             s_All.Remove(this);
         }
 
+#if UNITY_EDITOR
         [MenuItem("GameObject/GameFramework/Player Spawn", false, 10)]
         static void CreateCustomGameObject(MenuCommand menuCommand) {
             var go = new GameObject("Player Spawn");
@@ -30,5 +31,6 @@ namespace GameFramework {
             Selection.activeObject = go;
             go.AddComponent<PlayerSpawn>();
         }
+#endif
     }
 }
