@@ -6,33 +6,38 @@ namespace GameFramework.FeelsSystem {
     public class FeelsManager : MonoBehaviour {
         public static FeelsManager Main;
 
-        public List<(float, ScreenShake)> ActiveShakes = new();
-        public Vector2 ScreenShakeOffset;
+        readonly List<(float, FeelBase)> _activeFeels = new();
 
-        protected void Start() {
-            Main = this;
+        public void Add(FeelBase feel) {
+            _activeFeels.Add((Time.time, feel));
         }
 
         protected void Update() {
-            ScreenShakeOffset = Vector2.zero;
+            for (int i = 0; i < _activeFeels.Count; i++) {
+                var timeAndFeel = _activeFeels[i];
+                var feel = timeAndFeel.Item2;
+                feel.Reset();
+            }
 
-            for (int i = 0; i < ActiveShakes.Count; i++) {
-                var activeShake = ActiveShakes[i];
-                var shake = activeShake.Item2;
+            for (int i = 0; i < _activeFeels.Count; i++) {
+                var timeAndFeel = _activeFeels[i];
+                var feel = timeAndFeel.Item2;
 
-                var t = Time.time - activeShake.Item1;
-                if (t > shake.Duration) {
-                    ActiveShakes.RemoveAt(i);
+                var t = Time.time - timeAndFeel.Item1;
+                if (t > feel.Duration) {
+                    _activeFeels.RemoveAt(i);
                     continue;
                 }
-                t /= shake.Duration;
 
+                t /= feel.Duration;
                 Assert.IsTrue(t >= 0 && t <= 1);
 
-                var a = shake.IntensityOverTime.Evaluate(t);
-                ScreenShakeOffset.x += (Mathf.PerlinNoise(Time.time * shake.Frequency, 0) * 2 - 1) * a;
-                ScreenShakeOffset.y += (Mathf.PerlinNoise(Time.time * shake.Frequency + 12345, 0) * 2 - 1) * a;
+                feel.Evaluate(t);
             }
+        }
+
+        protected void Start() {
+            Main = this;
         }
     }
 }
