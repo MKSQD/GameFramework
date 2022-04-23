@@ -129,6 +129,8 @@ namespace GameFramework {
 
         protected override void OnUnpossessed() {
             Input.Dispose();
+            Input = null;
+
             Pawn.InputMap.Disable();
         }
 
