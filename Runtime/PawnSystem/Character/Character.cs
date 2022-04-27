@@ -91,14 +91,14 @@ namespace GameFramework {
         public override void Teleport(Vector3 targetPosition, Quaternion targetRotation) => Movement.Teleport(targetPosition, targetRotation);
 
 #if UNITY_EDITOR
-        void OnDrawGizmosSelected() {
+        protected void OnDrawGizmosSelected() {
             if (View != null) {
                 Debug.DrawLine(View.transform.position, View.transform.position + View.transform.forward * 0.5f, Color.yellow);
             }
         }
 
         [MenuItem("GameObject/GameFramework/Character", false, 10)]
-        static void CreateCustomGameObject(MenuCommand menuCommand) {
+        static protected void CreateCustomGameObject(MenuCommand menuCommand) {
             var go = new GameObject("Character");
             GameObjectUtility.SetParentAndAlign(go, menuCommand.context as GameObject);
             Undo.RegisterCreatedObjectUndo(go, "Create " + go.name);

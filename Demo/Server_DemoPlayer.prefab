@@ -50,7 +50,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Settings: {fileID: 0}
-  prefabIdx: 82
+  prefabIdx: 86
   sceneIdx: 0
   lastUpdateTime: 0
 --- !u!143 &4823881055361338200
