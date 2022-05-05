@@ -34,7 +34,7 @@ namespace GameFramework {
                 return;
             }
 
-            Debug.Log("[Server] <b>Match starting...</b>");
+            Debug.Log("[Server] <b>*** Match starting ***</b>");
 
             CurrentMatchState = MatchState.InProgress;
             OnMatchHasStarted();
@@ -49,7 +49,7 @@ namespace GameFramework {
             CurrentMatchState = MatchState.WaitingPostMatch;
             OnMatchHasEnded();
 
-            Debug.Log("[Server] <b>Match has ended</b>");
+            Debug.Log("[Server] <b>*** Match has ended ***</b>");
         }
 
         public override void StartToLeaveMap() {
