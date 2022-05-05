@@ -85,5 +85,9 @@ namespace GameFramework {
 
         protected virtual void OnPossession(Pawn previousPawn) { }
         protected virtual void OnUnpossession() { }
+
+        protected void OnDestroy() {
+            Controller?.Unpossess();
+        }
     }
 }
