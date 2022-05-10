@@ -10,7 +10,18 @@ namespace GameFramework {
     public struct StoppedSneakingEvent : IEvent { }
 
     [AddComponentMenu("CharacterSystem/CharacterMovement")]
-    public class CharacterMovement : ReplicaBehaviour {
+    public class CharacterMovement : ReplicaBehaviour, StateExtrapolator<CharacterMovement.State>.IStateAdapter {
+        public struct State {
+            public float Timestamp;
+            public Vector3 Position;
+            public Vector2 Move;
+            public Quaternion Rotation;
+            public float ViewPitch;
+            public bool IsWalking;
+            public bool IsCrouching;
+            public bool Jumped;
+        }
+
         public event Action Jumped, Landed;
 
         public const float MinViewPitch = -65, MaxViewPitch = 70;
@@ -22,7 +33,7 @@ namespace GameFramework {
         public Vector3 Velocity => _motor.Velocity;
         public Vector3 LocalVelocity => transform.InverseTransformDirection(Velocity);
 
-        public bool IsMoving => LastStick.sqrMagnitude > 0.01f;//Velocity.sqrMagnitude > 0.01f;
+        public bool IsMoving => Velocity.sqrMagnitude > 0.01f;//LastStick.sqrMagnitude > 0.01f;//
         public bool IsWalking => _walkInput;
         public bool IsCrouching { get; private set; }
         public bool Crouch => _crouchInput;
@@ -45,7 +56,7 @@ namespace GameFramework {
         Vector3 _velocity;
         byte _jumpFrames;
 
-        RemoteInterp _remoteInterp;
+        StateExtrapolator<State> _extrapolator;
 
         public void Teleport(Vector3 targetPosition, Quaternion targetRotation) {
             _motor.Disable();
@@ -220,6 +231,10 @@ namespace GameFramework {
             UpdateGround();
         }
 
+        public float GetStateTimestamp(State state) => state.Timestamp;
+        public Vector3 GetStatePosition(State state) => state.Position;
+        public void SetStatePosition(ref State state, Vector3 position) => state.Position = position;
+
         static readonly RaycastHit[] _groundHits = new RaycastHit[3];
         static readonly Collider[] _groundColliders = new Collider[3];
 
@@ -328,31 +343,31 @@ namespace GameFramework {
         void UpdateRemote() {
             Assert.IsTrue(isClient);
 
-            if (_remoteInterp == null) {
-                _remoteInterp = new RemoteInterp(Settings.InterpMode);
-            }
+            var newState = new State() {
+                Position = transform.position,
+                Rotation = transform.rotation
+            };
 
-            var pos = transform.position;
-            var rot = transform.rotation;
-            var result = _remoteInterp.Sample(ref pos, ref rot);
-            transform.rotation = rot;
-            if (result.Jumped) {
+            _extrapolator.Sample(ref newState, client.NetworkInterface.Ping);
+            transform.rotation = newState.Rotation;
+            if (newState.Jumped) {
                 Jumped?.Invoke();
             }
-            SetWalk(result.Walking);
-            SetCrouch(result.IsCrouching);
+            SetWalk(newState.IsWalking);
+            SetCrouch(newState.IsCrouching);
 
-            _character.View.localRotation = Quaternion.AngleAxis(result.ViewPitch, Vector3.left);
+            _character.View.localRotation = Quaternion.AngleAxis(newState.ViewPitch, Vector3.left);
 
-            LastStick = Vector2.LerpUnclamped(LastStick, result.Move, Time.deltaTime * 5);
+            LastStick = Vector2.LerpUnclamped(LastStick, newState.Move, Time.deltaTime * 5);
 
-            if (!result.ShouldTeleport) {
-                _motor.Move(pos - transform.position);
+            var shouldTeleport = (newState.Position - transform.position).sqrMagnitude > 1;
+            if (!shouldTeleport) {
+                _motor.Move(newState.Position - transform.position);
             } else {
-                Teleport(pos, rot);
+                Teleport(newState.Position, newState.Rotation);
             }
 
-            UpdateCrouch(result.IsCrouching);
+            UpdateCrouch(newState.IsCrouching);
             UpdateGround();
         }
 
@@ -376,10 +391,6 @@ namespace GameFramework {
             if (isOwner)
                 return;
 
-            if (_remoteInterp == null) {
-                _remoteInterp = new RemoteInterp(Settings.InterpMode);
-            }
-
             Vector3 pos;
             pos.x = bs.ReadLossyFloat(-5000, 5000, 0.01f);
             pos.z = bs.ReadLossyFloat(-5000, 5000, 0.01f);
@@ -396,7 +407,17 @@ namespace GameFramework {
             var crouching = bs.ReadBool();
             var jumped = bs.ReadBool();
 
-            _remoteInterp.AddState(pos, move, yaw, viewPitch, walking, crouching, jumped);
+            var newState = new State() {
+                Timestamp = Time.time,
+                Position = pos,
+                Move = move,
+                Rotation = Quaternion.AngleAxis(yaw, Vector3.up),
+                ViewPitch = viewPitch,
+                IsWalking = walking,
+                IsCrouching = crouching,
+                Jumped = jumped
+            };
+            _extrapolator.AddState(newState);
         }
 
 
@@ -411,6 +432,8 @@ namespace GameFramework {
         }
 
         void Awake() {
+            _extrapolator = new(this);
+
             // Hack: Hide until the first Deserialize is called
             transform.position = Vector3.down * 50;
 
@@ -423,7 +446,7 @@ namespace GameFramework {
 
 #if UNITY_EDITOR
         void OnDrawGizmosSelected() {
-            _remoteInterp?.DrawDebugGizmos();
+            //_remoteInterp?.DrawDebugGizmos();
         }
 #endif
     }

@@ -28,8 +28,5 @@ namespace GameFramework {
         [Range(0.1f, 0.99f)]
         public float CrouchRelativeHeight = 0.5f;
         public float CrouchSpeed = 2;
-
-        [Header("Interpolation/Extrapolation")]
-        public RemoteInterp.Mode InterpMode = RemoteInterp.Mode.Interpolate;
     }
 }
