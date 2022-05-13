@@ -61,15 +61,9 @@ namespace GameFramework {
             input.BindVector2Axis("Gameplay/Look", OnLook);
             input.BindVector2Axis("Gameplay/Move", Movement.SetMove);
             input.BindFloatAxis("Gameplay/Walk", value => Movement.SetWalk(value > 0.5f));
-            input.BindStartedAction("Gameplay/ToggleCrouch", () => Movement.SetCrouch(!Movement.Crouch));
+            input.BindStartedAction("Gameplay/ToggleCrouch", () => Movement.SetCrouch(!Movement.CrouchInput));
             input.BindStartedAction("Gameplay/Jump", Movement.Jump);
         }
-
-        protected virtual void Awake() {
-            Movement = GetComponent<CharacterMovement>();
-        }
-
-        protected virtual void OnLook(Vector2 value) => Movement.AddLook(value);
 
         public override IBitSerializable CreateCommand() => new CharacterCommand();
         public override IBitSerializable ConsumeCommand() {
@@ -85,10 +79,18 @@ namespace GameFramework {
             Movement.GetState(ref state2);
         }
         public override void ResetToState(IBitSerializable state) => Movement.ResetToState((CharacterState)state);
-        public override void InterpState(IBitSerializable oldState, IBitSerializable newState, float a) => Movement.InterpState((CharacterState)oldState, (CharacterState)newState, a);
+        public override void InterpState(IBitSerializable oldState, IBitSerializable newState, float a) {
+            Movement.InterpState((CharacterState)oldState, (CharacterState)newState, a);
+        }
 
 
         public override void Teleport(Vector3 targetPosition, Quaternion targetRotation) => Movement.Teleport(targetPosition, targetRotation);
+
+        protected virtual void Awake() {
+            Movement = GetComponent<CharacterMovement>();
+        }
+
+        protected virtual void OnLook(Vector2 value) => Movement.AddLook(value);
 
 #if UNITY_EDITOR
         protected void OnDrawGizmosSelected() {

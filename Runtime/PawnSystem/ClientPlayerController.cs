@@ -12,7 +12,7 @@ namespace GameFramework {
         byte _pawnIdxToPossess;
 
         static readonly int CommandBufferSize = 60;
-        List<IBitSerializable> _commands = new(CommandBufferSize);
+        readonly List<IBitSerializable> _commands = new(CommandBufferSize);
         IBitSerializable _lastAcceptedState;
         int _currentCommandIdx = 0;
         int _acceptedCommandIdx = 0;
@@ -44,7 +44,7 @@ namespace GameFramework {
 
             Input.Update();
 
-            _frameAcc += Time.unscaledDeltaTime;
+            _frameAcc += Time.deltaTime;
             while (_frameAcc >= Constants.FrameRate) {
                 _frameAcc -= Constants.FrameRate;
 

@@ -12,7 +12,6 @@ namespace GameFramework {
     [AddComponentMenu("CharacterSystem/CharacterMovement")]
     public class CharacterMovement : ReplicaBehaviour, StateExtrapolator<CharacterMovement.State>.IStateAdapter {
         public struct State {
-            public float Timestamp;
             public Vector3 Position;
             public Vector2 Move;
             public Quaternion Rotation;
@@ -34,15 +33,16 @@ namespace GameFramework {
         public Vector3 LocalVelocity => transform.InverseTransformDirection(Velocity);
 
         public bool IsMoving => Velocity.sqrMagnitude > 0.01f;//LastStick.sqrMagnitude > 0.01f;//
-        public bool IsWalking => _walkInput;
+        public bool WalkInput => _walkInput;
         public bool IsCrouching { get; private set; }
-        public bool Crouch => _crouchInput;
+        public bool CrouchInput => _crouchInput;
+        public bool InProceduralMovement { get; set; }
+        public bool IsOnLadder { get; private set; }
+
         public bool IsGrounded { get; private set; }
         public PhysicMaterial GroundMaterial { get; private set; }
-        public float Height => _motor.Height;
-        public bool InProceduralMovement { get; set; }
+
         public Vector2 LastStick { get; private set; }
-        public bool IsOnLadder { get; private set; }
 
         public float Yaw { get; private set; }
         public float ViewPitch { get; private set; }
@@ -168,6 +168,8 @@ namespace GameFramework {
 
             var pos = Vector3.Lerp(oldState.Position, newState.Position, a);
 
+            Debug.DrawLine(oldState.Position, newState.Position, Color.green);
+
             transform.position = pos;
         }
 
@@ -231,9 +233,19 @@ namespace GameFramework {
             UpdateGround();
         }
 
-        public float GetStateTimestamp(State state) => state.Timestamp;
-        public Vector3 GetStatePosition(State state) => state.Position;
-        public void SetStatePosition(ref State state, Vector3 position) => state.Position = position;
+        public State PredictState(State oldState, State newState, float t) {
+            newState.Position += (newState.Position - oldState.Position) * t;
+            return newState;
+        }
+        public void LerpStates(State oldState, State newState, ref State resultState, float t) {
+            resultState.Position = Vector3.LerpUnclamped(oldState.Position, newState.Position, t);
+            resultState.Move = Vector3.LerpUnclamped(oldState.Move, newState.Move, t);
+            resultState.Rotation = Quaternion.SlerpUnclamped(oldState.Rotation, newState.Rotation, t);
+            resultState.ViewPitch = Mathf.LerpUnclamped(oldState.ViewPitch, newState.ViewPitch, t);
+            resultState.IsWalking = newState.IsWalking;
+            resultState.IsCrouching = newState.IsCrouching;
+            resultState.Jumped = newState.Jumped;
+        }
 
         static readonly RaycastHit[] _groundHits = new RaycastHit[3];
         static readonly Collider[] _groundColliders = new Collider[3];
@@ -382,7 +394,7 @@ namespace GameFramework {
             bs.WriteLossyFloat(ViewPitch, MinViewPitch, MaxViewPitch, 1);
             bs.WriteLossyFloat(LastStick.x, -1, 1, 0.25f);
             bs.WriteLossyFloat(LastStick.y, -1, 1, 0.25f);
-            bs.WriteBool(IsWalking);
+            bs.WriteBool(WalkInput);
             bs.WriteBool(IsCrouching);
             bs.WriteBool(_jumpInput);
         }
@@ -408,7 +420,6 @@ namespace GameFramework {
             var jumped = bs.ReadBool();
 
             var newState = new State() {
-                Timestamp = Time.time,
                 Position = pos,
                 Move = move,
                 Rotation = Quaternion.AngleAxis(yaw, Vector3.up),
