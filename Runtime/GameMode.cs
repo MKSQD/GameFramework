@@ -108,11 +108,11 @@ namespace GameFramework {
         }
 
         protected virtual bool ReadyToStartMatch() {
-            return Server.Connections.Count > 0 && !Server.IsLoadingScene;
+            return Server.Connections.Count > 0 && !Server.IsLoadingMap;
         }
 
         protected virtual bool ReadyToEndMatch() {
-            return Server.Connections.Count == 0 && !Server.IsLoadingScene;
+            return Server.Connections.Count == 0 && !Server.IsLoadingMap;
         }
 
         protected virtual void OnMatchIsWaitingToStart() { }

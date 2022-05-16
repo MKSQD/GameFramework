@@ -27,12 +27,12 @@ namespace GameFramework {
         public GameObject GameState;
         public List<ServerPlayerController> PlayerControllers = new();
 
-        public bool IsLoadingScene { get; private set; }
-        public string CurrentSceneName { get; private set; }
+        public bool IsLoadingMap { get; private set; }
+        public string CurrentMapName { get; private set; }
 
 
         AsyncOperationHandle<SceneInstance> _sceneHandle;
-        byte _loadSceneGeneration;
+        byte _loadMapGeneration;
 
 
         protected override void Awake() {
@@ -51,17 +51,19 @@ namespace GameFramework {
             return new ApprovalResult() { Approved = true };
         }
 
-        public void ReloadCurrentScene() => LoadScene(CurrentSceneName);
+        public void ReloadCurrentMap() => LoadMap(CurrentMapName);
 
         /// <summary>
         /// Reset replication, instruct all clients to load the new scene, actually
         /// load the new scene on the server and finally create a new GameMode instance.
         /// </summary>
-        /// <param name="sceneName"></param>
-        public void LoadScene(string sceneName) {
-            Assert.IsTrue(sceneName.Length > 0);
+        /// <param name="name"></param>
+        public void LoadMap(string name) {
+            Debug.Log($"[Server] Loading map <i>{name}</i>...");
 
-            if (IsLoadingScene)
+            Assert.IsTrue(name.Length > 0);
+
+            if (IsLoadingMap)
                 throw new Exception("Cant start loading, current loading");
 
             // Cleanup
@@ -69,13 +71,13 @@ namespace GameFramework {
                 GameMode.StartToLeaveMap();
             }
 
-            IsLoadingScene = true;
-            ++_loadSceneGeneration;
-            CurrentSceneName = sceneName;
+            IsLoadingMap = true;
+            ++_loadMapGeneration;
+            CurrentMapName = name;
 
             ReplicaManager.Reset();
 
-            BroadcastLoadScene(sceneName, _loadSceneGeneration);
+            BroadcastLoadMap(name, _loadMapGeneration);
 
             // Disable ReplicaViews during level load
             foreach (var connection in Connections) {
@@ -88,23 +90,23 @@ namespace GameFramework {
             // Unload old scene
             if (_sceneHandle.IsValid()) {
                 var op = Addressables.UnloadSceneAsync(_sceneHandle);
-                op.Completed += ctx => { LoadSceneImpl(); };
+                op.Completed += ctx => { LoadMapImpl(); };
                 return;
             }
 
 #if UNITY_EDITOR
-            var loadedScene = SceneManager.GetSceneByName(sceneName);
+            var loadedScene = SceneManager.GetSceneByName(name);
             if (loadedScene.isLoaded) {
                 var op = SceneManager.UnloadSceneAsync(loadedScene);
-                op.completed += ctx => { LoadSceneImpl(); };
+                op.completed += ctx => { LoadMapImpl(); };
                 return;
             }
 #endif
 
-            LoadSceneImpl();
+            LoadMapImpl();
         }
 
-        void BroadcastLoadScene(string sceneName, byte gen) {
+        void BroadcastLoadMap(string sceneName, byte gen) {
             var bs = new BitWriter();
             bs.WriteByte((byte)MessageId.LoadScene);
             bs.WriteString(sceneName);
@@ -113,22 +115,20 @@ namespace GameFramework {
             NetworkInterface.BroadcastBitStream(bs, PacketReliability.ReliableSequenced, MessageChannel.SceneLoad);
         }
 
-        void LoadSceneImpl() {
-            Debug.Log($"[Server] Loading level {CurrentSceneName}");
-
-            _sceneHandle = Addressables.LoadSceneAsync(CurrentSceneName, LoadSceneMode.Additive);
-            _sceneHandle.Completed += ctx => { OnSceneLoaded(); };
+        void LoadMapImpl() {
+            _sceneHandle = Addressables.LoadSceneAsync(CurrentMapName, LoadSceneMode.Additive);
+            _sceneHandle.Completed += ctx => { OnMapLoaded(); };
         }
 
-        void OnSceneLoaded() {
-            Debug.Log("[Server] <b>Scene loaded</b>");
+        void OnMapLoaded() {
+            Debug.Log("[Server] Map loaded");
 
-            IsLoadingScene = false;
+            IsLoadingMap = false;
             SceneLoaded?.Invoke();
 
-            GameMode = CreateGameModeForScene(CurrentSceneName);
+            GameMode = CreateGameModeForScene(CurrentMapName);
             if (GameMode == null)
-                throw new Exception("Failed to create GameMode for scene " + CurrentSceneName);
+                throw new Exception("Failed to create GameMode for scene " + CurrentMapName);
 
             Debug.Log($"[Server] New GameMode <i>{GameMode}</i>");
         }
@@ -138,14 +138,14 @@ namespace GameFramework {
         }
 
         void OnNewIncomingConnection(Connection connection) {
-            Debug.Log($"[Server] <b>New connection</b> <i>{connection}</i>");
+            Debug.Log($"[Server] New connection <i>{connection}</i>");
 
             // Send load scene packet if we loaded one previously
-            if (CurrentSceneName != null) {
+            if (CurrentMapName != null) {
                 var bs2 = new BitWriter();
                 bs2.WriteByte((byte)MessageId.LoadScene);
-                bs2.WriteString(CurrentSceneName);
-                bs2.WriteByte(_loadSceneGeneration);
+                bs2.WriteString(CurrentMapName);
+                bs2.WriteByte(_loadMapGeneration);
 
                 NetworkInterface.Send(bs2, PacketReliability.ReliableSequenced, connection, MessageChannel.SceneLoad);
             }
@@ -218,7 +218,7 @@ namespace GameFramework {
 
         void OnLoadSceneDone(Connection connection, BitReader bs) {
             var generation = bs.ReadByte();
-            if (generation != _loadSceneGeneration)
+            if (generation != _loadMapGeneration)
                 return;
 
             Debug.Log($"[Server] Client <i>{connection}</i> done loading scene (generation={generation})");
