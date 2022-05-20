@@ -1,12 +1,7 @@
 ﻿namespace GameFramework {
     public enum MessageId {
-        // To Server
-        LoadSceneDone = Cube.Transport.MessageId.FirstUserId,
-
-        // To Client
-        LoadScene,
-
-        PossessPawn,
+        // Server -> Client
+        PossessPawn = Cube.Transport.MessageId.FirstUserId,
         Commands,
         CommandsAccepted,
 

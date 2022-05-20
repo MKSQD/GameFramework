@@ -5,11 +5,6 @@ using Cube.Replication;
 using Cube.Transport;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.AddressableAssets;
-using UnityEngine.Assertions;
-using UnityEngine.ResourceManagement.AsyncOperations;
-using UnityEngine.ResourceManagement.ResourceProviders;
-using UnityEngine.SceneManagement;
 
 namespace GameFramework {
     public struct PlayerJoinedEvent : IEvent {
@@ -20,28 +15,20 @@ namespace GameFramework {
     }
 
     public abstract class ServerGame : CubeServer {
-        public event Action SceneLoaded;
-
         public IGameMode GameMode { get; private set; }
         [ReadOnly]
         public GameObject GameState;
         public List<ServerPlayerController> PlayerControllers = new();
 
-        public bool IsLoadingMap { get; private set; }
-        public string CurrentMapName { get; private set; }
 
 
-        AsyncOperationHandle<SceneInstance> _sceneHandle;
-        byte _loadMapGeneration;
+
 
 
         protected override void Awake() {
             base.Awake();
 
             NetworkInterface.ApproveConnection += OnApproveConnection;
-            NetworkInterface.NewConnectionEstablished += OnNewIncomingConnection;
-            NetworkInterface.DisconnectNotification += OnDisconnectNotification;
-            Reactor.AddHandler((byte)MessageId.LoadSceneDone, OnLoadSceneDone);
             Reactor.AddHandler((byte)MessageId.Commands, OnCommands);
         }
 
@@ -51,107 +38,11 @@ namespace GameFramework {
             return new ApprovalResult() { Approved = true };
         }
 
-        public void ReloadCurrentMap() => LoadMap(CurrentMapName);
-
-        /// <summary>
-        /// Reset replication, instruct all clients to load the new scene, actually
-        /// load the new scene on the server and finally create a new GameMode instance.
-        /// </summary>
-        /// <param name="name"></param>
-        public void LoadMap(string name) {
-            Debug.Log($"[Server] Loading map <i>{name}</i>...");
-
-            Assert.IsTrue(name.Length > 0);
-
-            if (IsLoadingMap)
-                throw new Exception("Cant start loading, current loading");
-
-            // Cleanup
-            if (GameMode != null) {
-                GameMode.StartToLeaveMap();
-            }
-
-            IsLoadingMap = true;
-            ++_loadMapGeneration;
-            CurrentMapName = name;
-
-            ReplicaManager.Reset();
-
-            BroadcastLoadMap(name, _loadMapGeneration);
-
-            // Disable ReplicaViews during level load
-            foreach (var connection in Connections) {
-                var replicaView = ReplicaManager.GetReplicaView(connection);
-                if (replicaView != null) {
-                    replicaView.IsLoadingLevel = true;
-                }
-            }
-
-            // Unload old scene
-            if (_sceneHandle.IsValid()) {
-                var op = Addressables.UnloadSceneAsync(_sceneHandle);
-                op.Completed += ctx => { LoadMapImpl(); };
-                return;
-            }
-
-#if UNITY_EDITOR
-            var loadedScene = SceneManager.GetSceneByName(name);
-            if (loadedScene.isLoaded) {
-                var op = SceneManager.UnloadSceneAsync(loadedScene);
-                op.completed += ctx => { LoadMapImpl(); };
-                return;
-            }
-#endif
-
-            LoadMapImpl();
-        }
-
-        void BroadcastLoadMap(string sceneName, byte gen) {
-            var bs = new BitWriter();
-            bs.WriteByte((byte)MessageId.LoadScene);
-            bs.WriteString(sceneName);
-            bs.WriteByte(gen);
-
-            NetworkInterface.BroadcastBitStream(bs, PacketReliability.ReliableSequenced, MessageChannel.SceneLoad);
-        }
-
-        void LoadMapImpl() {
-            _sceneHandle = Addressables.LoadSceneAsync(CurrentMapName, LoadSceneMode.Additive);
-            _sceneHandle.Completed += ctx => { OnMapLoaded(); };
-        }
-
-        void OnMapLoaded() {
-            Debug.Log("[Server] Map loaded");
-
-            IsLoadingMap = false;
-            SceneLoaded?.Invoke();
-
-            GameMode = CreateGameModeForScene(CurrentMapName);
-            if (GameMode == null)
-                throw new Exception("Failed to create GameMode for scene " + CurrentMapName);
-
-            Debug.Log($"[Server] New GameMode <i>{GameMode}</i>");
-        }
-
         protected virtual ServerPlayerController CreatePlayerController(ReplicaView view) {
             return new ServerPlayerController(view, this);
         }
 
-        void OnNewIncomingConnection(Connection connection) {
-            Debug.Log($"[Server] New connection <i>{connection}</i>");
-
-            // Send load scene packet if we loaded one previously
-            if (CurrentMapName != null) {
-                var bs2 = new BitWriter();
-                bs2.WriteByte((byte)MessageId.LoadScene);
-                bs2.WriteString(CurrentMapName);
-                bs2.WriteByte(_loadMapGeneration);
-
-                NetworkInterface.Send(bs2, PacketReliability.ReliableSequenced, connection, MessageChannel.SceneLoad);
-            }
-
-            var replicaView = CreateReplicaView(connection);
-
+        protected override void OnNewConnectionEstablished(Connection connection, ReplicaView replicaView) {
             var newPC = CreatePlayerController(replicaView);
             PlayerControllers.Add(newPC);
 
@@ -164,19 +55,7 @@ namespace GameFramework {
             EventHub<PlayerJoinedEvent>.Emit(new(newPC));
         }
 
-        public ServerPlayerController GetPlayerControllerForConnection(Connection connection) {
-            foreach (var pc in PlayerControllers) {
-                if (pc.Connection == connection)
-                    return pc;
-            }
-            return null;
-        }
-
-        protected virtual void OnDisconnectNotification(Connection connection) {
-            Debug.Log("[Server] Lost connection: " + connection);
-
-            ReplicaManager.RemoveReplicaView(connection);
-
+        protected override void OnDisconnectNotification(Connection connection) {
             var pc = GetPlayerControllerForConnection(connection);
             PlayerControllers.Remove(pc);
 
@@ -186,6 +65,16 @@ namespace GameFramework {
                 }
             }
         }
+
+        public ServerPlayerController GetPlayerControllerForConnection(Connection connection) {
+            foreach (var pc in PlayerControllers) {
+                if (pc.Connection == connection)
+                    return pc;
+            }
+            return null;
+        }
+
+
 
         protected override void Update() {
             base.Update();
@@ -206,29 +95,18 @@ namespace GameFramework {
             }
         }
 
-        protected virtual ReplicaView CreateReplicaView(Connection connection) {
-            var view = new GameObject("ReplicaView " + connection);
-            view.transform.parent = transform;
-
-            var rw = view.AddComponent<ReplicaView>();
-            rw.Connection = connection;
-
-            return rw;
+        protected override void OnLeaveMap() {
+            if (GameMode != null) {
+                GameMode.StartToLeaveMap();
+            }
         }
 
-        void OnLoadSceneDone(Connection connection, BitReader bs) {
-            var generation = bs.ReadByte();
-            if (generation != _loadMapGeneration)
-                return;
+        protected override void OnMapLoaded() {
+            GameMode = CreateGameModeForScene(CurrentMapName);
+            if (GameMode == null)
+                throw new Exception($"Failed to create GameMode for scene {CurrentMapName}");
 
-            Debug.Log($"[Server] Client <i>{connection}</i> done loading scene (generation={generation})");
-
-            //
-            var replicaView = ReplicaManager.GetReplicaView(connection);
-            if (replicaView != null) {
-                replicaView.IsLoadingLevel = false;
-                ReplicaManager.ForceReplicaViewRefresh(replicaView);
-            }
+            Debug.Log($"[Server] New GameMode <i>{GameMode}</i>");
         }
 
         void OnCommands(Connection connection, BitReader bs) {

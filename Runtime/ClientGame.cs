@@ -28,18 +28,14 @@ namespace GameFramework {
 
         public virtual bool PawnInputEnabled => true;
 
-        AsyncOperationHandle<SceneInstance> _sceneHandle;
-        byte _currentLoadedSceneGeneration;
-
         ClientPlayerController _localPlayerController;
 
         protected override void Awake() {
             base.Awake();
 
             NetworkInterface.ConnectionRequestAccepted += OnConnectionRequestAccepted;
-            NetworkInterface.Disconnected += OnDisconnected;
 
-            Reactor.AddHandler((byte)MessageId.LoadScene, OnLoadScene);
+
             Reactor.AddHandler((byte)MessageId.PossessPawn, bs => _localPlayerController.OnPossessPawn(bs));
             Reactor.AddHandler((byte)MessageId.CommandsAccepted, bs => _localPlayerController.OnCommandsAccepted(bs));
 
@@ -56,68 +52,22 @@ namespace GameFramework {
             _localPlayerController?.Tick();
         }
 
+        protected override void OnDisconnected() {
+            _localPlayerController = null;
+        }
+
+        protected override void OnStartedLoadingMap(string mapName) {
+            EventHub<StartedLoading>.Emit(new(mapName));
+        }
+
+        protected override void OnEndedLoadingMap() {
+            EventHub<EndedLoadingEvent>.EmitDefault();
+        }
+
         void OnConnectionRequestAccepted() {
             Debug.Log("[Client] Connection request to server accepted");
 
             _localPlayerController = new ClientPlayerController(this);
-        }
-
-        void OnDisconnected(string reason) {
-            Debug.Log($"[Client] <b>Disconnected</b> ({reason})");
-
-            // Cleanup
-            _localPlayerController = null;
-
-            ReplicaManager.Reset();
-
-            if (_sceneHandle.IsValid()) {
-                Addressables.UnloadSceneAsync(_sceneHandle);
-            }
-        }
-
-        void OnLoadScene(BitReader bs) {
-            var sceneName = bs.ReadString();
-            var generation = bs.ReadByte();
-
-            if (_currentLoadedSceneGeneration != generation) {
-                _currentLoadedSceneGeneration = generation;
-
-                StartCoroutine(LoadScene(sceneName));
-            }
-        }
-
-        IEnumerator LoadScene(string sceneName) {
-            Debug.Log($"[Client] <b>Loading scene</b> <i>{sceneName}</i>");
-
-            EventHub<StartedLoading>.Emit(new(sceneName));
-
-            ReplicaManager.Reset();
-
-            if (_sceneHandle.IsValid())
-                yield return Addressables.UnloadSceneAsync(_sceneHandle);
-
-#if UNITY_EDITOR
-            // Assume server loaded map already
-            var scene = SceneManager.GetSceneByName(sceneName);
-            Assert.IsTrue(scene.IsValid());
-#else
-            _sceneHandle = Addressables.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
-            yield return _sceneHandle;
-            var scene = _sceneHandle.Result.Scene;
-#endif
-
-            ReplicaManager.ProcessSceneReplicasInScene(scene);
-
-            SendLoadSceneDone();
-            EventHub<EndedLoadingEvent>.EmitDefault();
-        }
-
-        void SendLoadSceneDone() {
-            var bs = new BitWriter(1);
-            bs.WriteByte((byte)MessageId.LoadSceneDone);
-            bs.WriteByte(_currentLoadedSceneGeneration);
-
-            NetworkInterface.Send(bs, PacketReliability.ReliableUnordered, MessageChannel.SceneLoad);
         }
 
 #if UNITY_EDITOR
