@@ -29,16 +29,18 @@ namespace GameFramework {
 
         public CharacterMovementSettings Settings;
 
-        public Vector3 Velocity => _motor.Velocity;
+        Vector3 _velocityAfterLastCommand;
+        public Vector3 Velocity => _velocityAfterLastCommand;
         public Vector3 LocalVelocity => transform.InverseTransformDirection(Velocity);
 
-        public bool IsMoving => Velocity.sqrMagnitude > 0.01f;//LastStick.sqrMagnitude > 0.01f;//
+        public bool IsMoving => Velocity.sqrMagnitude > 0.01f;
         public bool WalkInput => _walkInput;
         public bool IsCrouching { get; private set; }
         public bool CrouchInput => _crouchInput;
         public bool InProceduralMovement { get; set; }
         public bool IsOnLadder { get; private set; }
 
+        public bool IsGroundedGrace => Time.time - _lastGroundedTime <= 0.1f;
         public bool IsGrounded { get; private set; }
         public PhysicMaterial GroundMaterial { get; private set; }
 
@@ -105,12 +107,18 @@ namespace GameFramework {
 
         bool _jumpNotch;
         bool _wasGrounded;
+        float _lastGroundedTime;
         protected void Update() {
             if (IsGrounded != _wasGrounded) {
                 _wasGrounded = IsGrounded;
                 if (IsGrounded) {
-                    Landed?.Invoke();
+                    if (Time.time - _lastGroundedTime > 0.1f) { // Stop slopes from triggering events
+                        Landed?.Invoke();
+                    }
                 }
+            }
+            if (IsGrounded) {
+                _lastGroundedTime = Time.time;
             }
 
             if (isClient) {
@@ -228,9 +236,10 @@ namespace GameFramework {
 
             _motor.Move(transform.rotation * _velocity);
 
-            //
             UpdateCrouch(cmd.Crouch);
             UpdateGround();
+
+            _velocityAfterLastCommand = _motor.Velocity;
         }
 
         public State PredictState(State oldState, State newState, float t) {
@@ -261,8 +270,6 @@ namespace GameFramework {
 
                 case CharacterMovementSettings.GroundDetectionQuality.Ray: {
                         var epsilon = 0.1f;
-                        var pos = transform.position + Vector3.up * (_motor.Radius - epsilon);
-
                         var num = Physics.RaycastNonAlloc(transform.position + Vector3.up * epsilon, Vector3.down, _groundHits, 2, layerMask);
                         for (int i = 0; i < num; ++i) {
                             var groundHit = _groundHits[i];
@@ -381,6 +388,8 @@ namespace GameFramework {
 
             UpdateCrouch(newState.IsCrouching);
             UpdateGround();
+
+            _velocityAfterLastCommand = _motor.Velocity;
         }
 
         public override void Serialize(IBitWriter bs, SerializeContext ctx) {
@@ -442,11 +451,11 @@ namespace GameFramework {
             _motor.Center = new Vector3(0, _motor.Height / 2, 0);
         }
 
-        void Awake() {
+        protected void Awake() {
             _extrapolator = new(this);
 
             // Hack: Hide until the first Deserialize is called
-            transform.position = Vector3.down * 50;
+            //transform.position = Vector3.down * 50;
 
             _motor = GetComponent<IMotor>();
             _character = GetComponent<Character>();
