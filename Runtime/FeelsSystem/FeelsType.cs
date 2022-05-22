@@ -14,6 +14,12 @@ namespace GameFramework.FeelsSystem {
             }
         }
 
+         public void Trigger(Vector3 position, Quaternion rotation) {
+            foreach (var feel in Feels) {
+                feel.Do(position, rotation);
+            }
+        }
+
         [ContextMenu("Trigger")]
         protected void ContextTrigger() => Trigger();
     }
