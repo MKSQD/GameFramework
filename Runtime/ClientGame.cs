@@ -36,8 +36,8 @@ namespace GameFramework {
             NetworkInterface.ConnectionRequestAccepted += OnConnectionRequestAccepted;
 
 
-            Reactor.AddHandler((byte)MessageId.PossessPawn, bs => _localPlayerController.OnPossessPawn(bs));
-            Reactor.AddHandler((byte)MessageId.CommandsAccepted, bs => _localPlayerController.OnCommandsAccepted(bs));
+            Reactor.AddPacketHandler((byte)MessageId.PossessPawn, bs => _localPlayerController.OnPossessPawn(bs));
+            Reactor.AddPacketHandler((byte)MessageId.CommandsAccepted, bs => _localPlayerController.OnCommandsAccepted(bs));
 
             Main = this;
         }

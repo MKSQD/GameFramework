@@ -8,6 +8,7 @@ namespace GameFramework {
 
         readonly ReplicaView _replicaView;
         readonly ServerGame _server;
+        IAuthorativePawnMovement _authorativeMovement;
 
         public ServerPlayerController(ReplicaView view, ServerGame server) {
             _replicaView = view;
@@ -34,30 +35,31 @@ namespace GameFramework {
             var acceptedFrame = bs.ReadUInt();
             var num = bs.ReadIntInRange(1, 60);
 
-            var lastMove = Pawn.CreateCommand();
+            var lastMove = _authorativeMovement.CreateCommand();
             for (int i = 0; i < num; ++i, ++acceptedFrame) {
                 lastMove.Deserialize(bs);
                 if (acceptedFrame <= _lastAcceptedFrame)
                     continue; // Old command -> ignore
 
-                Pawn.ExecuteCommand(lastMove);
+                _authorativeMovement.ExecuteCommand(lastMove);
                 _lastAcceptedFrame = acceptedFrame;
             }
         }
 
         void SendStateToClient(Connection connection) {
-            var state = Pawn.CreateState();
-            Pawn.GetState(ref state);
+            var state = _authorativeMovement.CreateState();
+            _authorativeMovement.GetState(ref state);
 
             var bs2 = new BitWriter();
             bs2.WriteByte((byte)MessageId.CommandsAccepted);
             bs2.WriteUInt(_lastAcceptedFrame);
             state.Serialize(bs2);
 
-            _server.NetworkInterface.Send(bs2, PacketReliability.Unreliable, connection);
+            _server.NetworkInterface.SendPacket(bs2, PacketReliability.Unreliable, connection);
         }
 
         protected override void OnPossessed(Pawn pawn) {
+            _authorativeMovement = Pawn.GetComponent<IAuthorativePawnMovement>();
             pawn.Replica.AssignOwnership(Connection);
             SendPossession();
         }
@@ -84,7 +86,7 @@ namespace GameFramework {
             bs.WriteReplicaId(Pawn.Replica);
             bs.WriteByte(pawnIdx);
 
-            Pawn.server.NetworkInterface.Send(bs, PacketReliability.ReliableSequenced, Connection, MessageChannel.SceneLoad);
+            Pawn.server.NetworkInterface.SendPacket(bs, PacketReliability.ReliableSequenced, Connection, MessageChannel.SceneLoad);
         }
 
         public override string ToString() {

@@ -52,7 +52,7 @@ namespace GameFramework {
 
     [AddComponentMenu("GameFramework/Character")]
     [RequireComponent(typeof(CharacterMovement))]
-    public class Character : Pawn {
+    public class Character : Pawn, IAuthorativePawnMovement {
         public Transform View;
 
         public CharacterMovement Movement { get; private set; }
@@ -65,32 +65,35 @@ namespace GameFramework {
             input.BindStartedAction("Gameplay/Jump", Movement.Jump);
         }
 
-        public override IBitSerializable CreateCommand() => new CharacterCommand();
-        public override IBitSerializable ConsumeCommand() {
+        public virtual IBitSerializable CreateCommand() => new CharacterCommand();
+        public virtual IBitSerializable ConsumeCommand() {
             var newMove = (CharacterCommand)CreateCommand();
             Movement.ConsumeCommand(ref newMove);
             return newMove;
         }
-        public override void ExecuteCommand(IBitSerializable cmd) => Movement.ExecuteCommand((CharacterCommand)cmd);
+        public virtual void ExecuteCommand(IBitSerializable cmd) => Movement.ExecuteCommand((CharacterCommand)cmd);
 
-        public override IBitSerializable CreateState() => new CharacterState();
-        public override void GetState(ref IBitSerializable state) {
+        public IBitSerializable CreateState() => new CharacterState();
+        public void GetState(ref IBitSerializable state) {
             var state2 = (CharacterState)state;
             Movement.GetState(ref state2);
         }
-        public override void ResetToState(IBitSerializable state) => Movement.ResetToState((CharacterState)state);
-        public override void InterpState(IBitSerializable oldState, IBitSerializable newState, float a) {
+        public void ResetToState(IBitSerializable state) => Movement.ResetToState((CharacterState)state);
+        public void InterpState(IBitSerializable oldState, IBitSerializable newState, float a) {
             Movement.InterpState((CharacterState)oldState, (CharacterState)newState, a);
         }
 
 
-        public override void Teleport(Vector3 targetPosition, Quaternion targetRotation) => Movement.Teleport(targetPosition, targetRotation);
+        public void Teleport(Vector3 targetPosition, Quaternion targetRotation) => Movement.Teleport(targetPosition, targetRotation);
 
         protected virtual void Awake() {
             Movement = GetComponent<CharacterMovement>();
         }
 
         protected virtual void OnLook(Vector2 value) => Movement.AddLook(value);
+
+        protected override void OnPossession(Pawn previousPawn) { }
+        protected override void OnUnpossession() { }
 
 #if UNITY_EDITOR
         protected void OnDrawGizmosSelected() {

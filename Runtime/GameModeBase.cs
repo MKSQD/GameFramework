@@ -7,7 +7,6 @@ namespace GameFramework {
 
         public GameModeBase(ServerGame server) {
             Server = server;
-            InstantiateGameState();
         }
 
         public abstract void Update();
@@ -15,32 +14,5 @@ namespace GameFramework {
         public abstract void StartToLeaveMap();
 
         public abstract void HandleNewPlayer(ServerPlayerController pc);
-
-        protected virtual string GetGameStateKey() => null;
-
-        void InstantiateGameState() {
-            var key = GetGameStateKey();
-            if (key == null)
-                return;
-
-            var gameStateHandle = Server.ReplicaManager.InstantiateReplicaAsync(key);
-            gameStateHandle.Completed += ctx => {
-                var gameStateGO = ctx.Result;
-
-                var replica = gameStateGO.GetComponent<Replica>();
-                if (replica == null) {
-                    Debug.LogError("GameState Prefab needs Replica Component!");
-                    return;
-                }
-                if ((replica.SettingsOrDefault.priorityFlags & ReplicaPriorityFlag.IgnorePosition) == 0) {
-                    Debug.LogWarning("GameState Replica settings should have IgnorePosition flag set!");
-                }
-
-                var gameState = gameStateGO.GetComponent<GameState>();
-                if (gameState == null) {
-                    Debug.LogError("GameState Prefab needs GameState Component!");
-                }
-            };
-        }
     }
 }

@@ -29,7 +29,7 @@ namespace GameFramework {
             base.Awake();
 
             NetworkInterface.ApproveConnection += OnApproveConnection;
-            Reactor.AddHandler((byte)MessageId.Commands, OnCommands);
+            Reactor.AddPacketHandler((byte)MessageId.Commands, OnCommands);
         }
 
         public abstract IGameMode CreateGameModeForScene(string sceneName);

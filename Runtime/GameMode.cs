@@ -137,9 +137,10 @@ namespace GameFramework {
             go.Completed += ctx => {
                 var spawnPose = GetPlayerSpawnPosition(pc);
 
-                var newPawn = ctx.Result.GetComponent<Pawn>();
-                newPawn.Teleport(spawnPose.position, spawnPose.rotation);
+                var authorativeMovement = ctx.Result.GetComponent<IAuthorativePawnMovement>();
+                authorativeMovement.Teleport(spawnPose.position, spawnPose.rotation);
 
+                var newPawn = ctx.Result.GetComponent<Pawn>();
                 _players.Add(newPawn);
                 OnPlayerSpawned(newPawn);
 

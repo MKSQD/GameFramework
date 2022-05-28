@@ -22,6 +22,8 @@ namespace GameFramework {
 
         readonly ClientGame _client;
 
+        IAuthorativePawnMovement _authorativeMovement;
+
         public ClientPlayerController(ClientGame client) {
             _client = client;
 
@@ -44,34 +46,36 @@ namespace GameFramework {
 
             Input.Update();
 
-            _frameAcc += Time.deltaTime;
-            while (_frameAcc >= Constants.FrameRate) {
-                _frameAcc -= Constants.FrameRate;
+            if (_authorativeMovement != null) {
+                _frameAcc += Time.deltaTime;
+                while (_frameAcc >= Constants.FrameRate) {
+                    _frameAcc -= Constants.FrameRate;
 
-                if (((_currentCommandIdx + 1) % CommandBufferSize) == _acceptedCommandIdx)
-                    continue; // Queued commands full, wait
+                    if (((_currentCommandIdx + 1) % CommandBufferSize) == _acceptedCommandIdx)
+                        continue; // Queued commands full, wait
 
-                var command = Pawn.ConsumeCommand();
-                _commands[_currentCommandIdx] = command;
-                _currentCommandIdx = (_currentCommandIdx + 1) % CommandBufferSize;
+                    var command = _authorativeMovement.ConsumeCommand();
+                    _commands[_currentCommandIdx] = command;
+                    _currentCommandIdx = (_currentCommandIdx + 1) % CommandBufferSize;
 
-                didMove = true;
-            }
-
-            if (didMove && _lastAcceptedState != null) {
-                Pawn.ResetToState(_lastAcceptedState);
-                for (int i = _acceptedCommandIdx; i != _currentCommandIdx; i = (i + 1) % CommandBufferSize) {
-                    Pawn.ExecuteCommand(_commands[i]);
+                    didMove = true;
                 }
 
-                _lastLocalState = _currentLocalState;
-                _currentLocalState = Pawn.CreateState();
-                Pawn.GetState(ref _currentLocalState);
-            }
+                if (didMove && _lastAcceptedState != null) {
+                    _authorativeMovement.ResetToState(_lastAcceptedState);
+                    for (int i = _acceptedCommandIdx; i != _currentCommandIdx; i = (i + 1) % CommandBufferSize) {
+                        _authorativeMovement.ExecuteCommand(_commands[i]);
+                    }
 
-            if (_lastLocalState != null) {
-                var a = _frameAcc / Constants.FrameRate;
-                Pawn.InterpState(_lastLocalState, _currentLocalState, a);
+                    _lastLocalState = _currentLocalState;
+                    _currentLocalState = _authorativeMovement.CreateState();
+                    _authorativeMovement.GetState(ref _currentLocalState);
+                }
+
+                if (_lastLocalState != null) {
+                    var a = _frameAcc / Constants.FrameRate;
+                    _authorativeMovement.InterpState(_lastLocalState, _currentLocalState, a);
+                }
             }
         }
 
@@ -82,7 +86,7 @@ namespace GameFramework {
 
         void SendCommands() {
             var numMoves = _currentCommandIdx >= _acceptedCommandIdx ? (_currentCommandIdx - _acceptedCommandIdx) : (CommandBufferSize + _currentCommandIdx - _acceptedCommandIdx);
-            if (Pawn == null || numMoves == 0)
+            if (Pawn == null || numMoves == 0 || _authorativeMovement == null)
                 return;
 
             var bs = new BitWriter(64);
@@ -104,7 +108,7 @@ namespace GameFramework {
                 return;
             }
 
-            _lastAcceptedState = Pawn.CreateState();
+            _lastAcceptedState = _authorativeMovement.CreateState();
             _lastAcceptedState.Deserialize(bs);
 
             // Throw away old moves
@@ -122,6 +126,8 @@ namespace GameFramework {
         public override string ToString() => "ClientPlayerController";
 
         protected override void OnPossessed(Pawn pawn) {
+            _authorativeMovement = Pawn.GetComponent<IAuthorativePawnMovement>();
+
             Input = new PlayerInput(pawn.InputMap);
             pawn.SetupPlayerInput(Input);
             pawn.InputMap.Enable();

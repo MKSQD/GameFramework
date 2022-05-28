@@ -122,7 +122,7 @@ namespace GameFramework {
             }
 
             if (isClient) {
-                if (!isOwner) {
+                if (!IsOwned) {
                     UpdateRemote();
                     return;
                 }
@@ -182,7 +182,7 @@ namespace GameFramework {
         }
 
         public void ExecuteCommand(CharacterCommand cmd) {
-            if (isServer && !isOwner) { // For Serialize
+            if (isServer && !IsOwned) { // For Serialize
                 Yaw = cmd.Yaw;
                 ViewPitch = cmd.ViewPitch;
             }
@@ -301,7 +301,7 @@ namespace GameFramework {
         void UpdateCrouch(bool crouch) {
             if (!IsCrouching && crouch) {
                 // We can always crouch, no checks needed
-                if (isClient && isOwner) {
+                if (isClient && IsOwned) {
                     EventHub<StartedSneakingEvent>.EmitDefault();
                 }
 
@@ -311,7 +311,7 @@ namespace GameFramework {
             }
             if (IsCrouching && !crouch) {
                 if (CanStandUp()) {
-                    if (isClient && isOwner) {
+                    if (isClient && IsOwned) {
                         EventHub<StoppedSneakingEvent>.EmitDefault();
                     }
 
@@ -409,7 +409,7 @@ namespace GameFramework {
         }
 
         public override void Deserialize(BitReader bs) {
-            if (isOwner)
+            if (IsOwned)
                 return;
 
             Vector3 pos;
@@ -463,11 +463,5 @@ namespace GameFramework {
             Assert.IsNotNull(Settings);
             Assert.IsNotNull(_character);
         }
-
-#if UNITY_EDITOR
-        void OnDrawGizmosSelected() {
-            //_remoteInterp?.DrawDebugGizmos();
-        }
-#endif
     }
 }

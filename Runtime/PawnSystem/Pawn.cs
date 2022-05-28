@@ -31,7 +31,6 @@ namespace GameFramework {
         /// </summary>
         void ResetToState(IBitSerializable move);
 
-
         void Teleport(Vector3 targetPosition, Quaternion targetRotation);
     }
 
@@ -39,7 +38,7 @@ namespace GameFramework {
     /// Generic, client or AI controllable Thing.
     /// </summary>
     [SelectionBase]
-    public abstract class Pawn : ReplicaBehaviour, IAuthorativePawnMovement {
+    public abstract class Pawn : ReplicaBehaviour {
         public InputActionAsset InputMap;
 
         public PawnController Controller { get; private set; }
@@ -72,19 +71,8 @@ namespace GameFramework {
         /// </summary>
         public abstract void SetupPlayerInput(PlayerInput input);
 
-        public abstract IBitSerializable ConsumeCommand();
-        public abstract IBitSerializable CreateCommand();
-        public abstract void ExecuteCommand(IBitSerializable move);
-
-        public abstract IBitSerializable CreateState();
-        public abstract void GetState(ref IBitSerializable state);
-        public virtual void InterpState(IBitSerializable oldState, IBitSerializable newState, float a) { }
-        public abstract void ResetToState(IBitSerializable state);
-
-        public abstract void Teleport(Vector3 targetPosition, Quaternion targetRotation);
-
-        protected virtual void OnPossession(Pawn previousPawn) { }
-        protected virtual void OnUnpossession() { }
+        protected abstract void OnPossession(Pawn previousPawn);
+        protected abstract void OnUnpossession();
 
         protected void OnDestroy() {
             Controller?.Unpossess();
