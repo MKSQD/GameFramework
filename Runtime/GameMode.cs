@@ -18,7 +18,6 @@ namespace GameFramework {
         public bool HasMatchEnded => CurrentMatchState == MatchState.WaitingPostMatch;
 
         public MatchState CurrentMatchState { get; private set; }
-        public ReadOnlyCollection<Pawn> Players => _players.AsReadOnly();
         protected readonly List<Pawn> _players = new();
 
         readonly Queue<(float, Connection)> _respawnQueue = new();
@@ -105,6 +104,17 @@ namespace GameFramework {
             if (HasMatchStarted) {
                 SpawnPlayer(pc);
             }
+        }
+
+        public override void HandleLeavingPlayer(ServerPlayerController pc) {
+            if (pc.Pawn == null)
+                return;
+
+            if (pc.Pawn is Mount mount) {
+                mount.KickDriver();
+            }
+
+            pc.Pawn.Replica.Destroy();
         }
 
         protected virtual bool ReadyToStartMatch() {

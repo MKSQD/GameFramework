@@ -56,13 +56,13 @@ namespace GameFramework {
         }
 
         protected override void OnDisconnectNotification(Connection connection) {
-            var pc = GetPlayerControllerForConnection(connection);
-            PlayerControllers.Remove(pc);
+            var playerController = GetPlayerControllerForConnection(connection);
+            PlayerControllers.Remove(playerController);
 
-            foreach (var replica in ReplicaManager.Replicas) {
-                if (replica.Owner == connection) {
-                    replica.Destroy();
-                }
+            ReplicaManager.RemoveReplicaView(connection);
+
+            if (GameMode != null) { // null if there's no ongoing match
+                GameMode.HandleLeavingPlayer(playerController);
             }
         }
 
