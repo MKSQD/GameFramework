@@ -39,17 +39,20 @@ namespace GameFramework {
     /// </summary>
     [SelectionBase]
     public abstract class Pawn : ReplicaBehaviour {
+        public delegate void PawnAction(Pawn previousPawn);
+
         public InputActionAsset InputMap;
 
         public PawnController Controller { get; private set; }
         public bool HasController => Controller != null;
 
-        public event Action Possessed, Unpossessed;
+        public event PawnAction Possessed;
+        public event Action Unpossessed;
 
         public void NotifyPossessed(PawnController controller, Pawn previousPawn) {
             Controller = controller;
             OnPossession(previousPawn);
-            Possessed?.Invoke();
+            Possessed?.Invoke(previousPawn);
         }
 
         public void NotifyUnpossessed() {
