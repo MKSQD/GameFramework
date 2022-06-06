@@ -5,6 +5,9 @@ namespace GameFramework {
     public class CharacterMovementSettings : ScriptableObject {
         public enum GroundDetectionQuality { None, Ray, Volume }
 
+        [Header("World")]
+        public float WorldBoundsX = 10000, WorldBoundsY = 10000, WorldBoundsZ = 10000;
+
         [Header("Movement")]
         public LayerMask ClientGroundMask;
         public LayerMask ServerGroundMask;

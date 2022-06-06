@@ -39,11 +39,7 @@ namespace GameFramework {
             UpdateCommands();
         }
 
-        IBitSerializable _lastLocalState, _currentLocalState;
-
         void UpdateCommands() {
-            bool didMove = false;
-
             Input.Update();
 
             if (_authorativeMovement != null) {
@@ -58,23 +54,9 @@ namespace GameFramework {
                     _commands[_currentCommandIdx] = command;
                     _currentCommandIdx = (_currentCommandIdx + 1) % CommandBufferSize;
 
-                    didMove = true;
-                }
-
-                if (didMove && _lastAcceptedState != null) {
-                    _authorativeMovement.ResetToState(_lastAcceptedState);
-                    for (int i = _acceptedCommandIdx; i != _currentCommandIdx; i = (i + 1) % CommandBufferSize) {
-                        _authorativeMovement.ExecuteCommand(_commands[i]);
-                    }
-
-                    _lastLocalState = _currentLocalState;
-                    _currentLocalState = _authorativeMovement.CreateState();
-                    _authorativeMovement.GetState(ref _currentLocalState);
-                }
-
-                if (_lastLocalState != null) {
-                    var a = _frameAcc / Constants.FrameRate;
-                    _authorativeMovement.InterpState(_lastLocalState, _currentLocalState, a);
+                    _authorativeMovement.BeforeReplay();
+                    _authorativeMovement.ExecuteCommand(command);
+                    _authorativeMovement.AfterReplay();
                 }
             }
         }
@@ -116,6 +98,18 @@ namespace GameFramework {
                 _acceptedCommandIdx = (_acceptedCommandIdx + 1) % CommandBufferSize;
                 ++_acceptedFrame;
             }
+
+            // Reset to last good state
+            //_authorativeMovement.BeforeReplay();
+
+            _authorativeMovement.ResetToState(_lastAcceptedState);
+
+            // Replay pending commands
+            for (int i = _acceptedCommandIdx; i != _currentCommandIdx; i = (i + 1) % CommandBufferSize) {
+                _authorativeMovement.ExecuteCommand(_commands[i]);
+            }
+
+            //_authorativeMovement.AfterReplay();
         }
 
         public void OnPossessPawn(BitReader bs) {

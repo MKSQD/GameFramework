@@ -6,6 +6,9 @@ using UnityEngine.InputSystem;
 
 namespace GameFramework {
     public interface IAuthorativePawnMovement {
+        void BeforeReplay() { }
+        void AfterReplay() { }
+
         /// <summary>
         /// ConsumeMove creates a new move initialized with the current input values.
         /// Note that some input values should be reset here.
@@ -22,10 +25,6 @@ namespace GameFramework {
 
         IBitSerializable CreateState();
         void GetState(ref IBitSerializable state);
-        /// <summary>
-        /// For client display.
-        /// </summary>
-        void InterpState(IBitSerializable oldState, IBitSerializable newState, float a);
         /// <summary>
         /// ResetToState resets the instance to the RESULT values of move.
         /// </summary>

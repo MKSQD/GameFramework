@@ -1,4 +1,5 @@
 ﻿using System;
+using Cube;
 using Cube.Replication;
 using Cube.Transport;
 using UnityEngine;
@@ -28,6 +29,8 @@ namespace GameFramework {
         static public float MouseSensitivity = 1;
 
         public CharacterMovementSettings Settings;
+
+        public Transform Model;
 
         Vector3 _velocityAfterLastCommand;
         public Vector3 Velocity => _velocityAfterLastCommand;
@@ -127,6 +130,10 @@ namespace GameFramework {
                     return;
                 }
 
+                // INTERPOLATE LOCAL
+                var t = (Time.time - _timeBeforeReplay) / Constants.FrameRate;
+                Model.transform.position = Vector3.Lerp(_positionBeforeReplay, transform.position, t);
+
                 _character.View.localRotation = Quaternion.AngleAxis(ViewPitch, Vector3.left);
                 transform.localRotation = Quaternion.AngleAxis(Yaw, Vector3.up);
 
@@ -141,6 +148,15 @@ namespace GameFramework {
                     }
                 }
             }
+        }
+
+        Vector3 _positionBeforeReplay;
+        float _timeBeforeReplay;
+        public void BeforeReplay() {
+            _positionBeforeReplay = transform.position;
+            _timeBeforeReplay = Time.time;
+        }
+        public void AfterReplay() {
         }
 
         public void ConsumeCommand(ref CharacterCommand cmd) {
@@ -169,16 +185,6 @@ namespace GameFramework {
             IsGrounded = move.IsGrounded;
             _jumpFrames = move.JumpFrames;
             _motor.Enable();
-        }
-
-        public void InterpState(CharacterState oldState, CharacterState newState, float a) {
-            Assert.IsTrue(a >= 0 && a <= 1);
-
-            var pos = Vector3.Lerp(oldState.Position, newState.Position, a);
-
-            Debug.DrawLine(oldState.Position, newState.Position, Color.green);
-
-            transform.position = pos;
         }
 
         public void ExecuteCommand(CharacterCommand cmd) {
@@ -285,7 +291,7 @@ namespace GameFramework {
                         break;
                     }
                 case CharacterMovementSettings.GroundDetectionQuality.Volume: {
-                        var pos = transform.position + Vector3.up * (_motor.Radius - 0.06f);
+                        var pos = transform.position + Vector3.up * (_motor.Radius - 0.07f);
                         var radius = _motor.Radius - 0.005f;
                         var num = Physics.OverlapSphereNonAlloc(pos, radius, _groundColliders, layerMask);
                         for (int i = 0; i < num; ++i) {
@@ -396,9 +402,9 @@ namespace GameFramework {
             if (ctx.IsOwner)
                 return;
 
-            bs.WriteLossyFloat(transform.position.x, -5000, 5000, 0.01f);
-            bs.WriteLossyFloat(transform.position.z, -5000, 5000, 0.01f);
-            bs.WriteLossyFloat(transform.position.y, -50, 500, 0.01f);
+            bs.WriteLossyFloat(transform.position.x, -Settings.WorldBoundsX, Settings.WorldBoundsX, 0.01f);
+            bs.WriteLossyFloat(transform.position.z, -Settings.WorldBoundsY, Settings.WorldBoundsY, 0.01f);
+            bs.WriteLossyFloat(transform.position.y, -Settings.WorldBoundsZ, Settings.WorldBoundsY, 0.01f);
             bs.WriteLossyFloat(Yaw, 0, 360, 1);
             bs.WriteLossyFloat(ViewPitch, MinViewPitch, MaxViewPitch, 1);
             bs.WriteLossyFloat(LastStick.x, -1, 1, 0.25f);
@@ -413,9 +419,9 @@ namespace GameFramework {
                 return;
 
             Vector3 pos;
-            pos.x = bs.ReadLossyFloat(-5000, 5000, 0.01f);
-            pos.z = bs.ReadLossyFloat(-5000, 5000, 0.01f);
-            pos.y = bs.ReadLossyFloat(-50, 500, 0.01f);
+            pos.x = bs.ReadLossyFloat(-Settings.WorldBoundsX, Settings.WorldBoundsX, 0.01f);
+            pos.z = bs.ReadLossyFloat(-Settings.WorldBoundsY, Settings.WorldBoundsY, 0.01f);
+            pos.y = bs.ReadLossyFloat(-Settings.WorldBoundsZ, Settings.WorldBoundsZ, 0.01f);
 
             var yaw = bs.ReadLossyFloat(0, 360, 1);
             var viewPitch = bs.ReadLossyFloat(MinViewPitch, MaxViewPitch, 1);

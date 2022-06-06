@@ -24,39 +24,33 @@ namespace GameFramework {
         }
 
         public void BindStartedAction(string actionName, ActionHandler handler) {
-            Action<CallbackContext> wrapper = _ => {
-                if (!ClientGame.Main.PawnInputEnabled)
-                    return;
-
+            void Wrapper(CallbackContext _) {
                 try {
                     handler();
                 } catch (Exception e) {
                     Debug.LogException(e);
                 }
-            };
+            }
 
             var inputAction = _inputActionMap.FindAction(actionName, true);
-            inputAction.started += wrapper;
+            inputAction.started += Wrapper;
 
-            _removeStarted.Add((inputAction, wrapper));
+            _removeStarted.Add((inputAction, Wrapper));
         }
 
         public void BindCanceledAction(string actionName, ActionHandler handler) {
-            Action<CallbackContext> wrapper = _ => {
-                if (!ClientGame.Main.PawnInputEnabled)
-                    return;
-
+            void Wrapper(CallbackContext _) {
                 try {
                     handler();
                 } catch (Exception e) {
                     Debug.LogException(e);
                 }
-            };
+            }
 
             var inputAction = _inputActionMap.FindAction(actionName, true);
-            inputAction.canceled += wrapper;
+            inputAction.canceled += Wrapper;
 
-            _removeCanceled.Add((inputAction, wrapper));
+            _removeCanceled.Add((inputAction, Wrapper));
         }
 
         public void BindFloatAxis(string axisName, AxisHandler handler) {

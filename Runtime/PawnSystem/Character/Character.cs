@@ -79,12 +79,14 @@ namespace GameFramework {
             Movement.GetState(ref state2);
         }
         public void ResetToState(IBitSerializable state) => Movement.ResetToState((CharacterState)state);
-        public void InterpState(IBitSerializable oldState, IBitSerializable newState, float a) {
-            Movement.InterpState((CharacterState)oldState, (CharacterState)newState, a);
-        }
 
 
         public void Teleport(Vector3 targetPosition, Quaternion targetRotation) => Movement.Teleport(targetPosition, targetRotation);
+
+
+        public void BeforeReplay() => Movement.BeforeReplay();
+        public void AfterReplay() => Movement.AfterReplay();
+
 
         protected virtual void Awake() {
             Movement = GetComponent<CharacterMovement>();
