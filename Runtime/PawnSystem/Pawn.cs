@@ -6,8 +6,8 @@ using UnityEngine.InputSystem;
 
 namespace GameFramework {
     public interface IAuthorativePawnMovement {
-        void BeforeReplay() { }
-        void AfterReplay() { }
+        void BeforeCommands();
+        void AfterCommands();
 
         /// <summary>
         /// ConsumeMove creates a new move initialized with the current input values.

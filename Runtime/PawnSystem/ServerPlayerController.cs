@@ -27,6 +27,9 @@ namespace GameFramework {
 
         uint _lastAcceptedFrame;
         public void OnCommands(Connection connection, BitReader bs) {
+            if (_authorativeMovement == null)
+                return;
+
             ExecuteReceivedCommands(bs);
             SendStateToClient(connection);
         }

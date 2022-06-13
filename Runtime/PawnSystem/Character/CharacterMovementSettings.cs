@@ -11,6 +11,10 @@ namespace GameFramework {
         [Header("Movement")]
         public LayerMask ClientGroundMask;
         public LayerMask ServerGroundMask;
+        [Range(0, 1)]
+        public float GroundControl = 1;
+        [Range(0, 1)]
+        public float AirControl = 0.2f;
         public float Gravity = -0.03f;
         public float WalkSpeed = 0.1f;
         public float RunSpeed = 1;

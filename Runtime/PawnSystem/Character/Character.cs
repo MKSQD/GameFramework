@@ -84,8 +84,8 @@ namespace GameFramework {
         public void Teleport(Vector3 targetPosition, Quaternion targetRotation) => Movement.Teleport(targetPosition, targetRotation);
 
 
-        public void BeforeReplay() => Movement.BeforeReplay();
-        public void AfterReplay() => Movement.AfterReplay();
+        public void BeforeCommands() => Movement.BeforeCommands();
+        public void AfterCommands() => Movement.AfterCommands();
 
 
         protected virtual void Awake() {

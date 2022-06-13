@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using Cube;
 using Cube.Replication;
 using Cube.Transport;
@@ -23,6 +24,8 @@ namespace GameFramework {
         readonly ClientGame _client;
 
         IAuthorativePawnMovement _authorativeMovement;
+
+        static void LogToFile(string txt) => File.AppendAllLines("D:/AuthClientMovement.log", new List<string>() { txt });
 
         public ClientPlayerController(ClientGame client) {
             _client = client;
@@ -54,9 +57,10 @@ namespace GameFramework {
                     _commands[_currentCommandIdx] = command;
                     _currentCommandIdx = (_currentCommandIdx + 1) % CommandBufferSize;
 
-                    _authorativeMovement.BeforeReplay();
+                    _authorativeMovement.BeforeCommands();
                     _authorativeMovement.ExecuteCommand(command);
-                    _authorativeMovement.AfterReplay();
+                    _authorativeMovement.AfterCommands();
+                    LogToFile("Client CMD");
                 }
             }
         }
@@ -100,8 +104,11 @@ namespace GameFramework {
             }
 
             // Reset to last good state
-            //_authorativeMovement.BeforeReplay();
 
+            LogToFile("REPLAY");
+            var oldPos = Pawn.transform.position;
+
+            _authorativeMovement.BeforeCommands();
             _authorativeMovement.ResetToState(_lastAcceptedState);
 
             // Replay pending commands
@@ -109,7 +116,9 @@ namespace GameFramework {
                 _authorativeMovement.ExecuteCommand(_commands[i]);
             }
 
-            //_authorativeMovement.AfterReplay();
+            _authorativeMovement.AfterCommands();
+
+            LogToFile($"Diff after replay: {(Pawn.transform.position - oldPos).magnitude:0.00}");
         }
 
         public void OnPossessPawn(BitReader bs) {

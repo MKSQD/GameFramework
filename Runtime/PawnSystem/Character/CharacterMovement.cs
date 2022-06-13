@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Cube;
 using Cube.Replication;
 using Cube.Transport;
@@ -63,6 +64,7 @@ namespace GameFramework {
 
         StateExtrapolator<State> _extrapolator;
 
+
         public void Teleport(Vector3 targetPosition, Quaternion targetRotation) {
             _motor.Disable();
 
@@ -107,10 +109,24 @@ namespace GameFramework {
         public void OnEnterLadder() => IsOnLadder = true;
         public void OnExitLadder() => IsOnLadder = false;
 
+        Vector3 _posBeforeCommands;
+        Vector3 _positionError;
+        public void BeforeCommands() {
+            _posBeforeCommands = transform.position + _positionError;
+        }
+        public void AfterCommands() {
+            _positionError = _posBeforeCommands - transform.position;
+
+            if (_positionError.sqrMagnitude > 3) {
+                _positionError = Vector3.zero;
+            }
+        }
+
 
         bool _jumpNotch;
         bool _wasGrounded;
         float _lastGroundedTime;
+
         protected void Update() {
             if (IsGrounded != _wasGrounded) {
                 _wasGrounded = IsGrounded;
@@ -131,8 +147,16 @@ namespace GameFramework {
                 }
 
                 // INTERPOLATE LOCAL
-                var t = (Time.time - _timeBeforeReplay) / Constants.FrameRate;
-                Model.transform.position = Vector3.Lerp(_positionBeforeReplay, transform.position, t);
+                var smoothing = 0.8f;
+
+                if (_positionError.sqrMagnitude > 0.000001f) {
+                    _positionError *= smoothing;
+                } else {
+                    _positionError = Vector3.zero;
+                }
+
+                Model.position = transform.position + _positionError;
+
 
                 _character.View.localRotation = Quaternion.AngleAxis(ViewPitch, Vector3.left);
                 transform.localRotation = Quaternion.AngleAxis(Yaw, Vector3.up);
@@ -148,15 +172,6 @@ namespace GameFramework {
                     }
                 }
             }
-        }
-
-        Vector3 _positionBeforeReplay;
-        float _timeBeforeReplay;
-        public void BeforeReplay() {
-            _positionBeforeReplay = transform.position;
-            _timeBeforeReplay = Time.time;
-        }
-        public void AfterReplay() {
         }
 
         public void ConsumeCommand(ref CharacterCommand cmd) {
@@ -237,8 +252,9 @@ namespace GameFramework {
 
             newDesiredMovement = ApplyMovementModifiers(newDesiredMovement, cmd);
 
-            _velocity.x = Mathf.LerpUnclamped(_velocity.x, newDesiredMovement.x, 0.2f);
-            _velocity.z = Mathf.LerpUnclamped(_velocity.z, newDesiredMovement.y, 0.2f);
+            var control = IsGrounded ? Settings.GroundControl : Settings.AirControl;
+            _velocity.x = Mathf.LerpUnclamped(_velocity.x, newDesiredMovement.x, control);
+            _velocity.z = Mathf.LerpUnclamped(_velocity.z, newDesiredMovement.y, control);
 
             _motor.Move(transform.rotation * _velocity);
 
