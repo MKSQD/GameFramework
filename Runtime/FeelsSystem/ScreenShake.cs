@@ -2,29 +2,37 @@ using UnityEngine;
 
 namespace GameFramework.FeelsSystem {
     public class ScreenShake : FeelBase {
-        public AnimationCurve IntensityOverTime;
-        public float Frequency = 1;
+        public AnimationCurve Intensity = AnimationCurve.Linear(0, 0.5f, 1, 0);
+
 
         public override void Do() => FeelsManager.Main.Add(this);
 
-        public static Vector2 CurrentOffset;
+        static float s_trauma;
+
+        static float PN(float x) => (Mathf.PerlinNoise(x * 12, 0) - 0.5f) * 2;
+
+        public static Quaternion CalculateCurrentRotation() {
+            var trauma = s_trauma * s_trauma;
+            return Quaternion.Euler(
+                6 * trauma * PN(Time.time),
+                6 * trauma * PN(Time.time + 1),
+                6 * trauma * PN(Time.time + 2));
+        }
+
+        public static Vector2 CalculateCurrentOffset() {
+            var trauma = s_trauma * s_trauma;
+            return new Vector2(
+                0.05f * trauma * PN(Time.time + 3),
+                0.05f * trauma * PN(Time.time + 4));
+        }
+
         public override void Reset() {
-            CurrentOffset = Vector2.zero;
+            s_trauma = 0;
         }
 
         public override void Evaluate(float t) {
-            var a = IntensityOverTime.Evaluate(t);
-
-            var noiseX = Mathf.PerlinNoise(Time.time * Frequency, 0);
-            noiseX += Mathf.PerlinNoise(Time.time * Frequency + 325325, 0) * 0.25f;
-            noiseX = Mathf.Clamp01(noiseX);
-
-            var noiseY = Mathf.PerlinNoise(Time.time * Frequency + 3463, 0);
-            noiseY += Mathf.PerlinNoise(Time.time * Frequency + 85681, 0) * 0.25f;
-            noiseY = Mathf.Clamp01(noiseY);
-
-            CurrentOffset.x += (noiseX * 2 - 1) * a;
-            CurrentOffset.y += (noiseY * 2 - 1) * a;
+            var intensity = Intensity.Evaluate(t);
+            s_trauma = Mathf.Clamp01(s_trauma + intensity);
         }
     }
 }

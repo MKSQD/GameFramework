@@ -13,11 +13,12 @@ namespace GameFramework.FeelsSystem {
             if (stage == CinemachineCore.Stage.Body) {
                 Vector3 shakeAmount = GetOffset(vcam);
                 state.PositionCorrection += shakeAmount;
+                state.OrientationCorrection *= ScreenShake.CalculateCurrentRotation() * CameraOffset.CurrentRotation;
             }
         }
 
         Vector3 GetOffset(CinemachineVirtualCameraBase vcam) {
-            var offset = ScreenShake.CurrentOffset;
+            var offset = ScreenShake.CalculateCurrentOffset();
             return vcam.transform.rotation * new Vector3(offset.x, offset.y, 0) + CameraOffset.CurrentOffset;
         }
     }
