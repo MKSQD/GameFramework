@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.IO;
 using Cube.Replication;
 using Cube.Transport;
 using UnityEngine.Assertions;
@@ -35,17 +37,19 @@ namespace GameFramework {
         }
 
         void ExecuteReceivedCommands(BitReader bs) {
-            var acceptedFrame = bs.ReadUInt();
-            var num = bs.ReadIntInRange(1, 60);
+            // #todo can be cheated by sending max commands with every packet
+
+            var frame = bs.ReadUInt();
+            var num = bs.ReadIntInRange(1, 30);
 
             var lastMove = _authorativeMovement.CreateCommand();
-            for (int i = 0; i < num; ++i, ++acceptedFrame) {
+            for (int i = 0; i < num; ++i, ++frame) {
                 lastMove.Deserialize(bs);
-                if (acceptedFrame <= _lastAcceptedFrame)
+                if (frame <= _lastAcceptedFrame)
                     continue; // Old command -> ignore
 
                 _authorativeMovement.ExecuteCommand(lastMove);
-                _lastAcceptedFrame = acceptedFrame;
+                _lastAcceptedFrame = frame;
             }
         }
 

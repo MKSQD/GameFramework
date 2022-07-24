@@ -1,7 +1,7 @@
 using UnityEngine;
 
 namespace GameFramework {
-    public interface IMotor {
+    public interface ICharacterMotor {
         Vector3 Velocity { get; }
         float Height { get; set; }
         float Radius { get; }
@@ -13,6 +13,5 @@ namespace GameFramework {
         void SetCollisionDetection(bool enabled);
 
         void Move(Vector3 offset);
-        void MoveAbs(Vector3 pos);
     }
 }

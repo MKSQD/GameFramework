@@ -12,7 +12,7 @@ namespace GameFramework {
         ReplicaId _currentReplicaToPossess = ReplicaId.Invalid;
         byte _pawnIdxToPossess;
 
-        static readonly int CommandBufferSize = 60;
+        static readonly int CommandBufferSize = 30;
         readonly List<IBitSerializable> _commands = new(CommandBufferSize);
         IBitSerializable _lastAcceptedState;
         int _currentCommandIdx = 0;
@@ -24,8 +24,6 @@ namespace GameFramework {
         readonly ClientGame _client;
 
         IAuthorativePawnMovement _authorativeMovement;
-
-        static void LogToFile(string txt) => File.AppendAllLines("D:/AuthClientMovement.log", new List<string>() { txt });
 
         public ClientPlayerController(ClientGame client) {
             _client = client;
@@ -47,20 +45,19 @@ namespace GameFramework {
 
             if (_authorativeMovement != null) {
                 _frameAcc += Time.deltaTime;
-                while (_frameAcc >= Constants.FrameRate) {
+                if (_frameAcc >= Constants.FrameRate) {
                     _frameAcc -= Constants.FrameRate;
 
-                    if (((_currentCommandIdx + 1) % CommandBufferSize) == _acceptedCommandIdx)
-                        continue; // Queued commands full, wait
+                    var queueFull = ((_currentCommandIdx + 1) % CommandBufferSize) == _acceptedCommandIdx;
+                    if (!queueFull) {
+                        var command = _authorativeMovement.ConsumeCommand();
+                        _commands[_currentCommandIdx] = command;
+                        _currentCommandIdx = (_currentCommandIdx + 1) % CommandBufferSize;
 
-                    var command = _authorativeMovement.ConsumeCommand();
-                    _commands[_currentCommandIdx] = command;
-                    _currentCommandIdx = (_currentCommandIdx + 1) % CommandBufferSize;
-
-                    _authorativeMovement.BeforeCommands();
-                    _authorativeMovement.ExecuteCommand(command);
-                    _authorativeMovement.AfterCommands();
-                    LogToFile("Client CMD");
+                        //_authorativeMovement.BeforeCommands();
+                        _authorativeMovement.ExecuteCommand(command);
+                        //_authorativeMovement.AfterCommands();
+                    }
                 }
             }
         }
@@ -79,7 +76,7 @@ namespace GameFramework {
             bs.WriteByte((byte)MessageId.Commands);
 
             bs.WriteUInt(_acceptedFrame);
-            bs.WriteIntInRange(numMoves, 1, 60);
+            bs.WriteIntInRange(numMoves, 1, 30);
             for (int i = _acceptedCommandIdx; i != _currentCommandIdx; i = (i + 1) % CommandBufferSize) {
                 _commands[i].Serialize(bs);
             }
@@ -98,27 +95,22 @@ namespace GameFramework {
             _lastAcceptedState.Deserialize(bs);
 
             // Throw away old moves
+            int num = 0;
             while (_acceptedFrame < acceptedFrame) {
                 _acceptedCommandIdx = (_acceptedCommandIdx + 1) % CommandBufferSize;
                 ++_acceptedFrame;
+                ++num;
             }
 
             // Reset to last good state
-
-            LogToFile("REPLAY");
-            var oldPos = Pawn.transform.position;
-
-            _authorativeMovement.BeforeCommands();
             _authorativeMovement.ResetToState(_lastAcceptedState);
 
             // Replay pending commands
+            _authorativeMovement.BeforeCommands();
             for (int i = _acceptedCommandIdx; i != _currentCommandIdx; i = (i + 1) % CommandBufferSize) {
                 _authorativeMovement.ExecuteCommand(_commands[i]);
             }
-
             _authorativeMovement.AfterCommands();
-
-            LogToFile($"Diff after replay: {(Pawn.transform.position - oldPos).magnitude:0.00}");
         }
 
         public void OnPossessPawn(BitReader bs) {

@@ -112,7 +112,7 @@ namespace GameFramework {
             Selection.activeObject = go;
             var cc = go.AddComponent<CharacterController>();
             cc.center = Vector3.up;
-            go.AddComponent<CharacterControllerMotor>();
+            go.AddComponent<CCCharacterMotor>();
             go.AddComponent<Character>();
         }
 #endif

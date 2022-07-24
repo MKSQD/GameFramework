@@ -1,7 +1,8 @@
 using UnityEngine;
 
 namespace GameFramework {
-    public class RigidbodyMotor : MonoBehaviour, IMotor {
+    [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
+    public class RigidbodyCharacterMotor : MonoBehaviour, ICharacterMotor {
         public Vector3 Velocity => _rb.velocity * 0.01f;
 
         public float Height {
@@ -31,10 +32,6 @@ namespace GameFramework {
 
         public void Move(Vector3 offset) {
             _rb.velocity = offset * 50;
-        }
-
-        public void MoveAbs(Vector3 pos) {
-            _rb.MovePosition(pos);
         }
 
         public void SetCollisionDetection(bool enabled) {

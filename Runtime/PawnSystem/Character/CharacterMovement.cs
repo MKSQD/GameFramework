@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using Cube;
 using Cube.Replication;
 using Cube.Transport;
 using UnityEngine;
@@ -43,8 +41,8 @@ namespace GameFramework {
         public bool CrouchInput => _crouchInput;
         public bool InProceduralMovement { get; set; }
         public bool IsOnLadder { get; private set; }
+        public bool CanMove = true;
 
-        public bool IsGroundedGrace => Time.time - _lastGroundedTime <= 0.1f;
         public bool IsGrounded { get; private set; }
         public PhysicMaterial GroundMaterial { get; private set; }
 
@@ -53,7 +51,7 @@ namespace GameFramework {
         public float Yaw { get; private set; }
         public float ViewPitch { get; private set; }
 
-        IMotor _motor;
+        ICharacterMotor _motor;
         Character _character;
 
         Vector2 _stickInput;
@@ -76,8 +74,8 @@ namespace GameFramework {
         }
 
         public void SetMove(Vector2 value) {
-            //if (_character.Health.IsDowned)
-            //    return;
+            if (!CanMove)
+                return;
 
             // Respect deadzone because Unitys InputSystem ones is broken
             _stickInput.x = Mathf.Abs(value.x) > 0.15f ? value.x : 0;
@@ -87,8 +85,8 @@ namespace GameFramework {
         public void AddLook(Vector2 value) => SetLook(new Vector2(Yaw + value.x * MouseSensitivity, ViewPitch + value.y * MouseSensitivity));
 
         public void SetLook(Vector2 value) {
-            //if (_character.Health.IsDowned)
-            //    return;
+            if (!CanMove)
+                return;
 
             Yaw = Mathf.Repeat(value.x, 360);
             ViewPitch = Mathf.Clamp(value.y, MinViewPitch, MaxViewPitch);
@@ -97,8 +95,8 @@ namespace GameFramework {
         public void SetWalk(bool value) => _walkInput = value;
         public void SetCrouch(bool value) => _crouchInput = value;
         public void Jump() {
-            //if (_character.Health.IsDowned)
-            //    return;
+            if (!CanMove)
+                return;
 
             _jumpInput = true;
         }
@@ -111,13 +109,14 @@ namespace GameFramework {
 
         Vector3 _posBeforeCommands;
         Vector3 _positionError;
+        public Vector3 Error => _positionError;
         public void BeforeCommands() {
             _posBeforeCommands = transform.position + _positionError;
         }
         public void AfterCommands() {
             _positionError = _posBeforeCommands - transform.position;
 
-            if (_positionError.sqrMagnitude > 3) {
+            if (_positionError.sqrMagnitude > 5) {
                 _positionError = Vector3.zero;
             }
         }
@@ -130,10 +129,8 @@ namespace GameFramework {
         protected void Update() {
             if (IsGrounded != _wasGrounded) {
                 _wasGrounded = IsGrounded;
-                if (IsGrounded) {
-                    if (Time.time - _lastGroundedTime > 0.1f) { // Stop slopes from triggering events
-                        Landed?.Invoke();
-                    }
+                if (IsGrounded && Time.time - _lastGroundedTime > 0.1f) {
+                    Landed?.Invoke();
                 }
             }
             if (IsGrounded) {
@@ -147,7 +144,7 @@ namespace GameFramework {
                 }
 
                 // INTERPOLATE LOCAL
-                var smoothing = 0.8f;
+                var smoothing = 0.85f;
 
                 if (_positionError.sqrMagnitude > 0.000001f) {
                     _positionError *= smoothing;
@@ -208,10 +205,10 @@ namespace GameFramework {
                 ViewPitch = cmd.ViewPitch;
             }
 
-            //if (_character.Health.IsDowned) {
-            //    LastStick = Vector2.zero;
-            //    return;
-            //}
+            if (!CanMove) {
+                LastStick = Vector2.zero;
+                return;
+            }
 
             LastStick = cmd.Stick;
             _character.View.localRotation = Quaternion.AngleAxis(cmd.ViewPitch, Vector3.left);
@@ -256,7 +253,12 @@ namespace GameFramework {
             _velocity.x = Mathf.LerpUnclamped(_velocity.x, newDesiredMovement.x, control);
             _velocity.z = Mathf.LerpUnclamped(_velocity.z, newDesiredMovement.y, control);
 
-            _motor.Move(transform.rotation * _velocity);
+            var groundClamp = Vector3.zero;
+            if (IsGrounded && _jumpFrames == 0) {
+                groundClamp = -transform.up * GroundDistance;
+            }
+
+            _motor.Move(transform.rotation * _velocity + groundClamp);
 
             UpdateCrouch(cmd.Crouch);
             UpdateGround();
@@ -279,12 +281,16 @@ namespace GameFramework {
         }
 
         static readonly RaycastHit[] _groundHits = new RaycastHit[3];
-        static readonly Collider[] _groundColliders = new Collider[3];
 
+        public float GroundDistance;
         void UpdateGround() {
             var layerMask = isClient ? Settings.ClientGroundMask : Settings.ServerGroundMask;
 
             IsGrounded = IsOnLadder || InProceduralMovement;
+            GroundDistance = 0;
+
+            var up = transform.up;
+            var down = -up;
 
             switch (Settings.GroundDetection) {
                 case CharacterMovementSettings.GroundDetectionQuality.None:
@@ -292,13 +298,14 @@ namespace GameFramework {
 
                 case CharacterMovementSettings.GroundDetectionQuality.Ray: {
                         var epsilon = 0.1f;
-                        var num = Physics.RaycastNonAlloc(transform.position + Vector3.up * epsilon, Vector3.down, _groundHits, 2, layerMask);
+                        var num = Physics.RaycastNonAlloc(transform.position + up * epsilon, down, _groundHits, 2, layerMask);
                         for (int i = 0; i < num; ++i) {
                             var groundHit = _groundHits[i];
                             if (groundHit.distance > epsilon * 5)
                                 continue;
 
                             GroundMaterial = groundHit.collider.sharedMaterial;
+                            GroundDistance = groundHit.distance - epsilon;
                             IsGrounded = true;
                             break;
                         }
@@ -307,12 +314,15 @@ namespace GameFramework {
                         break;
                     }
                 case CharacterMovementSettings.GroundDetectionQuality.Volume: {
-                        var pos = transform.position + Vector3.up * (_motor.Radius - 0.07f);
-                        var radius = _motor.Radius - 0.005f;
-                        var num = Physics.OverlapSphereNonAlloc(pos, radius, _groundColliders, layerMask);
+                        var pos = transform.position + up * _motor.Radius * 1.1f;
+                        var radius = _motor.Radius - 0.005f; // Smaller radius so walls don't count
+                        var num = Physics.SphereCastNonAlloc(pos, radius, down, _groundHits, _motor.Radius, layerMask, QueryTriggerInteraction.Ignore);
+
+
                         for (int i = 0; i < num; ++i) {
-                            var collider = _groundColliders[i];
-                            GroundMaterial = collider.sharedMaterial;
+                            var groundHit = _groundHits[i];
+                            GroundMaterial = groundHit.collider.sharedMaterial;
+                            GroundDistance = groundHit.distance - _motor.Radius * 0.1f;
                             IsGrounded = true;
                         }
                         break;
@@ -372,11 +382,6 @@ namespace GameFramework {
                 localMovement.y *= Settings.BackwardSpeedModifier;
             }
             localMovement.x *= Settings.SideSpeedModifier;
-
-            // Buffs
-            //float speedBuff = 1;
-            //_character.Stats.ModifyStat(CharacterStat.MovementSpeed, ref speedBuff);
-            //localMovement *= speedBuff;
 
             return localMovement;
         }
@@ -479,7 +484,7 @@ namespace GameFramework {
             // Hack: Hide until the first Deserialize is called
             //transform.position = Vector3.down * 50;
 
-            _motor = GetComponent<IMotor>();
+            _motor = GetComponent<ICharacterMotor>();
             _character = GetComponent<Character>();
             Assert.IsNotNull(_motor);
             Assert.IsNotNull(Settings);

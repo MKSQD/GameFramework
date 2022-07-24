@@ -1,0 +1,20 @@
+{
+    "name": "GameFramework.Demo",
+    "rootNamespace": "",
+    "references": [
+        "GUID:5f208f2996150a14d83221f382aa4ccd",
+        "GUID:109e60786e5300f49960cc9218eed5e0",
+        "GUID:efef77005af40304fb66d3a5c75c2605",
+        "GUID:9e24947de15b9834991c9d8411ea37cf",
+        "GUID:84651a3751eca9349aac36a66bba901b"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

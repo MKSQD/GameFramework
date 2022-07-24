@@ -1,7 +1,9 @@
 using UnityEngine;
 
 namespace GameFramework {
-    public sealed class CharacterControllerMotor : MonoBehaviour, IMotor {
+    [RequireComponent(typeof(CharacterController))]
+    [AddComponentMenu("GameFramework/Character/CharacterController Motor")]
+    public sealed class CCCharacterMotor : MonoBehaviour, ICharacterMotor {
         public Vector3 Velocity => _cc.velocity;
 
         public float Height {
@@ -23,7 +25,6 @@ namespace GameFramework {
         public void Enable() => _cc.enabled = true;
 
         public void Move(Vector3 offset) => _cc.Move(offset);
-        public void MoveAbs(Vector3 pos) => _cc.Move(transform.position - pos);
 
         public void SetCollisionDetection(bool enabled) {
             _cc.detectCollisions = enabled;
