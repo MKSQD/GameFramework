@@ -73,25 +73,7 @@ namespace GameFramework {
                     break;
 
                 case MatchState.InProgress:
-                    foreach (var pc in Server.PlayerControllers) {
-                        if (pc.Pawn == null && !_respawnQueue.Any(pair => pair.Item2 == pc.Connection)) {
-                            _respawnQueue.Enqueue((Time.time + 5, pc.Connection));
-                        }
-                    }
-
-                    if (_respawnQueue.Count > 0) {
-                        var timeControllerPair = _respawnQueue.Peek();
-                        var respawnPlayer = Time.time >= timeControllerPair.Item1;
-                        if (respawnPlayer) {
-                            _respawnQueue.Dequeue();
-
-                            var pc = Server.GetPlayerControllerForConnection(timeControllerPair.Item2);
-                            if (pc != null && pc.Pawn == null) { // Queued player for respawn but he's already alive
-                                SpawnPlayer(pc);
-                            }
-                        }
-                    }
-
+                    UpdateRespawning();
                     if (ReadyToEndMatch()) {
                         EndMatch();
                     }
@@ -99,11 +81,7 @@ namespace GameFramework {
             }
         }
 
-        public override void HandleNewPlayer(ServerPlayerController pc) {
-            if (HasMatchStarted) {
-                SpawnPlayer(pc);
-            }
-        }
+        public override void HandleNewPlayer(ServerPlayerController pc) { }
 
         public override void HandleLeavingPlayer(ServerPlayerController pc) {
             if (pc.Pawn == null)
@@ -116,6 +94,28 @@ namespace GameFramework {
             pc.Pawn.Replica.Destroy();
         }
 
+        protected virtual void UpdateRespawning() {
+            foreach (var pc in Server.PlayerControllers) {
+                if (pc.Pawn == null && !_respawnQueue.Any(pair => pair.Item2 == pc.Connection)) {
+                    _respawnQueue.Enqueue((Time.time + 5, pc.Connection));
+                }
+            }
+
+            if (_respawnQueue.Count > 0) {
+                var timeControllerPair = _respawnQueue.Peek();
+                var respawnPlayer = Time.time >= timeControllerPair.Item1;
+                if (respawnPlayer) {
+                    _respawnQueue.Dequeue();
+
+                    var pc = Server.GetPlayerControllerForConnection(timeControllerPair.Item2);
+                    if (pc != null && pc.Pawn == null) { // Queued player for respawn but he's already alive
+                        var where = GetPlayerSpawnPosition(pc);
+                        SpawnPlayer(pc, where);
+                    }
+                }
+            }
+        }
+
         protected virtual bool ReadyToStartMatch() {
             return Server.Connections.Count > 0 && !Server.IsLoadingMap;
         }
@@ -126,37 +126,30 @@ namespace GameFramework {
 
         protected virtual void OnMatchIsWaitingToStart() { }
 
-        protected virtual void OnMatchHasStarted() {
-            foreach (var pc in Server.PlayerControllers) {
-                SpawnPlayer(pc);
-            }
-        }
+        protected virtual void OnMatchHasStarted() { }
 
         protected virtual void OnMatchHasEnded() { }
 
         protected virtual void OnLeavingMap() { }
 
-        protected virtual void OnPlayerSpawned(Pawn player) { }
+        protected virtual void OnPlayerSpawned(ServerPlayerController pc, Pawn player) {
+            if (!pc.Possess(player)) {
+                Debug.LogError("[Server] AH FUCK, POSSESSION FAILED");
+            }
+        }
 
-        protected virtual void SpawnPlayer(ServerPlayerController pc) {
+        protected virtual void SpawnPlayer(ServerPlayerController pc, Pose where) {
             Debug.Log($"[Server] <b>Spawning player</b> <i>{pc.Connection}</i>");
 
             var prefabAddress = GetPlayerPrefabAddress(pc);
             var go = Server.ReplicaManager.InstantiateReplicaAsync(prefabAddress);
             go.Completed += ctx => {
-                var spawnPose = GetPlayerSpawnPosition(pc);
-
                 var authorativeMovement = ctx.Result.GetComponent<IAuthorativePawnMovement>();
-                authorativeMovement.Teleport(spawnPose.position, spawnPose.rotation);
+                authorativeMovement.Teleport(where.position, where.rotation);
 
                 var newPawn = ctx.Result.GetComponent<Pawn>();
                 _players.Add(newPawn);
-                OnPlayerSpawned(newPawn);
-
-                var result = pc.Possess(newPawn);
-                if (!result) {
-                    Debug.LogError("[Server] AH FUCK, POSSESSION FAILED");
-                }
+                OnPlayerSpawned(pc, newPawn);
             };
         }
 
