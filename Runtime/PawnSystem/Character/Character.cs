@@ -12,7 +12,7 @@ namespace GameFramework {
             bs.WriteLossyFloat(Stick.x, -1, 1);
             bs.WriteLossyFloat(Stick.y, -1, 1);
             bs.WriteLossyFloat(Yaw, 0, 360, 0.25f);
-            bs.WriteLossyFloat(ViewPitch, CharacterMovement.MinViewPitch, CharacterMovement.MaxViewPitch, 2);
+            bs.WriteLossyFloat(ViewPitch, CharacterMovement.MinViewPitch, CharacterMovement.MaxViewPitch, 1);
             bs.WriteBool(Walk);
             bs.WriteBool(Crouch);
             bs.WriteBool(Jump);
@@ -22,7 +22,7 @@ namespace GameFramework {
             Stick.x = bs.ReadLossyFloat(-1, 1);
             Stick.y = bs.ReadLossyFloat(-1, 1);
             Yaw = bs.ReadLossyFloat(0, 360, 0.25f);
-            ViewPitch = bs.ReadLossyFloat(CharacterMovement.MinViewPitch, CharacterMovement.MaxViewPitch, 2);
+            ViewPitch = bs.ReadLossyFloat(CharacterMovement.MinViewPitch, CharacterMovement.MaxViewPitch, 1);
             Walk = bs.ReadBool();
             Crouch = bs.ReadBool();
             Jump = bs.ReadBool();
@@ -54,7 +54,6 @@ namespace GameFramework {
     [RequireComponent(typeof(CharacterMovement))]
     public class Character : Pawn, IAuthorativePawnMovement {
         public Transform View;
-
         public CharacterMovement Movement { get; private set; }
 
         public override void SetupPlayerInput(PlayerInput input) {
@@ -82,10 +81,6 @@ namespace GameFramework {
 
 
         public void Teleport(Vector3 targetPosition, Quaternion targetRotation) => Movement.Teleport(targetPosition, targetRotation);
-
-
-        public void BeforeCommands() => Movement.BeforeCommands();
-        public void AfterCommands() => Movement.AfterCommands();
 
 
         protected virtual void Awake() {

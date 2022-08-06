@@ -1,11 +1,11 @@
-using System.Collections.Generic;
-using System.IO;
 using Cube.Replication;
 using Cube.Transport;
 using UnityEngine.Assertions;
 
 namespace GameFramework {
     public class ServerPlayerController : PawnController {
+        public static int NumMaxCommands = 10;
+
         public Connection Connection => _replicaView.Connection;
 
         readonly ReplicaView _replicaView;
@@ -40,7 +40,7 @@ namespace GameFramework {
             // #todo can be cheated by sending max commands with every packet
 
             var frame = bs.ReadUInt();
-            var num = bs.ReadIntInRange(1, 30);
+            var num = bs.ReadIntInRange(1, NumMaxCommands);
 
             var lastMove = _authorativeMovement.CreateCommand();
             for (int i = 0; i < num; ++i, ++frame) {

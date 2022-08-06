@@ -6,9 +6,6 @@ using UnityEngine.InputSystem;
 
 namespace GameFramework {
     public interface IAuthorativePawnMovement {
-        void BeforeCommands();
-        void AfterCommands();
-
         /// <summary>
         /// ConsumeMove creates a new move initialized with the current input values.
         /// Note that some input values should be reset here.

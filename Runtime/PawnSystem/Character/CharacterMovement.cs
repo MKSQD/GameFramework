@@ -107,21 +107,6 @@ namespace GameFramework {
         public void OnEnterLadder() => IsOnLadder = true;
         public void OnExitLadder() => IsOnLadder = false;
 
-        Vector3 _posBeforeCommands;
-        Vector3 _positionError;
-        public Vector3 Error => _positionError;
-        public void BeforeCommands() {
-            _posBeforeCommands = transform.position + _positionError;
-        }
-        public void AfterCommands() {
-            _positionError = _posBeforeCommands - transform.position;
-
-            if (_positionError.sqrMagnitude > 5) {
-                _positionError = Vector3.zero;
-            }
-        }
-
-
         bool _jumpNotch;
         bool _wasGrounded;
         float _lastGroundedTime;
@@ -137,26 +122,14 @@ namespace GameFramework {
                 _lastGroundedTime = Time.time;
             }
 
+            if (isClient && !IsOwned) {
+                UpdateRemote();
+                return;
+            }
+
             if (isClient) {
-                if (!IsOwned) {
-                    UpdateRemote();
-                    return;
-                }
-
-                // INTERPOLATE LOCAL
-                var smoothing = 0.85f;
-
-                if (_positionError.sqrMagnitude > 0.000001f) {
-                    _positionError *= smoothing;
-                } else {
-                    _positionError = Vector3.zero;
-                }
-
-                Model.position = transform.position + _positionError;
-
-
-                _character.View.localRotation = Quaternion.AngleAxis(ViewPitch, Vector3.left);
-                transform.localRotation = Quaternion.AngleAxis(Yaw, Vector3.up);
+                // _character.View.localRotation = Quaternion.AngleAxis(ViewPitch, Vector3.left);
+                //transform.localRotation = Quaternion.AngleAxis(Yaw, Vector3.up);
 
                 if (_jumpFrames > 0) {
                     if (!_jumpNotch) {

@@ -41,9 +41,21 @@ namespace GameFramework {
         }
 
         void UpdateCommands() {
+            //
+
+
+            // Gather input
             Input.Update();
 
             if (_authorativeMovement != null) {
+                // Reset to last good state
+                _authorativeMovement.ResetToState(_lastAcceptedState);
+
+                // Replay pending commands
+                for (int i = _acceptedCommandIdx; i != _currentCommandIdx; i = (i + 1) % CommandBufferSize) {
+                    _authorativeMovement.ExecuteCommand(_commands[i]);
+                }
+
                 _frameAcc += Time.deltaTime;
                 if (_frameAcc >= Constants.FrameRate) {
                     _frameAcc -= Constants.FrameRate;
@@ -54,9 +66,7 @@ namespace GameFramework {
                         _commands[_currentCommandIdx] = command;
                         _currentCommandIdx = (_currentCommandIdx + 1) % CommandBufferSize;
 
-                        //_authorativeMovement.BeforeCommands();
                         _authorativeMovement.ExecuteCommand(command);
-                        //_authorativeMovement.AfterCommands();
                     }
                 }
             }
@@ -74,9 +84,8 @@ namespace GameFramework {
 
             var bs = new BitWriter(64);
             bs.WriteByte((byte)MessageId.Commands);
-
             bs.WriteUInt(_acceptedFrame);
-            bs.WriteIntInRange(numMoves, 1, 30);
+            bs.WriteIntInRange(numMoves, 1, ServerPlayerController.NumMaxCommands);
             for (int i = _acceptedCommandIdx; i != _currentCommandIdx; i = (i + 1) % CommandBufferSize) {
                 _commands[i].Serialize(bs);
             }
@@ -86,12 +95,9 @@ namespace GameFramework {
 
         public void OnCommandsAccepted(BitReader bs) {
             var acceptedFrame = bs.ReadUInt();
-            if (acceptedFrame < _acceptedFrame) {
-                Debug.Log("Received old move correct");
+            if (acceptedFrame < _acceptedFrame)
                 return;
-            }
 
-            _lastAcceptedState = _authorativeMovement.CreateState();
             _lastAcceptedState.Deserialize(bs);
 
             // Throw away old moves
@@ -101,16 +107,6 @@ namespace GameFramework {
                 ++_acceptedFrame;
                 ++num;
             }
-
-            // Reset to last good state
-            _authorativeMovement.ResetToState(_lastAcceptedState);
-
-            // Replay pending commands
-            _authorativeMovement.BeforeCommands();
-            for (int i = _acceptedCommandIdx; i != _currentCommandIdx; i = (i + 1) % CommandBufferSize) {
-                _authorativeMovement.ExecuteCommand(_commands[i]);
-            }
-            _authorativeMovement.AfterCommands();
         }
 
         public void OnPossessPawn(BitReader bs) {
@@ -122,6 +118,7 @@ namespace GameFramework {
 
         protected override void OnPossessed(Pawn pawn) {
             _authorativeMovement = Pawn.GetComponent<IAuthorativePawnMovement>();
+            _lastAcceptedState = _authorativeMovement != null ? _authorativeMovement.CreateState() : null;
 
             Input = new PlayerInput(pawn.InputMap);
             pawn.SetupPlayerInput(Input);
