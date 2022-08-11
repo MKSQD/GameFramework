@@ -67,6 +67,8 @@ namespace GameFramework {
                         _currentCommandIdx = (_currentCommandIdx + 1) % CommandBufferSize;
 
                         _authorativeMovement.ExecuteCommand(command);
+                    } else {
+                        Debug.LogWarning("Command queue full");
                     }
                 }
             }

@@ -23,7 +23,7 @@ namespace GameFramework {
 
         public event Action Jumped, Landed;
 
-        public const float MinViewPitch = -65, MaxViewPitch = 70;
+        public const float MinViewPitch = -80, MaxViewPitch = 70;
 
         static public float MouseSensitivity = 1;
 
