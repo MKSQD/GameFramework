@@ -6,14 +6,14 @@ namespace GameFramework {
     public class CharacterCommand : IBitSerializable {
         public Vector2 Stick;
         public float Yaw, ViewPitch;
-        public bool Walk, Crouch, Jump;
+        public bool Run, Crouch, Jump;
 
         public virtual void Serialize(IBitWriter bs) {
             bs.WriteLossyFloat(Stick.x, -1, 1);
             bs.WriteLossyFloat(Stick.y, -1, 1);
             bs.WriteLossyFloat(Yaw, 0, 360, 0.25f);
             bs.WriteLossyFloat(ViewPitch, CharacterMovement.MinViewPitch, CharacterMovement.MaxViewPitch, 1);
-            bs.WriteBool(Walk);
+            bs.WriteBool(Run);
             bs.WriteBool(Crouch);
             bs.WriteBool(Jump);
         }
@@ -23,7 +23,7 @@ namespace GameFramework {
             Stick.y = bs.ReadLossyFloat(-1, 1);
             Yaw = bs.ReadLossyFloat(0, 360, 0.25f);
             ViewPitch = bs.ReadLossyFloat(CharacterMovement.MinViewPitch, CharacterMovement.MaxViewPitch, 1);
-            Walk = bs.ReadBool();
+            Run = bs.ReadBool();
             Crouch = bs.ReadBool();
             Jump = bs.ReadBool();
         }
@@ -59,8 +59,8 @@ namespace GameFramework {
         public override void SetupPlayerInput(PlayerInput input) {
             input.BindVector2Axis("Gameplay/Look", OnLook);
             input.BindVector2Axis("Gameplay/Move", Movement.SetMove);
-            input.BindFloatAxis("Gameplay/Walk", value => Movement.SetWalk(value > 0.5f));
-            input.BindStartedAction("Gameplay/ToggleCrouch", () => Movement.SetCrouch(!Movement.CrouchInput));
+            input.BindFloatAxis("Gameplay/Walk", value => Movement.SetIsRunning(value > 0.5f));
+            input.BindStartedAction("Gameplay/ToggleCrouch", () => Movement.SetIsCrouching(!Movement.CrouchInput));
             input.BindStartedAction("Gameplay/Jump", Movement.Jump);
         }
 

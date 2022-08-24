@@ -6,7 +6,9 @@ namespace GameFramework {
         public enum GroundDetectionQuality { None, Ray, Volume }
 
         [Header("World")]
-        public float WorldBoundsX = 10000, WorldBoundsY = 10000, WorldBoundsZ = 10000;
+        public float WorldBoundsX = 10000;
+        public float WorldBoundsY = 10000;
+        public float WorldBoundsZ = 10000;
 
         [Header("Movement")]
         public LayerMask ClientGroundMask;

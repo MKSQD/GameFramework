@@ -16,7 +16,7 @@ namespace GameFramework {
             public Vector2 Move;
             public Quaternion Rotation;
             public float ViewPitch;
-            public bool IsWalking;
+            public bool IsRunning;
             public bool IsCrouching;
             public bool Jumped;
         }
@@ -36,7 +36,7 @@ namespace GameFramework {
         public Vector3 LocalVelocity => transform.InverseTransformDirection(Velocity);
 
         public bool IsMoving => Velocity.sqrMagnitude > 0.01f;
-        public bool WalkInput => _walkInput;
+        public bool RunInput => _runInput;
         public bool IsCrouching { get; private set; }
         public bool CrouchInput => _crouchInput;
         public bool InProceduralMovement { get; set; }
@@ -55,7 +55,7 @@ namespace GameFramework {
         Character _character;
 
         Vector2 _stickInput;
-        bool _walkInput, _crouchInput, _jumpInput;
+        bool _runInput, _crouchInput, _jumpInput;
 
         Vector3 _velocity;
         byte _jumpFrames;
@@ -92,8 +92,8 @@ namespace GameFramework {
             ViewPitch = Mathf.Clamp(value.y, MinViewPitch, MaxViewPitch);
         }
 
-        public void SetWalk(bool value) => _walkInput = value;
-        public void SetCrouch(bool value) => _crouchInput = value;
+        public void SetIsRunning(bool value) => _runInput = value;
+        public void SetIsCrouching(bool value) => _crouchInput = value;
         public void Jump() {
             if (!CanMove)
                 return;
@@ -146,7 +146,7 @@ namespace GameFramework {
 
         public void ConsumeCommand(ref CharacterCommand cmd) {
             cmd.Stick = _stickInput;
-            cmd.Walk = _walkInput;
+            cmd.Run = _runInput;
             cmd.Crouch = _crouchInput;
             cmd.Jump = _jumpInput;
             cmd.Yaw = Yaw;
@@ -206,7 +206,7 @@ namespace GameFramework {
             if (cmd.Jump && IsGrounded && _jumpFrames == 0) {
                 _jumpFrames = Settings.JumpFrames;
                 _velocity.y = Settings.JumpForce;
-                SetCrouch(false);
+                SetIsCrouching(false);
             }
 
             // Move
@@ -215,19 +215,21 @@ namespace GameFramework {
                 newDesiredMovement.Normalize();
             }
 
-            if (IsOnLadder) {
-                _velocity.y = newDesiredMovement.y * 2;
-                newDesiredMovement.y = 0;
-            }
+
 
             newDesiredMovement = ApplyMovementModifiers(newDesiredMovement, cmd);
 
-            var control = IsGrounded ? Settings.GroundControl : Settings.AirControl;
+            var control = IsOnLadder || IsGrounded ? Settings.GroundControl : Settings.AirControl;
             _velocity.x = Mathf.LerpUnclamped(_velocity.x, newDesiredMovement.x, control);
             _velocity.z = Mathf.LerpUnclamped(_velocity.z, newDesiredMovement.y, control);
 
+            if (IsOnLadder) {
+                _velocity.y = newDesiredMovement.y;
+                newDesiredMovement.y = 0;
+            }
+
             var groundClamp = Vector3.zero;
-            if (IsGrounded && _jumpFrames == 0) {
+            if (!IsOnLadder && IsGrounded && _jumpFrames == 0) {
                 groundClamp = -transform.up * GroundDistance;
             }
 
@@ -248,7 +250,7 @@ namespace GameFramework {
             resultState.Move = Vector3.LerpUnclamped(oldState.Move, newState.Move, t);
             resultState.Rotation = Quaternion.SlerpUnclamped(oldState.Rotation, newState.Rotation, t);
             resultState.ViewPitch = Mathf.LerpUnclamped(oldState.ViewPitch, newState.ViewPitch, t);
-            resultState.IsWalking = newState.IsWalking;
+            resultState.IsRunning = newState.IsRunning;
             resultState.IsCrouching = newState.IsCrouching;
             resultState.Jumped = newState.Jumped;
         }
@@ -343,12 +345,12 @@ namespace GameFramework {
         }
 
         Vector2 ApplyMovementModifiers(Vector2 localMovement, CharacterCommand cmd) {
-            if (cmd.Walk) {
-                localMovement *= Settings.WalkSpeed;
+            if (cmd.Run) {
+                localMovement *= Settings.RunSpeed;
             } else if (IsCrouching) {
                 localMovement *= Settings.CrouchSpeed;
             } else {
-                localMovement *= Settings.RunSpeed;
+                localMovement *= Settings.WalkSpeed;
             }
 
             if (localMovement.y <= 0) {
@@ -372,8 +374,8 @@ namespace GameFramework {
             if (newState.Jumped) {
                 Jumped?.Invoke();
             }
-            SetWalk(newState.IsWalking);
-            SetCrouch(newState.IsCrouching);
+            SetIsRunning(newState.IsRunning);
+            SetIsCrouching(newState.IsCrouching);
 
             _character.View.localRotation = Quaternion.AngleAxis(newState.ViewPitch, Vector3.left);
 
@@ -403,7 +405,7 @@ namespace GameFramework {
             bs.WriteLossyFloat(ViewPitch, MinViewPitch, MaxViewPitch, 1);
             bs.WriteLossyFloat(LastStick.x, -1, 1, 0.25f);
             bs.WriteLossyFloat(LastStick.y, -1, 1, 0.25f);
-            bs.WriteBool(WalkInput);
+            bs.WriteBool(RunInput);
             bs.WriteBool(IsCrouching);
             bs.WriteBool(_jumpInput);
         }
@@ -433,7 +435,7 @@ namespace GameFramework {
                 Move = move,
                 Rotation = Quaternion.AngleAxis(yaw, Vector3.up),
                 ViewPitch = viewPitch,
-                IsWalking = walking,
+                IsRunning = walking,
                 IsCrouching = crouching,
                 Jumped = jumped
             };
