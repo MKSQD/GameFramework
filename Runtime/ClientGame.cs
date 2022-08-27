@@ -3,13 +3,13 @@ using UnityEditor;
 using UnityEngine;
 
 namespace GameFramework {
-    public struct StartedLoading : IEvent {
-        public string SceneName;
+    public readonly struct StartedLoading : IEvent {
+        public string SceneName { get; }
         public StartedLoading(string sceneName) {
             SceneName = sceneName;
         }
     }
-    public struct EndedLoadingEvent : IEvent { }
+    public readonly struct EndedLoadingEvent : IEvent { }
 
     public class ClientGame : CubeClient {
         public static ClientGame Main;
