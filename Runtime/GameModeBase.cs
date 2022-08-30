@@ -1,7 +1,4 @@
-﻿using Cube.Replication;
-using UnityEngine;
-
-namespace GameFramework {
+﻿namespace GameFramework {
     public abstract class GameModeBase : IGameMode {
         public ServerGame Server;
 
