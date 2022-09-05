@@ -91,7 +91,12 @@ namespace GameFramework {
             View.localPosition = Vector3.up * 1.1f + View.localRotation * Vector3.up * 0.45f;
         }
 
-        protected virtual void OnLook(Vector2 value) => Movement.AddLook(value);
+        protected virtual void OnLook(Vector2 value) {
+            if (Cursor.visible)
+                return;
+
+            Movement.AddLook(value);
+        }
 
         protected override void OnPossession(Pawn previousPawn) { }
         protected override void OnUnpossession() { }
