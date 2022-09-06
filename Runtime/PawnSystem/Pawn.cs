@@ -5,27 +5,33 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace GameFramework {
+    public interface IPawnCommand : IBitSerializable { }
+    public interface IPawnState : IBitSerializable { }
+
     public interface IAuthorativePawnMovement {
         /// <summary>
         /// ConsumeMove creates a new move initialized with the current input values.
         /// Note that some input values should be reset here.
         /// </summary>
-        IBitSerializable ConsumeCommand();
+        IPawnCommand ConsumeCommand();
         /// <summary>
         /// CreateMove creates a new, empty move.
         /// </summary>
-        IBitSerializable CreateCommand();
+        IPawnCommand CreateCommand();
         /// <summary>
         /// ExecuteMove simulates move relative to the current state.
         /// </summary>
-        void ExecuteCommand(IBitSerializable move);
+        void ExecuteCommand(IPawnCommand move);
 
-        IBitSerializable CreateState();
-        void GetState(ref IBitSerializable state);
+        IPawnState CreateState();
+        void GetState(ref IPawnState state);
         /// <summary>
         /// ResetToState resets the instance to the RESULT values of move.
         /// </summary>
-        void ResetToState(IBitSerializable move);
+        void ResetToState(IPawnState move);
+
+        void SerializableInitialState(IBitWriter bs) { }
+        void DeserializeInitialState(BitReader bs) { }
 
         void Teleport(Vector3 targetPosition, Quaternion targetRotation);
     }

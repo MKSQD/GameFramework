@@ -28,12 +28,12 @@ namespace GameFramework {
         }
 
         uint _lastAcceptedFrame;
-        public void OnCommands(Connection connection, BitReader bs) {
+        public void OnCommands(BitReader bs) {
             if (_authorativeMovement == null)
                 return;
 
             ExecuteReceivedCommands(bs);
-            SendStateToClient(connection);
+            SendStateToClient();
         }
 
         void ExecuteReceivedCommands(BitReader bs) {
@@ -53,7 +53,7 @@ namespace GameFramework {
             }
         }
 
-        void SendStateToClient(Connection connection) {
+        void SendStateToClient() {
             var state = _authorativeMovement.CreateState();
             _authorativeMovement.GetState(ref state);
 
@@ -62,7 +62,7 @@ namespace GameFramework {
             bs2.WriteUInt(_lastAcceptedFrame);
             state.Serialize(bs2);
 
-            _server.NetworkInterface.SendPacket(bs2, PacketReliability.Unreliable, connection);
+            _server.NetworkInterface.SendPacket(bs2, PacketReliability.Unreliable, Connection);
         }
 
         protected override void OnPossessed(Pawn pawn) {
@@ -92,6 +92,9 @@ namespace GameFramework {
             bs.WriteByte((byte)MessageId.PossessPawn);
             bs.WriteReplicaId(Pawn.Replica);
             bs.WriteByte(pawnIdx);
+
+            // Make sure the player starts at a valid state (f.i. with the correct rotation)
+            _authorativeMovement.SerializableInitialState(bs);
 
             Pawn.server.NetworkInterface.SendPacket(bs, PacketReliability.ReliableSequenced, Connection, MessageChannel.SceneLoad);
         }

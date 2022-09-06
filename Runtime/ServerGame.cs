@@ -114,7 +114,7 @@ namespace GameFramework {
             if (pc == null)
                 return;
 
-            pc.OnCommands(connection, bs);
+            pc.OnCommands(bs);
         }
 
 #if UNITY_EDITOR

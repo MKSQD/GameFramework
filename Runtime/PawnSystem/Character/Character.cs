@@ -3,7 +3,7 @@ using UnityEditor;
 using UnityEngine;
 
 namespace GameFramework {
-    public class CharacterCommand : IBitSerializable {
+    public class CharacterCommand : IPawnCommand {
         public Vector2 Stick;
         public float Yaw, ViewPitch;
         public bool Run, Crouch, Jump;
@@ -29,7 +29,7 @@ namespace GameFramework {
         }
     }
 
-    public class CharacterState : IBitSerializable {
+    public class CharacterState : IPawnState {
         public Vector3 Position;
         public Vector3 Velocity;
         public bool IsGrounded;
@@ -64,20 +64,20 @@ namespace GameFramework {
             input.BindStartedAction("Gameplay/Jump", Movement.Jump);
         }
 
-        public virtual IBitSerializable CreateCommand() => new CharacterCommand();
-        public virtual IBitSerializable ConsumeCommand() {
+        public virtual IPawnCommand CreateCommand() => new CharacterCommand();
+        public virtual IPawnCommand ConsumeCommand() {
             var newMove = (CharacterCommand)CreateCommand();
             Movement.ConsumeCommand(ref newMove);
             return newMove;
         }
-        public virtual void ExecuteCommand(IBitSerializable cmd) => Movement.ExecuteCommand((CharacterCommand)cmd);
+        public virtual void ExecuteCommand(IPawnCommand cmd) => Movement.ExecuteCommand((CharacterCommand)cmd);
 
-        public IBitSerializable CreateState() => new CharacterState();
-        public void GetState(ref IBitSerializable state) {
+        public IPawnState CreateState() => new CharacterState();
+        public void GetState(ref IPawnState state) {
             var state2 = (CharacterState)state;
             Movement.GetState(ref state2);
         }
-        public void ResetToState(IBitSerializable state) => Movement.ResetToState((CharacterState)state);
+        public void ResetToState(IPawnState state) => Movement.ResetToState((CharacterState)state);
 
 
         public void Teleport(Vector3 targetPosition, Quaternion targetRotation) => Movement.Teleport(targetPosition, targetRotation);

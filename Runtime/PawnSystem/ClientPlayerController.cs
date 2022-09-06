@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using Cube;
@@ -13,8 +14,8 @@ namespace GameFramework {
         byte _pawnIdxToPossess;
 
         static readonly int CommandBufferSize = 30;
-        readonly List<IBitSerializable> _commands = new(CommandBufferSize);
-        IBitSerializable _lastAcceptedState;
+        readonly List<IPawnCommand> _commands = new(CommandBufferSize);
+        IPawnState _lastAcceptedState;
         int _currentCommandIdx = 0;
         int _acceptedCommandIdx = 0;
         uint _acceptedFrame = 0;
@@ -111,9 +112,11 @@ namespace GameFramework {
             }
         }
 
+        BitReader _firstPawnState;
         public void OnPossessPawn(BitReader bs) {
             _currentReplicaToPossess = bs.ReadReplicaId();
             _pawnIdxToPossess = bs.ReadByte();
+            _firstPawnState = bs.Clone();
         }
 
         public override string ToString() => "ClientPlayerController";
@@ -154,6 +157,10 @@ namespace GameFramework {
 
                 _currentReplicaToPossess = ReplicaId.Invalid;
                 // Note: If we ever loose the Pawn we will NOT repossess it! This should be OK since we never timeout owned Replicas
+
+                // Now, apply first state
+                _authorativeMovement.DeserializeInitialState(_firstPawnState);
+                _firstPawnState = null;
             }
         }
     }
