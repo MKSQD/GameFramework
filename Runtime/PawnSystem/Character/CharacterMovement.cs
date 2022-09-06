@@ -229,7 +229,7 @@ namespace GameFramework {
             }
 
             var groundClamp = Vector3.zero;
-            if (!IsOnLadder && IsGrounded && _jumpFrames == 0) {
+            if (!IsOnLadder && IsGrounded && _jumpFrames == 0 && Settings.Gravity < -0.001f) {
                 groundClamp = -transform.up * GroundDistance;
             }
 
