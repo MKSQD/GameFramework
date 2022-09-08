@@ -158,8 +158,10 @@ namespace GameFramework {
                 _currentReplicaToPossess = ReplicaId.Invalid;
                 // Note: If we ever loose the Pawn we will NOT repossess it! This should be OK since we never timeout owned Replicas
 
-                // Now, apply first state
-                _authorativeMovement.DeserializeInitialState(_firstPawnState);
+                if (_authorativeMovement != null) {
+                    // Now, apply first state
+                    _authorativeMovement.DeserializeInitialState(_firstPawnState);
+                }
                 _firstPawnState = null;
             }
         }

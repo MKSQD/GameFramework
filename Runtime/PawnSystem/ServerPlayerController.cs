@@ -93,8 +93,11 @@ namespace GameFramework {
             bs.WriteReplicaId(Pawn.Replica);
             bs.WriteByte(pawnIdx);
 
-            // Make sure the player starts at a valid state (f.i. with the correct rotation)
-            _authorativeMovement.SerializableInitialState(bs);
+
+            if (_authorativeMovement != null) {
+                // Make sure the player starts at a valid state (f.i. with the correct rotation)
+                _authorativeMovement.SerializableInitialState(bs);
+            }
 
             Pawn.server.NetworkInterface.SendPacket(bs, PacketReliability.ReliableSequenced, Connection, MessageChannel.SceneLoad);
         }
