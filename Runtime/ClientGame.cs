@@ -3,13 +3,13 @@ using UnityEditor;
 using UnityEngine;
 
 namespace GameFramework {
-    public readonly struct StartedLoading : IEvent {
+    public class StartedLoading : IEvent {
         public string SceneName { get; }
         public StartedLoading(string sceneName) {
             SceneName = sceneName;
         }
     }
-    public readonly struct EndedLoadingEvent : IEvent { }
+    public class EndedLoadingEvent : IEvent { }
 
     public class ClientGame : CubeClient {
         public static ClientGame Main;
@@ -52,7 +52,7 @@ namespace GameFramework {
         }
 
         protected override void OnEndedLoadingMap() {
-            EventHub<EndedLoadingEvent>.EmitDefault();
+            EventHub<EndedLoadingEvent>.Emit(new());
         }
 
         void OnConnectionRequestAccepted() {

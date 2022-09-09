@@ -7,7 +7,7 @@ using UnityEditor;
 using UnityEngine;
 
 namespace GameFramework {
-    public struct PlayerJoinedEvent : IEvent {
+    public class PlayerJoinedEvent : IEvent {
         public readonly ServerPlayerController PlayerController;
         public PlayerJoinedEvent(ServerPlayerController playerController) {
             PlayerController = playerController;

@@ -6,8 +6,8 @@ using UnityEngine.Assertions;
 
 
 namespace GameFramework {
-    public struct StartedSneakingEvent : IEvent { }
-    public struct StoppedSneakingEvent : IEvent { }
+    public class StartedSneakingEvent : IEvent { }
+    public class StoppedSneakingEvent : IEvent { }
 
     [AddComponentMenu("CharacterSystem/CharacterMovement")]
     public class CharacterMovement : ReplicaBehaviour, StateExtrapolator<CharacterMovement.State>.IStateAdapter {
@@ -309,7 +309,7 @@ namespace GameFramework {
             if (!IsCrouching && crouch) {
                 // We can always crouch, no checks needed
                 if (isClient && IsOwned) {
-                    EventHub<StartedSneakingEvent>.EmitDefault();
+                    EventHub<StartedSneakingEvent>.Emit(new());
                 }
 
                 ResizeCC(Settings.CrouchRelativeHeight);
@@ -319,7 +319,7 @@ namespace GameFramework {
             if (IsCrouching && !crouch) {
                 if (CanStandUp()) {
                     if (isClient && IsOwned) {
-                        EventHub<StoppedSneakingEvent>.EmitDefault();
+                        EventHub<StoppedSneakingEvent>.Emit(new());
                     }
 
                     ResizeCC(1f / Settings.CrouchRelativeHeight);
