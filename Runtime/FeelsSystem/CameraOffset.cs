@@ -7,7 +7,7 @@ namespace GameFramework.FeelsSystem {
 
         public override void Do() => FeelsManager.Main.Add(this);
 
-        public static Quaternion CurrentRotation;
+        public static Quaternion CurrentRotation = Quaternion.identity;
         public static Vector3 CurrentOffset;
         public override void Reset() {
             CurrentOffset = Vector3.zero;

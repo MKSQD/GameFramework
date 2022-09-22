@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.IO;
 using Cube;
 using Cube.Replication;
 using Cube.Transport;
@@ -42,10 +40,6 @@ namespace GameFramework {
         }
 
         void UpdateCommands() {
-            //
-
-
-            // Gather input
             Input.Update();
 
             if (_authorativeMovement != null) {
