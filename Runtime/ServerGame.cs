@@ -64,6 +64,9 @@ namespace GameFramework {
             if (GameMode != null) { // null if there's no ongoing match
                 GameMode.HandleLeavingPlayer(playerController);
             }
+            if (PlayerControllers.Count == 0) {
+                UnloadMap();
+            }
         }
 
         public ServerPlayerController GetPlayerControllerForConnection(Connection connection) {
@@ -98,6 +101,7 @@ namespace GameFramework {
         protected override void OnLeaveMap() {
             if (GameMode != null) {
                 GameMode.StartToLeaveMap();
+                GameMode = null;
             }
         }
 

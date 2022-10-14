@@ -44,10 +44,10 @@ namespace GameFramework {
                 return;
             }
 
+            Debug.Log("[Server] <b>*** Match has ended ***</b>");
+
             CurrentMatchState = MatchState.WaitingPostMatch;
             OnMatchHasEnded();
-
-            Debug.Log("[Server] <b>*** Match has ended ***</b>");
         }
 
         public override void StartToLeaveMap() {
