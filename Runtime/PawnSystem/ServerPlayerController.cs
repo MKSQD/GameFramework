@@ -1,10 +1,12 @@
+using Cube;
 using Cube.Replication;
 using Cube.Transport;
+using UnityEngine;
 using UnityEngine.Assertions;
 
 namespace GameFramework {
     public class ServerPlayerController : PawnController {
-        public static int NumMaxCommands = 10;
+        public const int CommandBufferSize = 10;
 
         public Connection Connection => _replicaView.Connection;
 
@@ -12,19 +14,47 @@ namespace GameFramework {
         readonly ServerGame _server;
         IAuthorativePawnMovement _authorativeMovement;
 
+        readonly IPawnCommand[] _commandQueue;
+        readonly uint[] _commandFrame;
+        int _currentCommandIdx;
+        int _newCommandIdx;
+
+        float _frameAcc;
+
         public ServerPlayerController(ReplicaView view, ServerGame server) {
             _replicaView = view;
             _server = server;
+            _commandQueue = new IPawnCommand[CommandBufferSize];
+            _commandFrame = new uint[CommandBufferSize];
         }
+
+        public override void Tick() { }
 
         public override void Update() {
             if (Pawn != null) {
                 _replicaView.transform.position = Pawn.transform.position;
                 _replicaView.transform.rotation = Pawn.transform.rotation;
+                if (_authorativeMovement != null) {
+                    UpdateAuthorativeMovement();
+                }
             }
         }
 
-        public override void Tick() {
+        void UpdateAuthorativeMovement() {
+            _frameAcc += Time.deltaTime;
+            if (_frameAcc >= Constants.FrameRate) {
+                _frameAcc -= Constants.FrameRate;
+
+                var command = _commandQueue[_currentCommandIdx];
+                _authorativeMovement.ExecuteCommand(command);
+
+                SendStateToClient();
+
+                var currentCommandIdx = (_currentCommandIdx + 1) % CommandBufferSize;
+                if (currentCommandIdx != _newCommandIdx) { // Only go to the next command if we have one queued
+                    _currentCommandIdx = currentCommandIdx;
+                }
+            }
         }
 
         uint _lastAcceptedFrame;
@@ -32,23 +62,20 @@ namespace GameFramework {
             if (_authorativeMovement == null)
                 return;
 
-            ExecuteReceivedCommands(bs);
-            SendStateToClient();
-        }
-
-        void ExecuteReceivedCommands(BitReader bs) {
-            // #todo can be cheated by sending max commands with every packet
-
             var frame = bs.ReadUInt();
-            var num = bs.ReadIntInRange(1, NumMaxCommands);
+            var num = bs.ReadIntInRange(1, CommandBufferSize);
 
-            var lastMove = _authorativeMovement.CreateCommand();
+            var newMove = _authorativeMovement.CreateCommand();
             for (int i = 0; i < num; ++i, ++frame) {
-                lastMove.Deserialize(bs);
+                newMove.Deserialize(bs);
                 if (frame <= _lastAcceptedFrame)
                     continue; // Old command -> ignore
 
-                _authorativeMovement.ExecuteCommand(lastMove);
+                _commandQueue[_newCommandIdx] = newMove;
+                _commandFrame[_newCommandIdx] = frame;
+                _newCommandIdx = (_newCommandIdx + 1) % CommandBufferSize;
+
+                _authorativeMovement.ExecuteCommand(newMove);
                 _lastAcceptedFrame = frame;
             }
         }
@@ -59,7 +86,7 @@ namespace GameFramework {
 
             var bs2 = new BitWriter();
             bs2.WriteByte((byte)MessageId.CommandsAccepted);
-            bs2.WriteUInt(_lastAcceptedFrame);
+            bs2.WriteUInt(_commandFrame[_currentCommandIdx]);
             state.Serialize(bs2);
 
             _server.NetworkInterface.SendPacket(bs2, PacketReliability.Unreliable, Connection);

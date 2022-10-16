@@ -11,60 +11,65 @@ namespace GameFramework {
         ReplicaId _currentReplicaToPossess = ReplicaId.Invalid;
         byte _pawnIdxToPossess;
 
-        static readonly int CommandBufferSize = 30;
-        readonly List<IPawnCommand> _commands = new(CommandBufferSize);
-        IPawnState _lastAcceptedState;
-        int _currentCommandIdx = 0;
-        int _acceptedCommandIdx = 0;
-        uint _acceptedFrame = 0;
 
-        float _frameAcc;
+        IPawnState _lastAcceptedState;
+        int _currentCommandIdx;
+        int _acceptedCommandIdx;
+        uint _acceptedFrame;
 
         readonly ClientGame _client;
+
+        static readonly int CommandBufferSize = ServerPlayerController.CommandBufferSize;
+        readonly IPawnCommand[] _commandQueue;
+
+        float _frameAcc;
 
         IAuthorativePawnMovement _authorativeMovement;
 
         public ClientPlayerController(ClientGame client) {
             _client = client;
-
-            for (int i = 0; i < CommandBufferSize; ++i) {
-                _commands.Add(null);
-            }
+            _commandQueue = new IPawnCommand[CommandBufferSize];
         }
 
         public override void Update() {
             if (Pawn == null)
                 return;
 
-            UpdateCommands();
+            Input.Update();
+            if (_authorativeMovement != null) {
+                UpdateAuthorativeMovement();
+            }
         }
 
-        void UpdateCommands() {
-            Input.Update();
+        // Started: 0,012
+        void UpdateAuthorativeMovement() {
+            var pos = Pawn.transform.position;
 
-            if (_authorativeMovement != null) {
-                // Reset to last good state
-                _authorativeMovement.ResetToState(_lastAcceptedState);
+            // Reset to last good state
+            _authorativeMovement.ResetToState(_lastAcceptedState);
 
-                // Replay pending commands
-                for (int i = _acceptedCommandIdx; i != _currentCommandIdx; i = (i + 1) % CommandBufferSize) {
-                    _authorativeMovement.ExecuteCommand(_commands[i]);
-                }
+            // Replay pending commands
+            for (int i = _acceptedCommandIdx; i != _currentCommandIdx; i = (i + 1) % CommandBufferSize) {
+                _authorativeMovement.ExecuteCommand(_commandQueue[i]);
+            }
 
-                _frameAcc += Time.deltaTime;
-                if (_frameAcc >= Constants.FrameRate) {
-                    _frameAcc -= Constants.FrameRate;
+            // var diff = (Pawn.transform.position - pos).magnitude;
+            // if (diff > 0.01f)
+            //     Debug.Log("Pos Diff after replay: " + diff);
 
-                    var queueFull = ((_currentCommandIdx + 1) % CommandBufferSize) == _acceptedCommandIdx;
-                    if (!queueFull) {
-                        var command = _authorativeMovement.ConsumeCommand();
-                        _commands[_currentCommandIdx] = command;
-                        _currentCommandIdx = (_currentCommandIdx + 1) % CommandBufferSize;
+            _frameAcc += Time.deltaTime;
+            if (_frameAcc >= Constants.FrameRate) {
+                _frameAcc -= Constants.FrameRate;
 
-                        _authorativeMovement.ExecuteCommand(command);
-                    } else {
-                        Debug.LogWarning("Command queue full");
-                    }
+                var queueFull = ((_currentCommandIdx + 1) % CommandBufferSize) == _acceptedCommandIdx;
+                if (!queueFull) {
+                    var command = _authorativeMovement.ConsumeCommand();
+                    _commandQueue[_currentCommandIdx] = command;
+                    _currentCommandIdx = (_currentCommandIdx + 1) % CommandBufferSize;
+
+                    _authorativeMovement.ExecuteCommand(command);
+                } else {
+                    Debug.LogWarning("Command queue full");
                 }
             }
         }
@@ -82,9 +87,9 @@ namespace GameFramework {
             var bs = new BitWriter(64);
             bs.WriteByte((byte)MessageId.Commands);
             bs.WriteUInt(_acceptedFrame);
-            bs.WriteIntInRange(numMoves, 1, ServerPlayerController.NumMaxCommands);
+            bs.WriteIntInRange(numMoves, 1, ServerPlayerController.CommandBufferSize);
             for (int i = _acceptedCommandIdx; i != _currentCommandIdx; i = (i + 1) % CommandBufferSize) {
-                _commands[i].Serialize(bs);
+                _commandQueue[i].Serialize(bs);
             }
 
             _client.NetworkInterface.Send(bs, PacketReliability.Unreliable, MessageChannel.Move);
@@ -98,11 +103,9 @@ namespace GameFramework {
             _lastAcceptedState.Deserialize(bs);
 
             // Throw away old moves
-            int num = 0;
             while (_acceptedFrame < acceptedFrame) {
                 _acceptedCommandIdx = (_acceptedCommandIdx + 1) % CommandBufferSize;
                 ++_acceptedFrame;
-                ++num;
             }
         }
 
