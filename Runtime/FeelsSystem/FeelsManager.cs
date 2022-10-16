@@ -16,7 +16,7 @@ namespace GameFramework.FeelsSystem {
             for (int i = 0; i < _activeFeels.Count; i++) {
                 var timeAndFeel = _activeFeels[i];
                 var feel = timeAndFeel.Item2;
-                feel.Reset();
+                feel.ResetFrame();
             }
 
             for (int i = 0; i < _activeFeels.Count; i++) {

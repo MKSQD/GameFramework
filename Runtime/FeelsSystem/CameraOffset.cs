@@ -9,7 +9,7 @@ namespace GameFramework.FeelsSystem {
 
         public static Quaternion CurrentRotation = Quaternion.identity;
         public static Vector3 CurrentOffset;
-        public override void Reset() {
+        public override void ResetFrame() {
             CurrentOffset = Vector3.zero;
             CurrentRotation = Quaternion.identity;
         }

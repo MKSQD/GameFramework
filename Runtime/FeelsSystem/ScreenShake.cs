@@ -2,37 +2,40 @@ using UnityEngine;
 
 namespace GameFramework.FeelsSystem {
     public class ScreenShake : FeelBase {
-        public AnimationCurve Intensity = AnimationCurve.Linear(0, 0.5f, 1, 0);
+        public AnimationCurve IntensityPosition = AnimationCurve.Linear(0, 0.5f, 1, 0);
+        public AnimationCurve IntensityRotation = AnimationCurve.Linear(0, 0.5f, 1, 0);
 
 
         public override void Do() => FeelsManager.Main.Add(this);
 
-        static float s_trauma;
+        static float s_traumaPosition;
+        static float s_traumaRotation;
 
         static float PN(float x) => (Mathf.PerlinNoise(x * 12, 0) - 0.5f) * 2;
 
         public static Quaternion CalculateCurrentRotation() {
-            var trauma = s_trauma * s_trauma;
+            var trauma = s_traumaRotation * s_traumaRotation;
             return Quaternion.Euler(
-                6 * trauma * PN(Time.time),
-                6 * trauma * PN(Time.time + 1),
-                6 * trauma * PN(Time.time + 2));
+                60 * trauma * PN(Time.time * 5),
+                60 * trauma * PN(Time.time * 5 + 3),
+                0);
         }
 
         public static Vector2 CalculateCurrentOffset() {
-            var trauma = s_trauma * s_trauma;
+            var trauma = s_traumaPosition * s_traumaPosition;
             return new Vector2(
-                0.05f * trauma * PN(Time.time + 3),
-                0.05f * trauma * PN(Time.time + 4));
+                0.05f * trauma * PN(Time.time * 5 + 3),
+                0.05f * trauma * PN(Time.time * 5 + 7));
         }
 
-        public override void Reset() {
-            s_trauma = 0;
+        public override void ResetFrame() {
+            s_traumaPosition = 0;
+            s_traumaRotation = 0;
         }
 
         public override void Evaluate(float t) {
-            var intensity = Intensity.Evaluate(t);
-            s_trauma = Mathf.Clamp01(s_trauma + intensity);
+            s_traumaPosition = Mathf.Clamp01(s_traumaPosition + IntensityPosition.Evaluate(t));
+            s_traumaRotation = Mathf.Clamp01(s_traumaRotation + IntensityRotation.Evaluate(t));
         }
     }
 }

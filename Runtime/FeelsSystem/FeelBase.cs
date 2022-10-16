@@ -4,7 +4,7 @@ namespace GameFramework.FeelsSystem {
 
         public abstract void Do();
 
-        public abstract void Reset();
+        public abstract void ResetFrame();
         public abstract void Evaluate(float t);
     }
 }
