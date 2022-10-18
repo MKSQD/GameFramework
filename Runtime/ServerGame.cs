@@ -20,11 +20,6 @@ namespace GameFramework {
         public GameObject GameState;
         public List<ServerPlayerController> PlayerControllers = new();
 
-
-
-
-
-
         protected override void Awake() {
             base.Awake();
 

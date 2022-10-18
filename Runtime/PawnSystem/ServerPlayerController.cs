@@ -1,7 +1,5 @@
-using Cube;
 using Cube.Replication;
 using Cube.Transport;
-using UnityEngine;
 using UnityEngine.Assertions;
 
 namespace GameFramework {
@@ -14,18 +12,9 @@ namespace GameFramework {
         readonly ServerGame _server;
         IAuthorativePawnMovement _authorativeMovement;
 
-        readonly IPawnCommand[] _commandQueue;
-        readonly uint[] _commandFrame;
-        int _currentCommandIdx;
-        int _newCommandIdx;
-
-        float _frameAcc;
-
         public ServerPlayerController(ReplicaView view, ServerGame server) {
             _replicaView = view;
             _server = server;
-            _commandQueue = new IPawnCommand[CommandBufferSize];
-            _commandFrame = new uint[CommandBufferSize];
         }
 
         public override void Tick() { }
@@ -34,26 +23,6 @@ namespace GameFramework {
             if (Pawn != null) {
                 _replicaView.transform.position = Pawn.transform.position;
                 _replicaView.transform.rotation = Pawn.transform.rotation;
-                if (_authorativeMovement != null) {
-                    UpdateAuthorativeMovement();
-                }
-            }
-        }
-
-        void UpdateAuthorativeMovement() {
-            _frameAcc += Time.deltaTime;
-            if (_frameAcc >= Constants.FrameRate) {
-                _frameAcc -= Constants.FrameRate;
-
-                var command = _commandQueue[_currentCommandIdx];
-                _authorativeMovement.ExecuteCommand(command);
-
-                SendStateToClient();
-
-                var currentCommandIdx = (_currentCommandIdx + 1) % CommandBufferSize;
-                if (currentCommandIdx != _newCommandIdx) { // Only go to the next command if we have one queued
-                    _currentCommandIdx = currentCommandIdx;
-                }
             }
         }
 
@@ -71,13 +40,12 @@ namespace GameFramework {
                 if (frame <= _lastAcceptedFrame)
                     continue; // Old command -> ignore
 
-                _commandQueue[_newCommandIdx] = newMove;
-                _commandFrame[_newCommandIdx] = frame;
-                _newCommandIdx = (_newCommandIdx + 1) % CommandBufferSize;
-
                 _authorativeMovement.ExecuteCommand(newMove);
+
                 _lastAcceptedFrame = frame;
             }
+
+            SendStateToClient();
         }
 
         void SendStateToClient() {
@@ -86,14 +54,14 @@ namespace GameFramework {
 
             var bs2 = new BitWriter();
             bs2.WriteByte((byte)MessageId.CommandsAccepted);
-            bs2.WriteUInt(_commandFrame[_currentCommandIdx]);
+            bs2.WriteUInt(_lastAcceptedFrame);
             state.Serialize(bs2);
 
             _server.NetworkInterface.SendPacket(bs2, PacketReliability.Unreliable, Connection);
         }
 
         protected override void OnPossessed(Pawn pawn) {
-            _authorativeMovement = Pawn.GetComponent<IAuthorativePawnMovement>();
+            _authorativeMovement = pawn.GetComponent<IAuthorativePawnMovement>();
             pawn.Replica.AssignOwnership(Connection);
             SendPossession();
         }

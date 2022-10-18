@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Cube;
 using Cube.Replication;
 using Cube.Transport;
@@ -41,10 +40,7 @@ namespace GameFramework {
             }
         }
 
-        // Started: 0,012
         void UpdateAuthorativeMovement() {
-            var pos = Pawn.transform.position;
-
             // Reset to last good state
             _authorativeMovement.ResetToState(_lastAcceptedState);
 
@@ -52,10 +48,6 @@ namespace GameFramework {
             for (int i = _acceptedCommandIdx; i != _currentCommandIdx; i = (i + 1) % CommandBufferSize) {
                 _authorativeMovement.ExecuteCommand(_commandQueue[i]);
             }
-
-            // var diff = (Pawn.transform.position - pos).magnitude;
-            // if (diff > 0.01f)
-            //     Debug.Log("Pos Diff after replay: " + diff);
 
             _frameAcc += Time.deltaTime;
             if (_frameAcc >= Constants.FrameRate) {
