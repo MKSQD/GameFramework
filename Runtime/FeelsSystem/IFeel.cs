@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace GameFramework.FeelsSystem {
     public interface IFeel {
-        void Do() => throw new Exception("Not implemented");
-        void Do(Vector3 position, Quaternion rotation) => Do();
+        void Exec() => throw new Exception("Not implemented");
+        void ExecAtPosition(Vector3 position) => Exec();
     }
 }

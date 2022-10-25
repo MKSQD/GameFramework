@@ -2,11 +2,11 @@ using UnityEngine;
 
 namespace GameFramework.FeelsSystem {
     public class ScreenShake : FeelBase {
-        public AnimationCurve IntensityPosition = AnimationCurve.Linear(0, 0.5f, 1, 0);
+        public AnimationCurve IntensityPosition = AnimationCurve.Linear(0, 0, 1, 0);
         public AnimationCurve IntensityRotation = AnimationCurve.Linear(0, 0.5f, 1, 0);
 
 
-        public override void Do() => FeelsManager.Main.Add(this);
+        public override void Exec() => FeelsManager.Main.Add(this);
 
         static float s_traumaPosition;
         static float s_traumaRotation;

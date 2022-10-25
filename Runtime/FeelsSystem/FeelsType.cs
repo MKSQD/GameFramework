@@ -10,13 +10,13 @@ namespace GameFramework.FeelsSystem {
 
         public void Trigger() {
             foreach (var feel in Feels) {
-                feel.Do();
+                feel.Exec();
             }
         }
 
-         public void Trigger(Vector3 position, Quaternion rotation) {
+        public void TriggerAtPosition(Vector3 position) {
             foreach (var feel in Feels) {
-                feel.Do(position, rotation);
+                feel.ExecAtPosition(position);
             }
         }
 

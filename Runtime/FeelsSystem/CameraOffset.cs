@@ -5,7 +5,7 @@ namespace GameFramework.FeelsSystem {
         public AnimationCurve TranslationX = AnimationCurve.Linear(0, 0, 1, 0), TranslationY = AnimationCurve.Linear(0, 0, 1, 0), TranslationZ = AnimationCurve.Linear(0, 0, 1, 0);
         public AnimationCurve RotationX = AnimationCurve.Linear(0, 0, 1, 0), RotationY = AnimationCurve.Linear(0, 0, 1, 0), RotationZ = AnimationCurve.Linear(0, 0, 1, 0);
 
-        public override void Do() => FeelsManager.Main.Add(this);
+        public override void Exec() => FeelsManager.Main.Add(this);
 
         public static Quaternion CurrentRotation = Quaternion.identity;
         public static Vector3 CurrentOffset;
