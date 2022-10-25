@@ -28,7 +28,7 @@ namespace GameFramework {
 
         uint _lastAcceptedFrame;
         public void OnCommands(BitReader bs) {
-            if (_authorativeMovement == null)
+            if (Pawn == null || _authorativeMovement == null)
                 return;
 
             var frame = bs.ReadUInt();
