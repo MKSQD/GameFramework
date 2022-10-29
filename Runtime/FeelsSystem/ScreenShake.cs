@@ -16,16 +16,16 @@ namespace GameFramework.FeelsSystem {
         public static Quaternion CalculateCurrentRotation() {
             var trauma = s_traumaRotation * s_traumaRotation;
             return Quaternion.Euler(
-                60 * trauma * PN(Time.time * 5),
-                60 * trauma * PN(Time.time * 5 + 3),
-                0);
+                40 * trauma * PN(Time.time * 2),
+                40 * trauma * PN(Time.time * 2 + 3),
+                40 * trauma * PN(Time.time * 2 + 6));
         }
 
         public static Vector2 CalculateCurrentOffset() {
             var trauma = s_traumaPosition * s_traumaPosition;
             return new Vector2(
-                0.05f * trauma * PN(Time.time * 5 + 3),
-                0.05f * trauma * PN(Time.time * 5 + 7));
+                0.05f * trauma * PN(Time.time * 2 + 2),
+                0.05f * trauma * PN(Time.time * 2 + 7));
         }
 
         public override void ResetFrame() {
