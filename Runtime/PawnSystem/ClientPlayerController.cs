@@ -1,7 +1,10 @@
+using System.IO;
 using Cube;
 using Cube.Replication;
 using Cube.Transport;
+using GameCore;
 using UnityEngine;
+using UnityEngine.Assertions;
 
 namespace GameFramework {
     public class ClientPlayerController : PawnController {
@@ -12,14 +15,13 @@ namespace GameFramework {
 
 
         IPawnState _lastAcceptedState;
-        int _currentCommandIdx;
-        int _acceptedCommandIdx;
-        uint _acceptedFrame;
+        uint _lastAcceptedFrame;
+        uint _currentFrame;
 
         readonly ClientGame _client;
 
         static readonly int CommandBufferSize = ServerPlayerController.CommandBufferSize;
-        readonly IPawnCommand[] _commandQueue;
+        readonly RingBuffer<(uint, IPawnCommand)> _commandQueue;
 
         float _frameAcc;
 
@@ -27,7 +29,9 @@ namespace GameFramework {
 
         public ClientPlayerController(ClientGame client) {
             _client = client;
-            _commandQueue = new IPawnCommand[CommandBufferSize];
+            _commandQueue = new RingBuffer<(uint, IPawnCommand)>(CommandBufferSize);
+
+            //File.Delete(@"C:\Users\Admin\Desktop\ClientPC.log");
         }
 
         public override void Update() {
@@ -41,28 +45,23 @@ namespace GameFramework {
         }
 
         void UpdateAuthorativeMovement() {
-            // Reset to last good state
-            _authorativeMovement.ResetToState(_lastAcceptedState);
 
-            // Replay pending commands
-            for (int i = _acceptedCommandIdx; i != _currentCommandIdx; i = (i + 1) % CommandBufferSize) {
-                _authorativeMovement.ExecuteCommand(_commandQueue[i]);
-            }
 
             _frameAcc += Time.deltaTime;
-            if (_frameAcc >= Constants.FrameRate) {
+            while (_frameAcc >= Constants.FrameRate) {
                 _frameAcc -= Constants.FrameRate;
+                ++_currentFrame;
 
-                var queueFull = ((_currentCommandIdx + 1) % CommandBufferSize) == _acceptedCommandIdx;
-                if (!queueFull) {
-                    var command = _authorativeMovement.ConsumeCommand();
-                    _commandQueue[_currentCommandIdx] = command;
-                    _currentCommandIdx = (_currentCommandIdx + 1) % CommandBufferSize;
-
-                    _authorativeMovement.ExecuteCommand(command);
-                } else {
+                if (_commandQueue.IsFull) {
+                    //File.AppendAllText(@"C:\Users\Admin\Desktop\ClientPC.log", $"{_currentFrame,3}: Command queue full\n");
                     Debug.LogWarning("Command queue full");
+                    return;
                 }
+
+                var command = _authorativeMovement.ConsumeCommand();
+                _commandQueue.Enqueue((_currentFrame, command));
+
+                _authorativeMovement.ExecuteCommand(command);
             }
         }
 
@@ -72,32 +71,64 @@ namespace GameFramework {
         }
 
         void SendCommands() {
-            var numMoves = _currentCommandIdx >= _acceptedCommandIdx ? (_currentCommandIdx - _acceptedCommandIdx) : (CommandBufferSize + _currentCommandIdx - _acceptedCommandIdx);
-            if (Pawn == null || numMoves == 0 || _authorativeMovement == null)
+            if (Pawn == null || _commandQueue.Length == 0 || _authorativeMovement == null)
                 return;
+
+            // File.AppendAllText(@"C:\Users\Admin\Desktop\ClientPC.log", $"Sending\n");
+
+            var moves = _commandQueue.ToArray();
 
             var bs = new BitWriter(64);
             bs.WriteByte((byte)MessageId.Commands);
-            bs.WriteUInt(_acceptedFrame);
-            bs.WriteIntInRange(numMoves, 1, ServerPlayerController.CommandBufferSize);
-            for (int i = _acceptedCommandIdx; i != _currentCommandIdx; i = (i + 1) % CommandBufferSize) {
-                _commandQueue[i].Serialize(bs);
+            bs.WriteVector3(Pawn.transform.position);
+            bs.WriteUInt(_currentFrame);
+            bs.WriteIntInRange(moves.Length, 1, ServerPlayerController.CommandBufferSize);
+            foreach (var move in moves) {
+                move.Item2.Serialize(bs);
+                //File.AppendAllText(@"C:\Users\Admin\Desktop\ClientPC.log", $"  {move.Item1}\n");
             }
 
             _client.NetworkInterface.Send(bs, PacketReliability.Unreliable, MessageChannel.Move);
         }
 
         public void OnCommandsAccepted(BitReader bs) {
-            var acceptedFrame = bs.ReadUInt();
-            if (acceptedFrame < _acceptedFrame)
-                return;
+            //File.AppendAllText(@"C:\Users\Admin\Desktop\ClientPC.log", $"Accepted\n");
 
+            var acceptedFrame = bs.ReadUInt();
             _lastAcceptedState.Deserialize(bs);
 
+            if (acceptedFrame <= _lastAcceptedFrame) {
+                //Debug.Log($"Old update {acceptedFrame} <= {_lastAcceptedFrame}");
+                return; // Make sure this is not an old update
+            }
+            //Debug.Log($"Update {acceptedFrame}");
+
+            _lastAcceptedFrame = acceptedFrame;
+
             // Throw away old moves
-            while (_acceptedFrame < acceptedFrame) {
-                _acceptedCommandIdx = (_acceptedCommandIdx + 1) % CommandBufferSize;
-                ++_acceptedFrame;
+            while (_commandQueue.Length > 0 && _commandQueue.Peek().Item1 <= acceptedFrame) {
+                //File.AppendAllText(@"C:\Users\Admin\Desktop\ClientPC.log", $"  {_commandQueue.Peek().Item1} accepted\n");
+                _commandQueue.Dequeue();
+            }
+
+            {
+                var prevPos = Pawn.transform.position;
+                var prevRot = Pawn.transform.rotation;
+
+                // Reset to last good state
+                _authorativeMovement.ResetToState(_lastAcceptedState);
+
+                // Replay pending commands
+                var pendingMoves = _commandQueue.ToArray();
+                foreach (var pendingMove in pendingMoves) {
+                    _authorativeMovement.ExecuteCommand(pendingMove.Item2);
+                }
+
+                if ((prevPos - Pawn.transform.position).magnitude < 0.1f) {
+                    _authorativeMovement.Teleport(prevPos, prevRot);
+                } else {
+                    //DebugExt.DrawText(Pawn.transform.position, "Movement miss " + pendingMoves.Length, Color.red, 10);
+                }
             }
         }
 
