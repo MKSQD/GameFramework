@@ -22,7 +22,7 @@ namespace GameFramework {
             _replicaView = view;
             _server = server;
 
-            //File.Delete(@"C:\Users\Admin\Desktop\ServerPC.log");
+            File.Delete(@"C:\Users\Admin\Desktop\ServerPC.log");
         }
 
         public override void Tick() { }
@@ -43,7 +43,7 @@ namespace GameFramework {
             var lastFrame = bs.ReadUInt();
             var num = bs.ReadIntInRange(1, CommandBufferSize);
 
-            //File.AppendAllText(@"C:\Users\Admin\Desktop\ServerPC.log", $"Received\n");
+            File.AppendAllText(@"C:\Users\Admin\Desktop\ServerPC.log", $"Received\n");
 
             for (int i = 0; i < num; ++i) {
                 var newMove = _authorativeMovement.CreateCommand();
@@ -51,7 +51,7 @@ namespace GameFramework {
 
                 var frame = (lastFrame - (num - 1)) + i;
                 if (frame <= _frame) {
-                    //File.AppendAllText(@"C:\Users\Admin\Desktop\ServerPC.log", $"  {frame} discarded\n");
+                    File.AppendAllText(@"C:\Users\Admin\Desktop\ServerPC.log", $"  {frame} discarded\n");
                     continue; // Old command -> ignore
                 }
 
@@ -59,10 +59,13 @@ namespace GameFramework {
 
                 _frame = (uint)frame;
 
-                //File.AppendAllText(@"C:\Users\Admin\Desktop\ServerPC.log", $"  {frame} ok\n");
+                File.AppendAllText(@"C:\Users\Admin\Desktop\ServerPC.log", $"  {frame} ok\n");
             }
 
-            if ((pos - Pawn.transform.position).magnitude < 0.2f) {
+            var diffToClient = (pos - Pawn.transform.position).magnitude;
+            if (diffToClient < 0.25f) {
+                File.AppendAllText(@"C:\Users\Admin\Desktop\ServerPC.log", $"  HUGE divergance from client ({diffToClient})\n");
+
                 _authorativeMovement.Teleport(pos, Pawn.transform.rotation);
             } else {
                 //DebugExt.DrawText(Pawn.transform.position + Vector3.up * 0.1f, "Movement miss", Color.blue, 10);
