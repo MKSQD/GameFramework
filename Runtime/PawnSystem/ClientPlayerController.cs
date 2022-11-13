@@ -45,8 +45,6 @@ namespace GameFramework {
         }
 
         void UpdateAuthorativeMovement() {
-
-
             _frameAcc += Time.deltaTime;
             while (_frameAcc >= Constants.FrameRate) {
                 _frameAcc -= Constants.FrameRate;
