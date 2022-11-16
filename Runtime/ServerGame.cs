@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Cube;
 using Cube.Replication;
 using Cube.Transport;
+using GameCore;
 using UnityEditor;
 using UnityEngine;
 
